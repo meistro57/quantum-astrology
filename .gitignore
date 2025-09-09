@@ -1,0 +1,11 @@
+/vendor/
+/storage/cache/*
+!/storage/cache/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+.env
+config.php
+composer.lock
+*.log
+.DS_Store
+/data/ephemeris/sweph_data/*

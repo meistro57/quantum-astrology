@@ -1,0 +1,27 @@
+:root {
+    --quantum-primary: #4A90E2;
+    --quantum-gold: #FFD700;
+    --quantum-dark: #1a1a2e;
+    --quantum-text: #ffffff;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--quantum-dark);
+    color: var(--quantum-text);
+    margin: 0;
+    padding: 0;
+}
+
+.quantum-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    transition: transform 0.3s ease;
+}
+
+.quantum-card:hover {
+    transform: translateY(-2px);
+}
