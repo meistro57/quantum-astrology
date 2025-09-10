@@ -1,3 +1,5 @@
+<img width="799" height="1031" alt="image" src="https://github.com/user-attachments/assets/bf5c3fdb-5e4d-4d28-8a65-b7232a3583ae" />
+
 # Quantum Astrology
 
 Professional astrology software suite with Quantum Minds United branding. Swiss Ephemeris-powered chart calculations with beautiful, responsive interface.
@@ -259,3 +261,4 @@ For questions, issues, or feature requests:
 ---
 
 Built with precision and passion for the astrological arts.
+
