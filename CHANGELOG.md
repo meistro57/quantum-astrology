@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Environment-based configuration bootstrap (`config.php`)
+- Database backup utility script (`tools/backup-database.php`)
+
 ### Planned for v1.1 (Phase 1)
 - Swiss Ephemeris PHP library integration
 - MySQL database schema implementation

@@ -13,7 +13,7 @@
         "php": ">=8.0",
         "ext-json": "*",
         "ext-pdo": "*",
-        "carbon/carbon": "^2.0",
+        "nesbot/carbon": "^2.0",
         "vlucas/phpdotenv": "^5.0",
         "mpdf/mpdf": "^8.0"
     },

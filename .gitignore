@@ -4,7 +4,6 @@
 /storage/logs/*
 !/storage/logs/.gitkeep
 .env
-config.php
 composer.lock
 *.log
 .DS_Store
