@@ -4,6 +4,7 @@ declare(strict_types=1);
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
 use QuantumAstrology\Core\Csrf;
+use QuantumAstrology\Core\User;
 
 Auth::requireGuest();
 
@@ -29,13 +30,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors = Auth::getValidationErrors($formData);
 
         if (empty($errors)) {
-            $user = Auth::register($formData);
+            $result = Auth::register($formData);
 
-            if ($user) {
+            if ($result instanceof User) {
                 Csrf::clearToken();
                 Session::flash('success', 'Welcome to Quantum Astrology! Your account has been created.');
                 header('Location: /dashboard');
                 exit;
+            }
+
+            if ($result === Auth::ERROR_DUPLICATE) {
+                $errors[] = 'Email or username already exists.';
             } else {
                 $errors[] = 'Registration failed. Please try again.';
             }

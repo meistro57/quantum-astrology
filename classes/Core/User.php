@@ -8,6 +8,8 @@ use PDOException;
 
 class User
 {
+    public const ERROR_DUPLICATE = 1;
+
     private ?int $id = null;
     private ?string $username = null;
     private ?string $email = null;
@@ -17,14 +19,19 @@ class User
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
-    public static function create(array $userData): ?self
+    /**
+     * Create a new user record.
+     *
+     * @param array<string, mixed> $userData
+     * @return self|int|null Returns the created User, ERROR_DUPLICATE on unique constraint violation, or null on other failure
+     */
+    public static function create(array $userData): self|int|null
     {
         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
-        
+
         try {
-            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, created_at, updated_at) 
-                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, NOW(), NOW())";
-            
+            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, created_at, updated_at)\n                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, NOW(), NOW())";
+
             $params = [
                 'username' => $userData['username'],
                 'email' => $userData['email'],
@@ -33,11 +40,16 @@ class User
                 'last_name' => $userData['last_name'] ?? null,
                 'timezone' => $userData['timezone'] ?? 'UTC'
             ];
-            
+
             Connection::query($sql, $params);
-            
+
             return self::findByEmail($userData['email']);
         } catch (PDOException $e) {
+            if ($e->getCode() === '23000') {
+                error_log("User creation failed due to duplicate entry: " . $e->getMessage());
+                return self::ERROR_DUPLICATE;
+            }
+
             error_log("User creation failed: " . $e->getMessage());
             return null;
         }

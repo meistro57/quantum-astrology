@@ -8,6 +8,7 @@ use QuantumAstrology\Core\User;
 
 class Auth
 {
+    public const ERROR_DUPLICATE = User::ERROR_DUPLICATE;
     public static function requireLogin(?string $redirectTo = null): void
     {
         if (!Session::isLoggedIn()) {
@@ -79,77 +80,84 @@ class Auth
         return false;
     }
     
-    public static function register(array $userData): ?User
+    /**
+     * Register a new user.
+     *
+     * @param array<string, mixed> $userData
+     * @return User|int|null Returns the created user, ERROR_DUPLICATE on unique constraint violation, or null on other failure
+     */
+    public static function register(array $userData): User|int|null
     {
         if (self::validateRegistration($userData)) {
-            $user = User::create($userData);
-            
-            if ($user) {
-                self::login($user);
-                return $user;
+            $result = User::create($userData);
+
+            if ($result instanceof User) {
+                self::login($result);
+                return $result;
             }
+
+            return $result; // propagate error codes
         }
-        
+
         return null;
     }
     
+    /**
+     * Basic validation for registration data.
+     *
+     * @param array<string, mixed> $data
+     */
     private static function validateRegistration(array $data): bool
     {
         $required = ['username', 'email', 'password'];
-        
+
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 return false;
             }
         }
-        
+
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return false;
         }
-        
+
         if (strlen($data['password']) < 8) {
             return false;
         }
-        
-        if (User::findByEmail($data['email'])) {
-            return false;
-        }
-        
-        if (User::findByUsername($data['username'])) {
-            return false;
-        }
-        
+
         return true;
     }
     
+    /**
+     * Get validation errors for registration data.
+     *
+     * @param array<string, mixed> $data
+     * @return array<int, string>
+     */
     public static function getValidationErrors(array $data): array
     {
         $errors = [];
-        
+
         if (empty($data['username'])) {
             $errors[] = 'Username is required';
-        } elseif (User::findByUsername($data['username'])) {
-            $errors[] = 'Username is already taken';
         }
-        
+
         if (empty($data['email'])) {
             $errors[] = 'Email is required';
         } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Invalid email format';
-        } elseif (User::findByEmail($data['email'])) {
-            $errors[] = 'Email is already registered';
         }
-        
+
         if (empty($data['password'])) {
             $errors[] = 'Password is required';
         } elseif (strlen($data['password']) < 8) {
             $errors[] = 'Password must be at least 8 characters long';
         }
-        
+
         if (!empty($data['password_confirm']) && $data['password'] !== $data['password_confirm']) {
             $errors[] = 'Password confirmation does not match';
         }
-        
+
         return $errors;
     }
     
