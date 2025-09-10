@@ -31,7 +31,8 @@ class Application
         // Route handling
         switch (true) {
             case $path === '/' || $path === '':
-                $this->servePage('dashboard/index.php');
+                // Dashboard is handled by index.php itself, so just return
+                return;
                 break;
                 
             case str_starts_with($path, '/api/'):
