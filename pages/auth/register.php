@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
+use QuantumAstrology\Core\Csrf;
 
 Auth::requireGuest();
 
@@ -19,18 +20,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'last_name' => trim($_POST['last_name'] ?? ''),
         'timezone' => $_POST['timezone'] ?? 'UTC'
     ];
-    
-    $errors = Auth::getValidationErrors($formData);
-    
-    if (empty($errors)) {
-        $user = Auth::register($formData);
-        
-        if ($user) {
-            Session::flash('success', 'Welcome to Quantum Astrology! Your account has been created.');
-            header('Location: /dashboard');
-            exit;
-        } else {
-            $errors[] = 'Registration failed. Please try again.';
+
+    $csrfToken = $_POST['csrf_token'] ?? '';
+
+    if (!Csrf::validateToken($csrfToken)) {
+        $errors[] = 'Invalid request. Please try again.';
+    } else {
+        $errors = Auth::getValidationErrors($formData);
+
+        if (empty($errors)) {
+            $user = Auth::register($formData);
+
+            if ($user) {
+                Csrf::clearToken();
+                Session::flash('success', 'Welcome to Quantum Astrology! Your account has been created.');
+                header('Location: /dashboard');
+                exit;
+            } else {
+                $errors[] = 'Registration failed. Please try again.';
+            }
         }
     }
 }
@@ -198,6 +206,7 @@ $pageTitle = 'Create Account - Quantum Astrology';
             <?php endif; ?>
 
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Csrf::getToken()) ?>">
                 <div class="form-group">
                     <label for="username" class="form-label">Username *</label>
                     <input type="text" 
