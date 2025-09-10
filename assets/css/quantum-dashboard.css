@@ -3,26 +3,29 @@
     padding: 0;
     box-sizing: border-box;
 }
-
 :root {
-    --quantum-primary: #4A90E2;
-    --quantum-secondary: #F5A623;
-    --quantum-dark: #0a0a0f;
-    --quantum-darker: #070709;
-    --quantum-accent: #1a1a2e;
-    --quantum-gold: #FFD700;
-    --quantum-text: #ffffff;
-    --quantum-text-muted: #a0a0a0;
-    --quantum-blue: #00d4ff;
+    --quantum-dark: #0f1419;
+    --quantum-darker: #0a0e13;
+    --quantum-blue: #4a90e2;
     --quantum-purple: #8b5cf6;
+    --quantum-gold: #ffd700;
+    --quantum-text: #e2e8f0;
+    --quantum-text-muted: #94a3b8;
+    --quantum-card-bg: rgba(30, 41, 59, 0.4);
+    --quantum-card-border: rgba(148, 163, 184, 0.1);
+    --quantum-card-hover: rgba(30, 41, 59, 0.6);
+    --quantum-accent: #1e293b;
+    --quantum-gradient: linear-gradient(135deg, var(--quantum-blue), var(--quantum-purple));
 }
-
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, var(--quantum-dark) 0%, var(--quantum-darker) 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
     color: var(--quantum-text);
-    line-height: 1.6;
+    min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+    line-height: 1.6;
+}
 }
 
 /* Particles background */

@@ -31,10 +31,9 @@ class Application
         
         // Route handling
         switch (true) {
-            case $path === '/' || $path === '':
-                // Dashboard is handled by index.php itself, so just return
+            case $path === '/' || $path === '' || $path === '/dashboard':
+                // FIXED: All dashboard routes should return to index.php
                 return;
-                break;
                 
             case str_starts_with($path, '/api/'):
                 $this->handleApiRequest($path, $method);
@@ -78,10 +77,6 @@ class Application
                 
             case $path === '/logout':
                 $this->handleLogout();
-                break;
-                
-            case $path === '/dashboard':
-                $this->servePage('../index.php'); // Dashboard is handled by index.php
                 break;
                 
             default:
