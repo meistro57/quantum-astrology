@@ -11,14 +11,24 @@ Quantum Astrology provides professional-grade astrological calculations and char
 
 ## Features
 
-- **Natal Chart Generation** - Precise birth chart calculations with multiple house systems
+### ✅ **Implemented (v1.2)**
+- **Swiss Ephemeris Integration** - Professional astronomical calculations with command-line and analytical fallback
+- **Natal Chart Generation** - Complete birth chart calculations with planetary positions and houses
+- **Multiple House Systems** - Placidus, Koch, Equal, Whole Sign, Campanus, Regiomontanus, and more
+- **SVG Chart Wheels** - Professional astrological chart visualization with astronomical symbols
+- **Chart Management** - Create, view, edit, and organize personal chart libraries
+- **User Authentication** - Secure registration, login, and profile management
+- **Public/Private Sharing** - Chart sharing with proper access control
+- **Aspect Calculations** - Major aspects with configurable orbs and aspect detection
+- **Interactive UI** - Responsive interface optimized for astrological data
+
+### 📋 **Planned (v1.3+)**
 - **Transit Analysis** - Real-time planetary movement tracking and forecasting
 - **Progressions & Returns** - Secondary progressions, solar returns, lunar returns
 - **Synastry & Composite** - Relationship compatibility analysis
-- **Professional Reports** - Detailed PDF reports with optional AI narration
-- **Interactive Charts** - Beautiful SVG chart wheels with zoom and interaction
-- **Multiple Chart Types** - Natal, transit, progressed, harmonic, and electional charts
-- **Advanced Techniques** - Arabic parts, fixed stars, midpoints, and harmonics
+- **Professional Reports** - Detailed PDF reports with QMU branding
+- **Advanced Chart Types** - Transit, progressed, composite, and harmonic charts
+- **Interpretation System** - AI-powered chart readings and aspect analysis
 
 ## Technology Stack
 
@@ -59,7 +69,8 @@ Quantum Astrology provides professional-grade astrological calculations and char
 
 4. **Setup database**
    ```bash
-   php tools/setup-database.php
+   # Run database migrations to create user tables
+   php tools/migrate.php
    ```
 
 5. **Configure web server**
@@ -75,7 +86,14 @@ php -S localhost:8080 index.php
 
 Visit `http://localhost:8080` to access the quantum astrology dashboard.
 
-**Note**: The current implementation displays a fully functional dashboard interface. Core astrological calculations require Swiss Ephemeris integration (coming in next update).
+**First Time Setup**: 
+1. Navigate to `http://localhost:8080/register` to create your first user account
+2. Login at `http://localhost:8080/login` to access the protected dashboard
+3. Create your first natal chart at `http://localhost:8080/charts/create`
+4. View your chart library at `http://localhost:8080/charts`
+5. Manage your profile at `http://localhost:8080/profile`
+
+**Note**: The system now includes complete Swiss Ephemeris integration with professional natal chart generation and visualization.
 
 ## Configuration
 
@@ -112,29 +130,46 @@ The application requires Swiss Ephemeris for astronomical calculations:
 
 ## Usage
 
-### Basic Chart Generation
+### Creating Your First Natal Chart
 
-1. Navigate to the dashboard
-2. Click "Create New Chart"
-3. Enter birth data (date, time, location)
-4. Select chart type and house system
-5. Generate and view your chart
+1. **Register and Login** - Create your account and sign in to the system
+2. **Navigate to Chart Creation** - Click "Create New Chart" or visit `/charts/create`
+3. **Enter Birth Information**:
+   - Chart name (e.g., "John's Natal Chart")
+   - Birth date and exact time
+   - Birth timezone
+   - Birth location with latitude/longitude coordinates
+4. **Select Chart Settings**:
+   - Choose house system (Placidus, Koch, Equal, Whole Sign, etc.)
+   - Set chart privacy (public or private)
+5. **Generate Chart** - The system calculates planetary positions using Swiss Ephemeris
+6. **View Results** - Interactive chart wheel with detailed planetary positions and aspects
+
+### Chart Management
+
+- **View All Charts** - Access your chart library at `/charts`
+- **Chart Details** - Click any chart to view detailed information and SVG wheel
+- **Edit Charts** - Modify chart names, privacy settings, and metadata
+- **Share Charts** - Public charts can be viewed by other users
+- **Delete Charts** - Remove charts from your library with confirmation
 
 ### API Usage
 
 The application provides RESTful API endpoints:
 
 ```bash
-# Generate natal chart
-curl -X POST /api/charts/natal \
-  -H "Content-Type: application/json" \
-  -d '{"birth_date":"1990-01-01","birth_time":"12:00","latitude":40.7128,"longitude":-74.0060}'
+# Get chart wheel SVG
+curl -H "Cookie: PHPSESSID=your_session_id" \
+  http://localhost:8080/api/charts/123/wheel
 
-# Calculate transits
-curl -X POST /api/transits/calculate \
-  -H "Content-Type: application/json" \
-  -d '{"chart_id":"12345","date":"2024-01-01"}'
+# Health check
+curl http://localhost:8080/api/health
 ```
+
+**Available Endpoints**:
+- `GET /api/health` - System health check
+- `GET /api/charts/{id}/wheel` - SVG chart wheel generation (requires authentication)
+- Additional chart data endpoints coming in future updates
 
 ## Architecture
 
@@ -154,12 +189,14 @@ quantum-astrology/
 
 ### Core Components
 
-- **Chart Calculator**: Swiss Ephemeris integration for planetary positions
-- **House Systems**: Support for Placidus, Whole Sign, Equal, Koch, and others
-- **Aspect Engine**: Configurable orbs and aspect patterns
-- **Interpretation System**: Modular interpretation database
-- **Report Generator**: PDF and HTML report creation
-- **User Management**: Authentication and chart storage
+- **Swiss Ephemeris Integration**: Command-line swetest with analytical fallback for planetary calculations
+- **Chart Calculation Engine**: Complete natal chart generation with planetary positions and house cusps
+- **SVG Chart Wheels**: Professional astrological visualization with astronomical symbols
+- **House Systems**: Support for Placidus, Koch, Equal, Whole Sign, Campanus, and more
+- **Aspect Engine**: Major aspects with configurable orbs (conjunction, sextile, square, trine, opposition)
+- **Chart Management**: Full CRUD operations with public/private sharing
+- **User Authentication**: Complete session-based authentication with profile management
+- **Database Architecture**: Professional schema with JSON columns for complex astrological data
 
 ## Development
 
@@ -175,10 +212,11 @@ quantum-astrology/
 
 The application uses a normalized database structure:
 
-- **astro_users**: User accounts and preferences
-- **birth_profiles**: Birth data for individuals
-- **calculated_charts**: Cached chart calculations
-- **chart_sessions**: User interaction tracking
+- **users**: User accounts with authentication and profile data
+- **charts**: Complete chart storage with birth data, planetary positions, houses, and aspects
+- **birth_profiles**: Reusable person profiles with location and timezone data
+- **chart_sessions**: User interaction tracking and chart-specific preferences
+- **migrations**: Database schema version tracking and rollback support
 
 ### Testing
 
@@ -242,36 +280,61 @@ For questions, issues, or feature requests:
 
 ## Current Implementation Status
 
-### ✅ Completed (v1.0-alpha)
-- Core application infrastructure with PHP 8+ and PSR-4 autoloading
-- Configuration system with environment variables
-- Professional dashboard with Quantum Design System
-- Responsive UI with glassmorphism effects and particle animations
-- Modular CSS architecture for easy theming
-- Basic routing system for pages and API endpoints
-- Error handling and logging infrastructure
-- Directory structure for charts, reports, and storage
-- Application class with asset serving and 404 handling
+### ✅ Completed (v1.2-alpha) - Swiss Ephemeris Integration
+- **Core Application Infrastructure**
+  - PHP 8+ with PSR-4 autoloading under `QuantumAstrology\` namespace
+  - Configuration system with environment variables and `.env` support
+  - Professional dashboard with Quantum Design System
+  - Responsive UI with glassmorphism effects and particle animations
+  - Enhanced routing system for chart-specific URLs and API endpoints
 
-### 🔄 In Progress
-- Swiss Ephemeris PHP library integration
-- Database schema implementation
-- Chart calculation engine
-- User authentication system
+- **Complete User Authentication System** 
+  - User registration with username/email and secure password hashing
+  - Login system supporting both username and email authentication
+  - User profile management with timezone and personal information
+  - Session management with secure HTTP-only cookies
+  - Authentication middleware protecting dashboard and chart access
 
-### 📋 Next Phase (v1.1)
-- Natal chart generation with SVG visualization
-- Multiple house systems (Placidus, Whole Sign, Equal, Koch)
-- Transit calculations and timeline views
-- Basic interpretation system
-- PDF report generation
+- **Swiss Ephemeris Integration & Chart System**
+  - Command-line swetest integration with analytical calculation fallback
+  - Support for all major planets, moon nodes, Chiron, and Lilith
+  - Multiple house systems (Placidus, Koch, Equal, Whole Sign, Campanus, etc.)
+  - Complete natal chart generation with planetary positions and house cusps
+  - Major aspect calculations with configurable orbs and detection
+  - Professional SVG chart wheel generation with astronomical symbols
 
-### 🚀 Future Development (v1.2+)
-- Secondary progressions and solar returns
-- Synastry and composite charts
-- Advanced interpretation engine with AI insights
-- Mobile-responsive enhancements
-- API documentation and third-party integrations
+- **Chart Management System**
+  - Chart creation forms with comprehensive birth data validation
+  - Chart viewing interface with detailed planetary information
+  - Chart library with grid layout and management features
+  - Public/private chart sharing with proper access control
+  - Chart editing and deletion with user permission validation
+
+- **Database Architecture & API**
+  - Charts table with JSON columns for complex astrological data
+  - Birth profiles and chart sessions tables for enhanced functionality
+  - Migration system with version control and rollback support
+  - Chart wheel SVG API endpoint with authentication and caching
+  - Performance optimization with chart wheel caching system
+
+### 🔄 In Progress (v1.3-alpha) - Advanced Features
+- Transit calculations with real-time planetary movements
+- Secondary progressions and solar return calculations
+- Advanced interpretation system with AI integration
+
+### 📋 Next Phase (v1.4) - Professional Features
+- Interactive transit timeline with date ranges
+- Advanced aspect pattern recognition (Grand Trines, T-Squares, Yods)
+- Professional PDF report generation with QMU branding
+- Modular interpretation system with customizable rules
+- Chart comparison tools and synastry analysis
+
+### 🚀 Future Development (v1.5+)
+- Mobile app development with React Native
+- Advanced API integrations and third-party services
+- Multi-language support for international users
+- Enterprise features for professional astrologers
+- Advanced chart sharing and collaboration features
 
 ---
 

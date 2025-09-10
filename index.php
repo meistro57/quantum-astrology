@@ -29,23 +29,35 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 
 use QuantumAstrology\Core\Application;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Core\Session;
+use QuantumAstrology\Core\Auth;
 
 // Initialize application and handle routing
 $app = null;
 $error = null;
 
 try {
+    // Initialize session first
+    Session::start();
+    
     $app = new Application();
     // Check if this is an API request, asset request, or a page request
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
     
-    // If it's an API request or asset request, run the application normally
-    if (strpos($requestUri, '/api/') === 0 || strpos($requestUri, '/assets/') === 0) {
+    // If it's an API request or asset request, or other page routes, run the application normally
+    if (strpos($requestUri, '/api/') === 0 || 
+        strpos($requestUri, '/assets/') === 0 || 
+        strpos($requestUri, '/login') === 0 || 
+        strpos($requestUri, '/register') === 0 || 
+        strpos($requestUri, '/logout') === 0 || 
+        strpos($requestUri, '/profile') === 0 ||
+        strpos($requestUri, '/dashboard') === 0) {
         $app->run();
         return;
     }
     
-    // For the dashboard/main page, render the HTML interface
+    // For the root/main page, require login
+    Auth::requireLogin();
 } catch (Throwable $e) {
     // Last resort error handling
     Logger::error("Fatal application error", [
@@ -85,10 +97,16 @@ if ($error && !APP_DEBUG) {
             </div>
             <nav class="nav-links">
                 <a href="/" class="nav-link active">Dashboard</a>
-                <a href="/pages/charts/" class="nav-link">Charts</a>
-                <a href="/pages/timing/" class="nav-link">Transits</a>
-                <a href="/pages/reports/" class="nav-link">Reports</a>
-                <a href="/pages/dashboard/profile.php" class="nav-link">Profile</a>
+                <a href="/charts" class="nav-link">Charts</a>
+                <a href="/timing" class="nav-link">Transits</a>
+                <a href="/reports" class="nav-link">Reports</a>
+                <?php if (Auth::check()): ?>
+                    <div class="user-menu">
+                        <span class="user-name">Welcome, <?= htmlspecialchars(Auth::user()->getUsername()) ?>!</span>
+                        <a href="/profile" class="nav-link">Profile</a>
+                        <a href="/logout" class="nav-link">Logout</a>
+                    </div>
+                <?php endif; ?>
             </nav>
         </div>
     </header>
@@ -140,8 +158,8 @@ if ($error && !APP_DEBUG) {
                         📍 Libertyville, IL • 93.68% Moon
                     </div>
                     <div class="chart-actions">
-                        <a href="/pages/charts/view.php" class="btn btn-primary">View Chart</a>
-                        <a href="/api/charts/export" class="btn btn-secondary">Download</a>
+                        <a href="/charts/create" class="btn btn-primary">Create Chart</a>
+                        <a href="/charts" class="btn btn-secondary">View All</a>
                     </div>
                 </div>
 
@@ -179,7 +197,7 @@ if ($error && !APP_DEBUG) {
                 <div class="card-icon">📊</div>
                 <h3 class="card-title">Natal Charts</h3>
                 <p class="card-description">Generate precise birth charts with professional accuracy. Complete planetary positions, houses, and aspects.</p>
-                <a href="/pages/charts/create.php" class="btn btn-primary">Create New Chart</a>
+                <a href="/charts/create" class="btn btn-primary">Create New Chart</a>
             </div>
 
             <div class="dashboard-card">

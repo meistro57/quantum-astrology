@@ -49,6 +49,19 @@ define('CACHE_TTL', (int) env('CACHE_TTL', 3600));
 define('SWEPH_PATH', (string) env('SWEPH_PATH', '/usr/local/bin/swetest'));
 define('SWEPH_DATA_PATH', (string) env('SWEPH_DATA_PATH', ROOT_PATH . '/data/ephemeris'));
 
+// HTTPS detection
+define('HTTPS', (
+    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+    (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) ||
+    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+));
+
+// Session configuration
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', HTTPS ? '1' : '0');
+ini_set('session.cookie_samesite', 'Strict');
+define('SESSION_LIFETIME', (int) env('SESSION_LIFETIME', 3600));
+
 // Set default timezone
 if (function_exists('date_default_timezone_set')) {
     date_default_timezone_set(APP_TIMEZONE);
