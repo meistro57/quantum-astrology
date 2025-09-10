@@ -36,11 +36,11 @@ $error = null;
 
 try {
     $app = new Application();
-    // Check if this is an API request or a page request
+    // Check if this is an API request, asset request, or a page request
     $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
     
-    // If it's an API request, run the application normally
-    if (strpos($requestUri, '/api/') === 0) {
+    // If it's an API request or asset request, run the application normally
+    if (strpos($requestUri, '/api/') === 0 || strpos($requestUri, '/assets/') === 0) {
         $app->run();
         return;
     }
