@@ -95,30 +95,34 @@ class Auth
     
     private static function validateRegistration(array $data): bool
     {
-        $required = ['username', 'email', 'password'];
-        
+        $required = ['username', 'email', 'password', 'password_confirm'];
+
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 return false;
             }
         }
-        
+
+        if ($data['password'] !== $data['password_confirm']) {
+            return false;
+        }
+
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return false;
         }
-        
+
         if (strlen($data['password']) < 8) {
             return false;
         }
-        
+
         if (User::findByEmail($data['email'])) {
             return false;
         }
-        
+
         if (User::findByUsername($data['username'])) {
             return false;
         }
-        
+
         return true;
     }
     
@@ -146,7 +150,9 @@ class Auth
             $errors[] = 'Password must be at least 8 characters long';
         }
         
-        if (!empty($data['password_confirm']) && $data['password'] !== $data['password_confirm']) {
+        if (empty($data['password_confirm'])) {
+            $errors[] = 'Password confirmation is required';
+        } elseif ($data['password'] !== $data['password_confirm']) {
             $errors[] = 'Password confirmation does not match';
         }
         
