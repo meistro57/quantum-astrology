@@ -1,5 +1,5 @@
 [![PHP Composer](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml/badge.svg)](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml)
-<img width="133" height="172" alt="image" src="https://github.com/user-attachments/assets/bf5c3fdb-5e4d-4d28-8a65-b7232a3583ae" />
+
 
 # Quantum Astrology
 
@@ -338,6 +338,7 @@ For questions, issues, or feature requests:
 ---
 
 Built with precision and passion for the astrological arts.
+
 
 
 
