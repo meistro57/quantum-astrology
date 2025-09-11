@@ -54,7 +54,7 @@ Quantum Astrology provides professional-grade astrological calculations and char
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/mestro57/quantum-astrology.git
+   git clone https://github.com/meistro57/quantum-astrology.git
    cd quantum-astrology
    ```
 

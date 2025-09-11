@@ -24,7 +24,7 @@ Before installing Quantum Astrology, ensure your system meets these requirements
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/mestro57/quantum-astrology.git
+git clone https://github.com/meistro57/quantum-astrology.git
 cd quantum-astrology
 ```
 
@@ -293,7 +293,7 @@ If you encounter issues:
 
 ## Support
 
-- **GitHub Issues**: [Create an issue](https://github.com/mestro57/quantum-astrology/issues)
+- **GitHub Issues**: [Create an issue](https://github.com/meistro57/quantum-astrology/issues)
 - **Email**: mark@quantummindsunited.com
 - **Website**: [Quantum Minds United](https://quantummindsunited.com)
 
