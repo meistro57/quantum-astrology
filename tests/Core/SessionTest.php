@@ -31,4 +31,13 @@ final class SessionTest extends TestCase
         $this->assertSame('hello', Session::getFlash('message'));
         $this->assertFalse(Session::hasFlash('message'));
     }
+
+    /** @runInSeparateProcess */
+    public function testSessionExpiresAfterInactivity(): void
+    {
+        Session::set('foo', 'bar');
+        $_SESSION['LAST_ACTIVITY'] = time() - 4000;
+        Session::start();
+        $this->assertNull(Session::get('foo'));
+    }
 }

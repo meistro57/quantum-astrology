@@ -26,6 +26,16 @@ class SwissEphemeris
         'lilith' => -1
     ];
 
+    /**
+     * Cache for calculated planetary positions keyed by julian day and planet code.
+     *
+     * @var array<string, array|null>
+     */
+    private array $positionCache = [];
+
+    /**
+     * Initialize Swiss Ephemeris helper and verify swetest availability.
+     */
     public function __construct()
     {
         $this->swetestPath = defined('SWEPH_PATH') ? SWEPH_PATH : '/usr/local/bin/swetest';
@@ -36,7 +46,17 @@ class SwissEphemeris
         }
     }
 
-    public function calculatePlanetaryPositions(\DateTime $datetime, float $latitude, float $longitude, array $planets = null): array
+    /**
+     * Calculate planetary positions for a given time and location.
+     *
+     * @param \DateTime $datetime  The date and time of the chart.
+     * @param float      $latitude  Latitude in decimal degrees.
+     * @param float      $longitude Longitude in decimal degrees.
+     * @param array|null $planets   Optional list of planet identifiers.
+     *
+     * @return array<string, array|null> Array of planet positions keyed by planet name.
+     */
+    public function calculatePlanetaryPositions(\DateTime $datetime, float $latitude, float $longitude, ?array $planets = null): array
     {
         if ($planets === null) {
             $planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
@@ -63,10 +83,20 @@ class SwissEphemeris
         return $results;
     }
 
+    /**
+     * Calculate house cusps for a given time, location and house system.
+     *
+     * @param \DateTime $datetime  The date and time of the chart.
+     * @param float      $latitude  Latitude in decimal degrees.
+     * @param float      $longitude Longitude in decimal degrees.
+     * @param string     $houseSystem House system code (e.g. 'P' for Placidus).
+     *
+     * @return array<int, array> List of houses keyed by house number.
+     */
     public function calculateHouses(\DateTime $datetime, float $latitude, float $longitude, string $houseSystem = 'P'): array
     {
         $julianDay = $this->dateTimeToJulianDay($datetime);
-        
+
         try {
             return $this->calculateHousePositions($julianDay, $latitude, $longitude, $houseSystem);
         } catch (\Exception $e) {
@@ -77,8 +107,14 @@ class SwissEphemeris
 
     private function calculatePlanetPosition(float $julianDay, int $planetCode): ?array
     {
+        $cacheKey = $julianDay . '_' . $planetCode;
+        if (isset($this->positionCache[$cacheKey])) {
+            return $this->positionCache[$cacheKey];
+        }
+
         if (!$this->isSwetestAvailable()) {
-            return $this->getAnalyticalPosition($julianDay, $planetCode);
+            $this->positionCache[$cacheKey] = $this->getAnalyticalPosition($julianDay, $planetCode);
+            return $this->positionCache[$cacheKey];
         }
 
         $command = sprintf(
@@ -93,12 +129,13 @@ class SwissEphemeris
         }
 
         $output = shell_exec($command . ' 2>&1');
-        
+
         if ($output === null) {
             throw new \Exception("Failed to execute swetest command");
         }
 
-        return $this->parseSwetestOutput($output);
+        $this->positionCache[$cacheKey] = $this->parseSwetestOutput($output);
+        return $this->positionCache[$cacheKey];
     }
 
     private function calculateHousePositions(float $julianDay, float $latitude, float $longitude, string $houseSystem): array
@@ -294,11 +331,21 @@ class SwissEphemeris
         return file_exists($this->swetestPath) && is_executable($this->swetestPath);
     }
 
+    /**
+     * Retrieve the list of available planetary identifiers.
+     *
+     * @return array<int, string>
+     */
     public function getAvailablePlanets(): array
     {
         return array_keys($this->planetCodes);
     }
 
+    /**
+     * Retrieve supported house systems mapped to their names.
+     *
+     * @return array<string, string>
+     */
     public function getSupportedHouseSystems(): array
     {
         return [
