@@ -6,8 +6,11 @@ namespace QuantumAstrology\Core;
 use QuantumAstrology\Core\Logger;
 use QuantumAstrology\Core\Session;
 
-class Application 
+class Application
 {
+    /**
+     * Run the application and handle any uncaught exceptions.
+     */
     public function run(): void
     {
         try {
@@ -195,17 +198,18 @@ class Application
             return;
         }
         
-        header('Content-Type: application/json');
-        
         // Basic API routing - expand as needed
         switch ($path) {
             case '/api/health':
-                echo json_encode(['status' => 'ok', 'timestamp' => time()]);
+                $this->sendJson(['status' => 'ok', 'timestamp' => time()]);
                 break;
-                
+
+            case '/api/ephemeris/planets':
+                $this->serveAvailablePlanets();
+                break;
+
             default:
-                http_response_code(404);
-                echo json_encode(['error' => 'API endpoint not found']);
+                $this->sendJson(['error' => 'API endpoint not found'], 404);
         }
     }
     
@@ -694,28 +698,25 @@ class Application
             $chart = \QuantumAstrology\Charts\Chart::findById($chartId);
             
             if (!$chart) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Chart not found']);
+                $this->sendJson(['error' => 'Chart not found'], 404);
                 return;
             }
-            
+
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
             if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Access denied']);
+                $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
-            
+
             $interpreter = new \QuantumAstrology\Interpretations\ChartInterpretation($chart);
             $interpretation = $interpreter->generateFullInterpretation();
-            
-            echo json_encode($interpretation);
-            
+
+            $this->sendJson($interpretation);
+
         } catch (\Exception $e) {
             Logger::error("Chart interpretation failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
-            http_response_code(500);
-            echo json_encode(['error' => 'Chart interpretation failed']);
+            $this->sendJson(['error' => 'Chart interpretation failed'], 500);
         }
     }
     
@@ -725,35 +726,32 @@ class Application
             $chart = \QuantumAstrology\Charts\Chart::findById($chartId);
             
             if (!$chart) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Chart not found']);
+                $this->sendJson(['error' => 'Chart not found'], 404);
                 return;
             }
-            
+
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
             if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Access denied']);
+                $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
-            
+
             // Optional AI configuration from query parameters
             $aiConfig = [
                 'model' => $_GET['model'] ?? 'default',
                 'style' => $_GET['style'] ?? 'professional',
                 'length' => $_GET['length'] ?? 'medium'
             ];
-            
+
             $aiInterpreter = new \QuantumAstrology\Interpretations\AIInterpreter($chart, $aiConfig);
             $interpretation = $aiInterpreter->generateNaturalLanguageInterpretation();
-            
-            echo json_encode($interpretation);
-            
+
+            $this->sendJson($interpretation);
+
         } catch (\Exception $e) {
             Logger::error("AI interpretation failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
-            http_response_code(500);
-            echo json_encode(['error' => 'AI interpretation failed']);
+            $this->sendJson(['error' => 'AI interpretation failed'], 500);
         }
     }
     
@@ -763,42 +761,60 @@ class Application
             $chart = \QuantumAstrology\Charts\Chart::findById($chartId);
             
             if (!$chart) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Chart not found']);
+                $this->sendJson(['error' => 'Chart not found'], 404);
                 return;
             }
-            
+
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
             if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Access denied']);
+                $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
-            
+
             $positions = $chart->getPlanetaryPositions();
             $aspects = $chart->getAspects();
-            
+
             if (!$positions || !$aspects) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Chart lacks planetary positions or aspects']);
+                $this->sendJson(['error' => 'Chart lacks planetary positions or aspects'], 400);
                 return;
             }
-            
+
             $patternAnalyzer = new \QuantumAstrology\Interpretations\AspectPatterns($positions, $aspects);
             $patterns = $patternAnalyzer->detectAllPatterns();
-            
-            echo json_encode([
+
+            $this->sendJson([
                 'chart_id' => $chartId,
                 'chart_name' => $chart->getName(),
                 'patterns' => $patterns
             ]);
-            
+
         } catch (\Exception $e) {
             Logger::error("Aspect patterns analysis failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
-            http_response_code(500);
-            echo json_encode(['error' => 'Aspect patterns analysis failed']);
+            $this->sendJson(['error' => 'Aspect patterns analysis failed'], 500);
         }
+    }
+
+    /**
+     * Serve a list of available planetary identifiers from Swiss Ephemeris.
+     */
+    private function serveAvailablePlanets(): void
+    {
+        $ephemeris = new \QuantumAstrology\Core\SwissEphemeris();
+        $this->sendJson(['planets' => $ephemeris->getAvailablePlanets()]);
+    }
+
+    /**
+     * Send a JSON response with the proper headers.
+     *
+     * @param mixed $data       Data to encode as JSON.
+     * @param int   $statusCode HTTP status code.
+     */
+    private function sendJson(mixed $data, int $statusCode = 200): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
     }
     
     private function handleError(\Exception $e): void
