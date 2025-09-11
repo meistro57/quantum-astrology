@@ -1,7 +1,7 @@
 [![PHP Composer](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml/badge.svg)](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml)
 
 
-# Quantum Astrology
+# Quantum Astrology <img width="133" height="172" alt="image" src="https://github.com/user-attachments/assets/bf5c3fdb-5e4d-4d28-8a65-b7232a3583ae" />
 
 Professional astrology software suite with Quantum Minds United branding. Swiss Ephemeris-powered chart calculations with beautiful, responsive interface.
 <img width="906" height="1602" alt="image" src="https://github.com/user-attachments/assets/74b635dc-6f2e-47e4-93f5-2683c6d385ff" />
@@ -338,6 +338,7 @@ For questions, issues, or feature requests:
 ---
 
 Built with precision and passion for the astrological arts.
+
 
 
 
