@@ -40,6 +40,7 @@ define('DB_NAME', (string) env('DB_NAME', 'quantum_astrology'));
 define('DB_USER', (string) env('DB_USER', 'root'));
 define('DB_PASS', (string) env('DB_PASS', ''));
 define('DB_CHARSET', (string) env('DB_CHARSET', 'utf8mb4'));
+define('DB_SQLITE_PATH', (string) env('DB_SQLITE_PATH', STORAGE_PATH . '/database.sqlite'));
 
 // Cache configuration
 define('CACHE_ENABLED', filter_var(env('CACHE_ENABLED', true), FILTER_VALIDATE_BOOLEAN));

@@ -43,7 +43,7 @@ class Chart
                 :user_id, :name, :chart_type, :birth_datetime, :birth_timezone,
                 :birth_latitude, :birth_longitude, :birth_location_name, :house_system,
                 :chart_data, :planetary_positions, :house_positions, :aspects,
-                :calculation_metadata, :is_public, NOW(), NOW()
+                :calculation_metadata, :is_public, :created_at, :updated_at
             )";
 
             $params = [
@@ -61,7 +61,9 @@ class Chart
                 'house_positions' => json_encode($chartData['house_positions'] ?? null),
                 'aspects' => json_encode($chartData['aspects'] ?? null),
                 'calculation_metadata' => json_encode($chartData['calculation_metadata'] ?? null),
-                'is_public' => $chartData['is_public'] ?? false
+                'is_public' => $chartData['is_public'] ?? false,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
 
             Connection::query($sql, $params);
@@ -242,8 +244,9 @@ class Chart
             return true;
         }
         
-        $updateFields[] = "updated_at = NOW()";
+        $updateFields[] = "updated_at = :updated_at";
         $sql = "UPDATE charts SET " . implode(', ', $updateFields) . " WHERE id = :id";
+        $params['updated_at'] = date('Y-m-d H:i:s');
         
         try {
             Connection::query($sql, $params);

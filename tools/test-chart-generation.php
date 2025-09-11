@@ -85,9 +85,14 @@ try {
 echo "\n4. Testing Database Connectivity...\n";
 try {
     $pdo = QuantumAstrology\Database\Connection::getInstance();
-    
-    // Test tables exist
-    $stmt = $pdo->query("SHOW TABLES");
+
+    // Test tables exist for current driver
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'");
+    } else {
+        $stmt = $pdo->query("SHOW TABLES");
+    }
     $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     $expectedTables = ['users', 'charts', 'birth_profiles', 'chart_sessions', 'migrations'];
