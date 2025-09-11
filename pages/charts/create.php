@@ -384,7 +384,7 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
                                step="0.000001"
                                min="-90"
                                max="90"
-                               value="<?= htmlspecialchars($formData['birth_latitude'] ?? '') ?>"
+                               value="<?= htmlspecialchars((string)($formData['birth_latitude'] ?? '')) ?>"
                                required>
                         <span class="coordinate-label">°N</span>
                     </div>
@@ -399,7 +399,7 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
                                step="0.000001"
                                min="-180"
                                max="180"
-                               value="<?= htmlspecialchars($formData['birth_longitude'] ?? '') ?>"
+                               value="<?= htmlspecialchars((string)($formData['birth_longitude'] ?? '')) ?>"
                                required>
                         <span class="coordinate-label">°E</span>
                     </div>
