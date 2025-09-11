@@ -222,7 +222,13 @@ The application uses a normalized database structure:
 
 ### Testing
 
-Run the test suite to verify chart accuracy:
+Run the automated test suite:
+
+```bash
+composer test
+```
+
+Run the chart generation script to verify chart accuracy:
 
 ```bash
 php tools/test-chart-generation.php
