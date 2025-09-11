@@ -5,6 +5,7 @@ use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Core\SwissEphemeris;
+use QuantumAstrology\Core\Logger;
 
 Auth::requireLogin();
 
@@ -55,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /charts/view?id=' . $chart->getId());
             exit;
         } else {
+            Logger::error('Chart creation failed', [
+                'user_id' => $user->getId(),
+                'chart_name' => $formData['name'] ?? null
+            ]);
             $errors[] = 'Failed to create chart. Please try again.';
         }
     }
