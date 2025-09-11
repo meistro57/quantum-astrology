@@ -85,7 +85,7 @@ $currentUser = Auth::user();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Astrology Portal</title>
+    <title>Quantum Minds United</title>
     <style>
         * {
             margin: 0;
