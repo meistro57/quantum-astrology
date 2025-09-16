@@ -163,7 +163,7 @@ final class SwissEphemeris
         $x = fmod($deg, 360.0);
         if ($x < 0) $x += 360.0;
         // squash -0 to 0 and round to 3 decimals
-        $x = abs($x) < 1e-9 ? 0.0 : $x;
+        if (abs($x) < 1e-9 $x =  0.0;
         return round($x, 3);
     }
 
