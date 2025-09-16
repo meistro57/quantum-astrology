@@ -6,6 +6,7 @@ use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Core\SwissEphemeris;
+use QuantumAstrology\Support\InputValidator;
 
 Auth::requireLogin();
 
@@ -74,24 +75,12 @@ function parseLocalToUtc(string $dateIso, string $timeIso, string $tzName): arra
     ];
 }
 
-function normaliseLat(?string $s): ?float {
-    $s = trim((string)($s ?? ''));
-    if ($s === '') return null;
-    $v = filter_var($s, FILTER_VALIDATE_FLOAT);
-    if ($v === false || $v < -90 || $v > 90) {
-        throw new InvalidArgumentException('Latitude must be between -90 and 90');
-    }
-    return (float)$v;
+function normaliseLat(mixed $s): ?float {
+    return InputValidator::parseLatitude($s, false);
 }
 
-function normaliseLon(?string $s): ?float {
-    $s = trim((string)($s ?? ''));
-    if ($s === '') return null;
-    $v = filter_var($s, FILTER_VALIDATE_FLOAT);
-    if ($v === false || $v < -180 || $v > 180) {
-        throw new InvalidArgumentException('Longitude must be between -180 and 180');
-    }
-    return (float)$v;
+function normaliseLon(mixed $s): ?float {
+    return InputValidator::parseLongitude($s, false);
 }
 
 // Handle form submission
@@ -125,7 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Normalise date/time/timezone
         $dateIso = normaliseDate($rawDate);
-        $tzObj   = new DateTimeZone($rawTz); // validates
+        $tzName  = InputValidator::normaliseTimezone($rawTz, false) ?? 'UTC';
+        $tzObj   = new DateTimeZone($tzName);
         $timeIso = normaliseTime($rawTime, $tzObj);
 
         // Lat/Lon
@@ -137,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Compute UTC, keep locals
-        $dt = parseLocalToUtc($dateIso, $timeIso, $rawTz);
+        $dt = parseLocalToUtc($dateIso, $timeIso, $tzName);
 
         // Build formData for the domain layer
         $formData = [
@@ -337,38 +327,36 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
                 <div class="coordinate-inputs">
                     <div class="coordinate-group">
                         <label for="birth_latitude" class="form-label">Latitude <span class="required">*</span></label>
-                        <input type="number"
+                        <input type="text"
                                id="birth_latitude"
                                name="birth_latitude"
                                class="form-input"
-                               placeholder="40.7128"
-                               step="0.000001"
-                               min="-90"
-                               max="90"
+                               placeholder="40.7128 N"
+                               inputmode="decimal"
                                value="<?= htmlspecialchars($formData['birth_latitude'] ?? '') ?>"
                                required>
-                        <span class="coordinate-label">°N</span>
+                        <span class="coordinate-label">°N/S</span>
                     </div>
 
                     <div class="coordinate-group">
                         <label for="birth_longitude" class="form-label">Longitude <span class="required">*</span></label>
-                        <input type="number"
+                        <input type="text"
                                id="birth_longitude"
                                name="birth_longitude"
                                class="form-input"
-                               placeholder="-74.0060"
-                               step="0.000001"
-                               min="-180"
-                               max="180"
+                               placeholder="74.0060 W"
+                               inputmode="decimal"
                                value="<?= htmlspecialchars($formData['birth_longitude'] ?? '') ?>"
                                required>
-                        <span class="coordinate-label">°E</span>
+                        <span class="coordinate-label">°E/W</span>
                     </div>
                 </div>
 
                 <div class="location-helper">
                     <strong>Need coordinates?</strong> Use online tools like Google Maps or geographic coordinate finders.
-                    Right-click on a location in Google Maps to get precise latitude and longitude values.
+                    Right-click on a location in Google Maps to get precise latitude and longitude values. You can enter
+                    coordinates with direction letters (e.g., <code>34.05N</code> or <code>118.25W</code>) and we'll convert
+                    them automatically.
                 </div>
             </div>
 
@@ -435,13 +423,45 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
             const latInput = document.getElementById('birth_latitude');
             const lngInput = document.getElementById('birth_longitude');
 
+            function parseCoordinate(raw, positive, negative) {
+                if (!raw) return NaN;
+                let value = raw.trim().toUpperCase();
+                if (!value) return NaN;
+
+                let direction = null;
+                if (/^[NSEW]/.test(value)) {
+                    direction = value.charAt(0);
+                    value = value.slice(1).trim();
+                } else if (/[NSEW]$/.test(value)) {
+                    direction = value.slice(-1);
+                    value = value.slice(0, -1).trim();
+                }
+
+                value = value.replace(/[°º]/g, '');
+                let number = parseFloat(value);
+                if (Number.isNaN(number)) {
+                    return NaN;
+                }
+
+                if (direction) {
+                    if (direction === positive) {
+                        return Math.abs(number);
+                    }
+                    if (direction === negative) {
+                        return -Math.abs(number);
+                    }
+                }
+
+                return number;
+            }
+
             function updateCoordinateLabels() {
                 const latLabel = document.querySelector('[for="birth_latitude"] + input + .coordinate-label');
                 const lngLabel = document.querySelector('[for="birth_longitude"] + input + .coordinate-label');
-                const lat = parseFloat(latInput.value);
-                const lng = parseFloat(lngInput.value);
-                if (latLabel) latLabel.textContent = isNaN(lat) ? '°N' : (lat >= 0 ? '°N' : '°S');
-                if (lngLabel) lngLabel.textContent = isNaN(lng) ? '°E' : (lng >= 0 ? '°E' : '°W');
+                const lat = parseCoordinate(latInput.value, 'N', 'S');
+                const lng = parseCoordinate(lngInput.value, 'E', 'W');
+                if (latLabel) latLabel.textContent = Number.isNaN(lat) ? '°N/S' : (lat >= 0 ? '°N' : '°S');
+                if (lngLabel) lngLabel.textContent = Number.isNaN(lng) ? '°E/W' : (lng >= 0 ? '°E' : '°W');
             }
             latInput.addEventListener('input', updateCoordinateLabels);
             lngInput.addEventListener('input', updateCoordinateLabels);
