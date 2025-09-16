@@ -9,3 +9,7 @@ composer.lock
 *.log
 .DS_Store
 /data/ephemeris/sweph_data/*
+
+# local artefacts
+index.php.bak*
+wheel.svg
