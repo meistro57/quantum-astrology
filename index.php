@@ -1,6 +1,5 @@
 <?php
 // index.php — Quantum Astrology Portal (Dashboard)
-// Requires: PHP 8+, sessions, classes/autoload.php, classes/Core/DB.php
 declare(strict_types=1);
 session_start();
 
@@ -8,36 +7,38 @@ require __DIR__ . '/classes/autoload.php';
 
 use QuantumAstrology\Core\DB;
 
-$isAuthed = isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
-if (!$isAuthed) {
+// Require login
+if (!isset($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
     header('Location: /login');
     exit;
 }
-
 $uid   = (int)$_SESSION['user_id'];
 $uname = isset($_SESSION['username']) ? (string)$_SESSION['username'] : 'meistro';
 
+// CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION['csrf_token'];
+
 $charts = [];
 $counts = ['charts'=>0,'transits'=>0,'profiles'=>0,'insights'=>0,'precision'=>'99.9%'];
+$schemaWarning = null;
 
 try {
     $pdo = DB::conn();
 
-    // Charts list (only this user)
     $stmt = $pdo->prepare("SELECT id, name, created_at FROM charts WHERE user_id = :uid ORDER BY id DESC LIMIT 200");
     $stmt->execute([':uid'=>$uid]);
     $charts = $stmt->fetchAll() ?: [];
 
-    // Counts (graceful fallbacks if tables don’t exist yet)
-    $counts['charts'] = (int)($pdo->prepare("SELECT COUNT(*) FROM charts WHERE user_id = :uid")->execute([':uid'=>$uid]) ? $pdo->query("SELECT FOUND_ROWS()")->fetchColumn() : count($charts));
+    // count charts for this user
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM charts WHERE user_id = :uid");
+    $stmt->execute([':uid'=>$uid]);
+    $counts['charts'] = (int)$stmt->fetchColumn();
 } catch (Throwable $e) {
-    // If the repo hasn't added user_id to charts yet, explain nicely.
     if (strpos($e->getMessage(), 'user_id') !== false) {
-        $charts = [];
-        $counts['charts'] = 0;
-        $schemaWarning = "Your database schema is missing the charts.user_id column. Add it and backfill existing rows so the dashboard can scope charts per user.";
-    } else {
-        $schemaWarning = null; // Silent fail for other cases
+        $schemaWarning = "Your database schema is missing the charts.user_id column. Run tools/migrate.php and backfill existing rows.";
     }
 }
 ?>
@@ -47,6 +48,7 @@ try {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quantum Astrology — Portal</title>
+<meta name="csrf-token" content="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
 <style>
   :root{
     --bg:#0b0e14; --panel:#121725; --panel2:#161b2b; --accent1:#7b5cff; --accent2:#5cc8ff;
@@ -80,16 +82,12 @@ try {
   ul.list li.active{background:linear-gradient(90deg,rgba(123,92,255,.18),rgba(92,200,255,.18));}
   .muted{color:var(--muted)}
   .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
-  .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
   .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}
-  .warn{color:#ffd166}
-  footer{margin:40px 0 20px;color:var(--muted);text-align:center}
+  .pill.danger{border-color:#6e2231;background:rgba(255,92,115,.1);color:#ffb3bf}
   .note{background:#241d0b;border:1px solid #3a2f0a;color:#ffd166;padding:10px 12px;border-radius:10px;margin-bottom:14px}
-  @media (max-width:980px){
-    .grid{grid-template-columns:1fr}
-    .row{grid-template-columns:1fr}
-    .stats{grid-template-columns:1fr 1fr;row-gap:10px}
-  }
+  footer{margin:40px 0 20px;color:var(--muted);text-align:center}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr} .row{grid-template-columns:1fr} .stats{grid-template-columns:1fr 1fr;row-gap:10px} }
 </style>
 </head>
 <body>
@@ -161,7 +159,7 @@ try {
         <?php if (!$charts): ?>
           <li class="muted">No charts yet. Click “Generate Chart”.</li>
         <?php else: foreach ($charts as $i => $c): ?>
-          <li data-id="<?= (int)$c['id'] ?>"<?= $i===0 ? ' class="active"' : '' ?>>
+          <li data-id="<?= (int)$c['id'] ?>" data-name="<?= htmlspecialchars($c['name'] ?? 'Untitled', ENT_QUOTES) ?>"<?= $i===0 ? ' class="active"' : '' ?>>
             #<?= (int)$c['id'] ?> — <?= htmlspecialchars($c['name'] ?? 'Untitled', ENT_QUOTES) ?>
           </li>
         <?php endforeach; endif; ?>
@@ -175,6 +173,7 @@ try {
       <div class="quick">
         <a class="pill" href="/charts/create">+ New Chart</a>
         <a class="pill" href="/viewer.php">Open Wheel Viewer</a>
+        <button id="deleteBtn" class="pill danger" type="button">Delete Selected</button>
         <a class="pill" href="/settings">Settings</a>
       </div>
       <p class="muted" style="margin-top:8px">Tip: the preview updates as you click items in your list.</p>
@@ -190,49 +189,70 @@ try {
   const list  = document.getElementById('list');
   const wheel = document.getElementById('wheel');
   const title = document.getElementById('title');
+  const del   = document.getElementById('deleteBtn');
+  const csrf  = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
   function srcFor(id){ return `/api/chart_svg.php?id=${encodeURIComponent(id)}&size=900&ts=${Date.now()}`; }
 
-  function preview(id, label){
-    if(!id) return;
-    title.textContent = `Preview — #${id} ${label || ''}`.trim();
-    const next = srcFor(id);
-
-    // If the URL would be identical (very fast re-click), force a hard refresh
-    if (wheel.src === next) {
-      wheel.src = 'about:blank';
-      setTimeout(()=>{ wheel.src = next; }, 0);
-    } else {
-      wheel.src = next;
-    }
+  function activeItem(){
+    return list.querySelector('li.active[data-id]') || list.querySelector('li[data-id]');
   }
 
-  // Click selection (event delegation)
+  function setActive(li){
+    [...list.children].forEach(n=>n.classList.remove('active'));
+    if (li) li.classList.add('active');
+  }
+
+  function preview(li){
+    if(!li) return;
+    const id = li.dataset.id, name = li.dataset.name || li.textContent.trim();
+    title.textContent = `Preview — #${id} ${name}`;
+    const next = srcFor(id);
+    if (wheel.src === next) { wheel.src = 'about:blank'; setTimeout(()=>{ wheel.src = next; }, 0); }
+    else { wheel.src = next; }
+  }
+
   list?.addEventListener('click', (e)=>{
     const li = e.target.closest('li[data-id]');
     if(!li) return;
-    [...list.children].forEach(n=>n.classList.remove('active'));
-    li.classList.add('active');
-    preview(li.dataset.id, li.dataset.name || li.textContent.trim());
+    setActive(li);
+    preview(li);
   });
 
-  // Keyboard support (up/down + enter)
-  list?.addEventListener('keydown', (e)=>{
-    const items = [...list.querySelectorAll('li[data-id]')];
-    const idx = items.findIndex(n=>n.classList.contains('active'));
-    if(e.key === 'ArrowDown' && idx < items.length-1){ e.preventDefault(); items[idx+1]?.click(); }
-    if(e.key === 'ArrowUp'   && idx > 0){ e.preventDefault(); items[idx-1]?.click(); }
-    if(e.key === 'Enter' && idx >= 0){ e.preventDefault(); items[idx]?.click(); }
+  del?.addEventListener('click', async ()=>{
+    const li = activeItem();
+    if(!li){ alert('No chart selected.'); return; }
+    const id = li.dataset.id, name = li.dataset.name || li.textContent.trim();
+    if(!confirm(`Delete chart #${id} — ${name}? This cannot be undone.`)) return;
+
+    try {
+      const res = await fetch('/api/chart_delete.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({id: Number(id), csrf})
+      });
+      const data = await res.json();
+      if(!res.ok || !data.ok) throw new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+
+      // Remove item from list
+      const next = li.nextElementSibling?.dataset.id ? li.nextElementSibling :
+                   li.previousElementSibling?.dataset.id ? li.previousElementSibling : null;
+      li.remove();
+
+      if(next){ setActive(next); preview(next); }
+      else { title.textContent = 'Preview'; wheel.src='about:blank'; }
+
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete chart: ' + err.message);
+    }
   });
 
-  // Auto-load first item on ready
-  window.addEventListener('DOMContentLoaded', ()=>{
-    const first = list?.querySelector('li[data-id]');
-    if(first){ first.classList.add('active'); preview(first.dataset.id, first.dataset.name || first.textContent.trim()); }
-  });
+  // auto-load first
+  const first = activeItem();
+  if(first){ preview(first); }
 })();
 </script>
-
 <?php endif; ?>
 
 </body>
