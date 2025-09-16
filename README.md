@@ -270,7 +270,7 @@ For commercial use, a license may be required. See [Swiss Ephemeris License](htt
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 or later. See the [LICENSE](LICENSE) file for the complete terms and conditions.
 
 ## Support
 
