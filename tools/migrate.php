@@ -21,16 +21,62 @@ try {
     exit(1);
 }
 
-$pdo->exec("
-CREATE TABLE IF NOT EXISTS migrations (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(191) NOT NULL UNIQUE,
-  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-");
+function tableExists(PDO $pdo, string $table): bool {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?");
+    $stmt->execute([$table]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function columns(PDO $pdo, string $table): array {
+    $stmt = $pdo->prepare("SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? ORDER BY ordinal_position");
+    $stmt->execute([$table]);
+    return array_map('strval', array_column($stmt->fetchAll(), 'column_name'));
+}
+
+function ensureMigrations(PDO $pdo): void {
+    // Create if missing
+    if (!tableExists($pdo, 'migrations')) {
+        $pdo->exec("
+            CREATE TABLE migrations (
+              id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(191) NOT NULL UNIQUE,
+              applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+        echo "✔ Created migrations table\n";
+        return;
+    }
+
+    // Heal if present but wrong shape
+    $cols = columns($pdo, 'migrations');
+    $needCols = ['id', 'name', 'applied_at'];
+
+    // Case: older column like 'migration' or 'filename'
+    if (!in_array('name', $cols, true)) {
+        if (in_array('migration', $cols, true)) {
+            $pdo->exec("ALTER TABLE migrations CHANGE migration name VARCHAR(191) NOT NULL");
+            echo "↺ Renamed column 'migration' → 'name'\n";
+        } elseif (in_array('filename', $cols, true)) {
+            $pdo->exec("ALTER TABLE migrations CHANGE filename name VARCHAR(191) NOT NULL");
+            echo "↺ Renamed column 'filename' → 'name'\n";
+        } else {
+            // If truly no column to use, add one (empty, but fine for future)
+            $pdo->exec("ALTER TABLE migrations ADD COLUMN name VARCHAR(191) NOT NULL AFTER id");
+            echo "↺ Added missing column 'name'\n";
+        }
+    }
+    // Ensure applied_at exists
+    $cols = columns($pdo, 'migrations');
+    if (!in_array('applied_at', $cols, true)) {
+        $pdo->exec("ALTER TABLE migrations ADD COLUMN applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        echo "↺ Added missing column 'applied_at'\n";
+    }
+    // Ensure unique index on name
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uniq_migrations_name ON migrations (name)");
+}
 
 function applied(PDO $pdo, string $name): bool {
-    $stmt = $pdo->prepare("SELECT 1 FROM migrations WHERE name=?");
+    $stmt = $pdo->prepare("SELECT 1 FROM migrations WHERE name = ? LIMIT 1");
     $stmt->execute([$name]);
     return (bool) $stmt->fetchColumn();
 }
@@ -38,6 +84,8 @@ function mark_applied(PDO $pdo, string $name): void {
     $stmt = $pdo->prepare("INSERT INTO migrations (name) VALUES (?)");
     $stmt->execute([$name]);
 }
+
+ensureMigrations($pdo);
 
 $migrations = [
     '001_create_users' => "
