@@ -7,6 +7,9 @@ require __DIR__ . '/../classes/autoload.php';
 use QuantumAstrology\Charts\ChartService;
 
 header('Content-Type: image/svg+xml');
+// Prevent any caching of the SVG in browsers/proxies
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 $id   = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $size = isset($_GET['size']) ? max(400, min(2000, (int)$_GET['size'])) : 900;
