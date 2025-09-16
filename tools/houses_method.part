@@ -1,75 +1,4 @@
-<?php
-# classes/Charts/SwissEphemeris.php
-declare(strict_types=1);
-
-namespace QuantumAstrology\Charts;
-
-use QuantumAstrology\Core\Env;
-
-final class SwissEphemeris
-{
-    private static function bin(): string
-    {
-        Env::load(__DIR__ . '/../../.env');
-        $bin = Env::get('SWEPH_PATH') ?? '';
-        if ($bin === '' || !is_file($bin) || !is_executable($bin)) {
-            throw new \RuntimeException('swetest not found or not executable. Set SWEPH_PATH in .env');
-        }
-        return $bin;
-    }
-
-    /** Execute swetest and return non-empty, trimmed lines */
-    private static function run(string $args): array
-    {
-        $cmd = sprintf('%s %s', escapeshellarg(self::bin()), $args);
-        $out = []; $code = 0;
-        @exec($cmd, $out, $code);
-        if ($code !== 0 || empty($out)) {
-            throw new \RuntimeException('swetest failed or returned no data (args: ' . $args . ')');
-        }
-        return array_values(array_filter(array_map('trim', $out), fn($s) => $s !== ''));
-    }
-
-    /** Planetary positions: Sun..Pluto + Chiron + mean & true nodes */
-    public static function positions(\DateTimeImmutable $utc, float $lat, float $lon): array
-    {
-        $date = $utc->format('d.m.Y');
-        $time = $utc->format('H:i:s');
-        $plan = '0123456789Dmt';
-
-        $args = sprintf(
-            '-eswe -b%s -ut%s -p%s -fPlbR -g, -head -n1',
-            escapeshellarg($date),
-            escapeshellarg($time),
-            escapeshellarg($plan)
-        );
-
-        $rows = [];
-        foreach (self::run($args) as $line) {
-            if ($line === '' || str_starts_with($line, 'date')) continue;
-            $parts = array_map('trim', explode(',', $line));
-            if (count($parts) < 4) continue;
-            $rows[] = [
-                'planet' => $parts[0],
-                'lon'    => (float)$parts[1],
-                'lat'    => (float)$parts[2],
-                'dist'   => (float)$parts[3],
-            ];
-        }
-        if (!$rows) throw new \RuntimeException('Could not parse planetary positions.');
-        return $rows;
-    }
-
-    /**
-     * Houses: 12 cusps + angles (ASC, MC, ARMC, Vertex, EqAsc, CoAsc(Koch), CoAsc(Munkasey), PolarAsc)
-     * Returns:
-     * [
-     *   'system' => 'P',
-     *   'cusps'  => [1=>deg,...,12=>deg],
-     *   'angles' => ['ASC'=>deg,'MC'=>deg,'ARMC'=>deg,'Vertex'=>deg]
-     * ]
-     */
-    public static function houses(\DateTimeImmutable $utc, float $lat, float $lon, string $houseSystem = "P"): array
+public static function houses(\DateTimeImmutable $utc, float $lat, float $lon, string $houseSystem = "P"): array
 {
     $date = $utc->format("d.m.Y");
     $time = $utc->format("H:i:s");
@@ -155,21 +84,4 @@ final class SwissEphemeris
             'Vertex' => self::norm360($anglesOut['Vertex']),
         ],
     ];
-}
-
-
-    private static function norm360(float $deg): float
-    {
-        $x = fmod($deg, 360.0);
-        if ($x < 0) $x += 360.0;
-        // squash -0 to 0 and round to 3 decimals
-        $x = abs($x) < 1e-9 ? 0.0 : $x;
-        return round($x, 3);
-    }
-
-    private static function delta(float $a, float $b): float
-    {
-        $d = abs($a - $b);
-        return $d > 180 ? 360 - $d : $d;
-    }
 }
