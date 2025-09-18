@@ -1,4 +1,5 @@
 [![PHP Composer](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml/badge.svg)](https://github.com/meistro57/quantum-astrology/actions/workflows/php.yml)
+## IMPORTANT NOTE... THIS PROJECT IS VERY YOUNG AND IT HAS A WAYZ TO GO. 
 
 # Quantum Astrology <img width="133" height="172" alt="image" src="https://github.com/user-attachments/assets/bf5c3fdb-5e4d-4d28-8a65-b7232a3583ae" />
 
@@ -77,3 +78,4 @@ cp .env.example .env
 # edit .env with your database + swetest path
 php tools/migrate.php
 php -S localhost:8080 index.php
+
