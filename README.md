@@ -80,6 +80,12 @@ php tools/migrate.php
 php -S localhost:8080 index.php
 ```
 
+### Environment Variables
+
+Consult [`docs/environment.md`](docs/environment.md) for a complete catalogue of supported environment variables, including
+database credentials, Swiss Ephemeris paths, caching controls, and session tuning. The guide outlines defaults, production
+considerations, and a sample `.env` layout to accelerate both local prototyping and secure deployments.
+
 ### Maintenance Utilities
 
 - `php tools/clear-cache.php` — clears the application cache using the shared storage maintenance routines.
