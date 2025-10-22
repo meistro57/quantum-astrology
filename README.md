@@ -78,4 +78,10 @@ cp .env.example .env
 # edit .env with your database + swetest path
 php tools/migrate.php
 php -S localhost:8080 index.php
+```
 
+### Maintenance Utilities
+
+- `php tools/clear-cache.php` — clears the application cache using the shared storage maintenance routines.
+- `php tools/manage-storage.php --list` — inspects cache, ephemeris, chart, and report directories with a friendly audit summary.
+- `php tools/manage-storage.php --purge --target=ephemeris --older-than=30` — prunes cached ephemeris files older than 30 days, keeping recent calculations intact.

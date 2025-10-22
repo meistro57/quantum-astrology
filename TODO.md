@@ -8,7 +8,7 @@
 
 ## Medium Priority
 - [ ] Expand REST API to support chart deletion/pagination endpoints and synchronize UI flows.
-- [ ] Provide admin tooling for managing cached ephemeris data and clearing stale chart artifacts.
+- [x] Provide admin tooling for managing cached ephemeris data and clearing stale chart artifacts.
 - [ ] Document environment variables (`.env`) required for database, swetest path, and cache configuration.
 
 ## Low Priority

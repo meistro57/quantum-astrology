@@ -8,6 +8,11 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
 
+// Fall back to the internal PSR-4 autoloader when Composer's vendor tree is absent.
+if (!class_exists('QuantumAstrology\\Core\\Logger') && file_exists(__DIR__ . '/classes/autoload.php')) {
+    require_once __DIR__ . '/classes/autoload.php';
+}
+
 // Load environment variables from .env if present
 if (class_exists(Dotenv::class)) {
     $dotenv = Dotenv::createImmutable(__DIR__);
