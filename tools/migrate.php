@@ -1,42 +1,238 @@
 <?php
-// tools/migrate.php (full enough to drop in the new bits)
+declare(strict_types=1);
 
-require __DIR__ . '/../classes/autoload.php';
+// Load configuration first (defines constants and autoloading)
+require __DIR__ . '/../config.php';
 
 use QuantumAstrology\Core\DB;
+use QuantumAstrology\Database\Connection;
 
-$pdo = DB::conn();
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+echo "=== Quantum Astrology Database Migration Tool ===\n\n";
 
-/** helpers already in your file — keeping these brief */
-function column_exists(PDO $pdo, string $table, string $column): bool {
-    $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
-    $stmt->execute([$table, $column]);
-    return (bool)$stmt->fetchColumn();
-}
-function table_exists(PDO $pdo, string $table): bool {
-    $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    $stmt->execute([$table]);
-    return (bool)$stmt->fetchColumn();
-}
-function has_json(PDO $pdo): bool {
-    // crude check for MySQL JSON support
-    try { $pdo->query("SELECT JSON_VALID('{}')"); return true; } catch (Throwable $e) { return false; }
-}
+// Display database configuration being used
+echo "Database Configuration:\n";
+echo "  Host: " . DB_HOST . "\n";
+echo "  Port: " . DB_PORT . "\n";
+echo "  Database: " . DB_NAME . "\n";
+echo "  User: " . DB_USER . "\n";
+echo "  SQLite Path: " . DB_SQLITE_PATH . "\n";
+echo "\n";
 
-/** NEW: ensure charts.user_id exists + index */
-function ensure_charts_user_id(PDO $pdo): void {
-    if (!table_exists($pdo, 'charts')) return;
+try {
+    // Try to get PDO connection using Core\DB (MySQL)
+    $pdo = DB::conn();
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "✓ Connected to MySQL database\n\n";
+    $isSqlite = false;
+} catch (Exception $e) {
+    // Fallback to SQLite
+    echo "⚠ MySQL connection failed, using SQLite fallback\n";
+    echo "  MySQL Error: " . $e->getMessage() . "\n\n";
 
-    if (!column_exists($pdo, 'charts', 'user_id')) {
-        echo "• Adding charts.user_id…\n";
-        $pdo->exec("ALTER TABLE charts ADD COLUMN user_id INT NULL AFTER id");
-        $pdo->exec("ALTER TABLE charts ADD INDEX idx_charts_user_created (user_id, created_at)");
-        echo "  ✔ charts.user_id added\n";
+    try {
+        // Ensure storage directory exists
+        $storagePath = dirname(DB_SQLITE_PATH);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+            echo "  Created storage directory: $storagePath\n";
+        }
+
+        // Create SQLite connection directly
+        $pdo = new PDO('sqlite:' . DB_SQLITE_PATH);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $isSqlite = true;
+
+        echo "✓ Connected to SQLite database: " . DB_SQLITE_PATH . "\n\n";
+    } catch (PDOException $sqliteException) {
+        echo "✗ SQLite fallback failed: " . $sqliteException->getMessage() . "\n\n";
+        echo "=== Database Setup Required ===\n\n";
+        echo "Neither MySQL nor SQLite is properly configured. Please choose one option:\n\n";
+        echo "Option 1: Fix MySQL Connection\n";
+        echo "  If you're using MySQL with unix_socket auth (common on Ubuntu/Debian):\n";
+        echo "  1. Connect to MySQL as root: sudo mysql -u root\n";
+        echo "  2. Create database: CREATE DATABASE quantum_astrology;\n";
+        echo "  3. Create user: CREATE USER 'qauser'@'localhost' IDENTIFIED BY 'password';\n";
+        echo "  4. Grant privileges: GRANT ALL ON quantum_astrology.* TO 'qauser'@'localhost';\n";
+        echo "  5. Update .env with new credentials:\n";
+        echo "     DB_USER=qauser\n";
+        echo "     DB_PASS=password\n\n";
+        echo "Option 2: Install SQLite\n";
+        echo "  1. Install PHP SQLite: sudo apt-get install php-sqlite3\n";
+        echo "  2. Restart PHP: sudo service php*-fpm restart (if using FPM)\n\n";
+        echo "Option 3: Use existing MySQL with password\n";
+        echo "  If you have MySQL credentials that work, update your .env file:\n";
+        echo "     DB_HOST=localhost\n";
+        echo "     DB_USER=your_username\n";
+        echo "     DB_PASS=your_password\n\n";
+        exit(1);
     }
 }
 
-/** call your existing ensure_* functions here… then: */
-ensure_charts_user_id($pdo);
+/**
+ * Check if a table exists in the database
+ */
+function table_exists(PDO $pdo, string $table, bool $isSqlite): bool
+{
+    if ($isSqlite) {
+        $stmt = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");
+        $stmt->execute([$table]);
+        return (bool)$stmt->fetchColumn();
+    } else {
+        $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->execute([$table]);
+        return (bool)$stmt->fetchColumn();
+    }
+}
 
-echo "Migrations complete.\n";
+/**
+ * Check if a column exists in a table
+ */
+function column_exists(PDO $pdo, string $table, string $column, bool $isSqlite): bool
+{
+    if ($isSqlite) {
+        $stmt = $pdo->query("PRAGMA table_info($table)");
+        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($columns as $col) {
+            if ($col['name'] === $column) {
+                return true;
+            }
+        }
+        return false;
+    } else {
+        $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->execute([$table, $column]);
+        return (bool)$stmt->fetchColumn();
+    }
+}
+
+/**
+ * Create migrations tracking table
+ */
+function ensure_migrations_table(PDO $pdo, bool $isSqlite): void
+{
+    if (!table_exists($pdo, 'migrations', $isSqlite)) {
+        echo "• Creating migrations tracking table...\n";
+        if ($isSqlite) {
+            $pdo->exec("
+                CREATE TABLE migrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    migration TEXT NOT NULL,
+                    batch INTEGER NOT NULL DEFAULT 1,
+                    executed_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+        } else {
+            $pdo->exec("
+                CREATE TABLE migrations (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL,
+                    batch INT NOT NULL DEFAULT 1,
+                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_migration (migration)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        }
+        echo "  ✔ Migrations table created\n";
+    }
+}
+
+/**
+ * Check if a migration has been run
+ */
+function migration_exists(PDO $pdo, string $migration): bool
+{
+    $stmt = $pdo->prepare("SELECT 1 FROM migrations WHERE migration = ?");
+    $stmt->execute([$migration]);
+    return (bool)$stmt->fetchColumn();
+}
+
+/**
+ * Record a migration as executed
+ */
+function record_migration(PDO $pdo, string $migration, int $batch): void
+{
+    $stmt = $pdo->prepare("INSERT INTO migrations (migration, batch) VALUES (?, ?)");
+    $stmt->execute([$migration, $batch]);
+}
+
+/**
+ * Get the next batch number
+ */
+function get_next_batch(PDO $pdo): int
+{
+    $stmt = $pdo->query("SELECT MAX(batch) as max_batch FROM migrations");
+    $result = $stmt->fetch();
+    return ($result && $result['max_batch']) ? (int)$result['max_batch'] + 1 : 1;
+}
+
+// Ensure migrations tracking table exists
+ensure_migrations_table($pdo, $isSqlite);
+
+// Get next batch number
+$batch = get_next_batch($pdo);
+
+// Discover migration files
+$migrationsPath = __DIR__ . '/../classes/Database/Migrations';
+$migrationFiles = glob($migrationsPath . '/*.php');
+sort($migrationFiles);
+
+if (empty($migrationFiles)) {
+    echo "⚠ No migration files found in $migrationsPath\n";
+    exit(0);
+}
+
+echo "Found " . count($migrationFiles) . " migration file(s)\n\n";
+
+$executed = 0;
+$skipped = 0;
+
+foreach ($migrationFiles as $file) {
+    $filename = basename($file);
+    $migrationName = pathinfo($filename, PATHINFO_FILENAME);
+
+    // Check if already executed
+    if (migration_exists($pdo, $migrationName)) {
+        echo "⊘ Skipping $filename (already executed)\n";
+        $skipped++;
+        continue;
+    }
+
+    echo "→ Running $filename...\n";
+
+    try {
+        // Include the migration file
+        require_once $file;
+
+        // Convert filename to class name
+        // e.g., "001_create_users_table" -> "CreateUsersTable"
+        $parts = explode('_', $migrationName);
+        array_shift($parts); // Remove numeric prefix
+        $className = 'QuantumAstrology\\Database\\Migrations\\' .
+                     implode('', array_map('ucfirst', $parts));
+
+        if (!class_exists($className)) {
+            throw new Exception("Migration class $className not found");
+        }
+
+        // Run the migration's up() method
+        $className::up();
+
+        // Record successful migration
+        record_migration($pdo, $migrationName, $batch);
+
+        echo "  ✔ $filename completed successfully\n";
+        $executed++;
+
+    } catch (Exception $e) {
+        echo "  ✗ Failed: " . $e->getMessage() . "\n";
+        echo "  Migration stopped at $filename\n";
+        exit(1);
+    }
+}
+
+echo "\n=== Migration Summary ===\n";
+echo "Executed: $executed\n";
+echo "Skipped: $skipped\n";
+echo "Batch: $batch\n";
+echo "\n✓ All migrations completed successfully!\n";

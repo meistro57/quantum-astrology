@@ -217,6 +217,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Authentication**: Chart-related endpoints require proper user authentication
 - **Input Validation**: Comprehensive validation for birth data and coordinates
 
+## [1.2.1-alpha] - 2025-10-29 - Database Migration System Enhancement
+
+### Added
+- **Dual Database Support**
+  - Complete MySQL and SQLite database compatibility
+  - Automatic database type detection and SQL syntax adaptation
+  - SQLite fallback when MySQL is unavailable for quick development setup
+  - Database-specific migration SQL generation for both MySQL and SQLite
+
+- **Enhanced Migration System**
+  - Robust migration tracking with batch management
+  - Idempotent migration execution (safe to run multiple times)
+  - Comprehensive migration status reporting
+  - Migration file auto-discovery from `classes/Database/Migrations/`
+  - Database connection error handling with helpful setup instructions
+
+- **Migration Tool Improvements (`tools/migrate.php`)**
+  - Database configuration display at startup
+  - Detailed error messages with troubleshooting guidance
+  - Migration execution summary with counts and batch numbers
+  - Support for foreign keys on both MySQL and SQLite
+  - Separate index creation for SQLite compatibility
+
+### Changed
+- **Migration Files Updated** for dual database support:
+  - `001_create_users_table.php` - Now supports both MySQL and SQLite
+  - `002_create_charts_table.php` - Database-aware SQL generation
+  - `003_create_birth_profiles_table.php` - Cross-database compatibility
+  - `004_create_chart_sessions_table.php` - Unified schema across databases
+
+- **Database Connection Strategy**:
+  - Enhanced `tools/migrate.php` with MySQL primary, SQLite fallback
+  - Improved error messages guide users through database setup
+  - Clear instructions for both MySQL and SQLite configuration
+
+### Technical Implementation
+- **Database Abstraction**: Each migration detects driver using `PDO::ATTR_DRIVER_NAME`
+- **SQLite Enhancements**:
+  - Proper `PRAGMA foreign_keys = ON` for referential integrity
+  - TEXT columns instead of JSON for data storage
+  - INTEGER instead of BOOLEAN for compatibility
+  - Separate CREATE INDEX statements for proper indexing
+
+- **MySQL Optimizations**:
+  - Native JSON column support for complex data structures
+  - InnoDB engine with proper foreign key constraints
+  - Inline index creation within table definitions
+  - TIMESTAMP with ON UPDATE CURRENT_TIMESTAMP support
+
+### Documentation
+- **Updated `CLAUDE.md`** with comprehensive database setup instructions
+  - Dual database configuration examples
+  - SQLite installation guide for PHP 8.2+
+  - MySQL user creation and privilege setup
+  - Migration system architecture documentation
+  - Database conventions for future migrations
+
+### Developer Experience
+- **Improved Setup Flow**:
+  - One-command database initialization: `php tools/migrate.php`
+  - Automatic SQLite database file creation in `./storage/`
+  - Clear error messages with actionable next steps
+  - No manual database setup required for SQLite development
+
+- **Migration Best Practices**:
+  - Each migration class must implement database detection
+  - Provide SQL for both MySQL and SQLite in all new migrations
+  - Test migrations on both database types before commit
+  - Use `Connection::getInstance()` for PDO access
+
 ## [Unreleased]
 
 ### Planned for v1.3 (Phase 3 - Professional Features)
@@ -243,6 +313,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Current Status
 - ✅ **Foundation Complete**: Professional interface and core infrastructure ready
+- ✅ **Database System**: Dual MySQL/SQLite support with robust migration system
 - ✅ **Swiss Ephemeris Integration Complete**: Full chart calculation and visualization system
 - 🔄 **Advanced Features In Development**: Transit calculations and professional features
 - 📋 **Documentation**: Comprehensive guides for installation and development
