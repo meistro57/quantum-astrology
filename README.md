@@ -15,18 +15,19 @@ Quantum Astrology provides professional-grade astrological calculations and char
 
 ---
 
-## ✅ Current Features (v0.1)
+## ✅ Current Features (v1.3)
 
+- **Transit Analysis UI** — interactive frontend for real-time planetary transits
 - **Swiss Ephemeris Integration** — precise planetary positions and house cusps
 - **Natal Chart Generation** — complete planetary positions, houses, and aspects
 - **House Alignment** — ASC≈cusp 1 and MC≈cusp 10 verified across swetest outputs
-- **SVG Chart Wheels** — planets, cusps, ASC/MC axes, and **aspect chords** (Conjunction, Opposition, Trine, Square, Sextile, Quincunx, Semisextile)
+- **SVG Chart Wheels** — polished wheel with **zodiac wedges**, planets, and aspect chords
 - **Aspect Engine** — configurable orbs and detection of major aspects
-- **User Authentication** — working registration, login, and profile management
+- **User Authentication** — secure registration, login, and profile management (MySQL/SQLite)
 - **Chart Management API** — create, get, and list charts with JSON output
 - **Validation** — strict input checks for date/time, timezone, lat/lon, and house systems
-- **Database Migrations** — schema setup with version tracking
-- **Calculation Cache Scaffold** — SHA1-hash memoization ready for fast repeat lookups
+- **Database Migrations** — schema setup with version tracking and SQLite fallback
+- **Report Scaffolding** — integrated PDF generation engine via mPDF
 
 ---
 

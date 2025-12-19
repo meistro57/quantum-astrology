@@ -1,9 +1,29 @@
 <?php
 // index.php — Quantum Astrology Portal (Dashboard)
 declare(strict_types=1);
-session_start();
+
+// If this is the built-in server and the file exists, serve it
+if (php_sapi_name() === 'cli-server') {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if (file_exists(__DIR__ . $path) && is_file(__DIR__ . $path)) {
+        return false;
+    }
+}
+
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 
 require __DIR__ . '/classes/autoload.php';
+require_once __DIR__ . '/config.php';
+
+// Bootstrap the application router
+$app = new \QuantumAstrology\Core\Application();
+$app->run();
+
+// Application::run() will handle specific pages/assets and exit.
+// For the root path ('/'), it returns here to render the dashboard.
+
+\QuantumAstrology\Core\Session::start();
 
 use QuantumAstrology\Core\DB;
 

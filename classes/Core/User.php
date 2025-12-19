@@ -30,7 +30,8 @@ class User
         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
 
         try {
-            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, created_at, updated_at)\n                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, NOW(), NOW())";
+            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, created_at, updated_at)
+                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
             $params = [
                 'username' => $userData['username'],
@@ -120,7 +121,7 @@ class User
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         
         try {
-            $sql = "UPDATE users SET password_hash = :password_hash, updated_at = NOW() WHERE id = :id";
+            $sql = "UPDATE users SET password_hash = :password_hash, updated_at = CURRENT_TIMESTAMP WHERE id = :id";
             Connection::query($sql, [
                 'password_hash' => $hashedPassword,
                 'id' => $this->id
@@ -149,7 +150,7 @@ class User
             return true;
         }
         
-        $updateFields[] = "updated_at = NOW()";
+        $updateFields[] = "updated_at = CURRENT_TIMESTAMP";
         $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = :id";
         
         try {
@@ -173,7 +174,7 @@ class User
     private function updateLastLogin(): void
     {
         try {
-            $sql = "UPDATE users SET last_login_at = NOW() WHERE id = :id";
+            $sql = "UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = :id";
             Connection::query($sql, ['id' => $this->id]);
         } catch (PDOException $e) {
             error_log("Last login update failed: " . $e->getMessage());

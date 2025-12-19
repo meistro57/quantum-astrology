@@ -2,9 +2,9 @@
 
 ## High Priority
 - [ ] Configure CI to run `composer test` and lint PHP files on every push.
-- [ ] Add regression fixtures for `TransitService::calculate()` covering aspect detection and house mapping.
-- [ ] Finish SVG wheel enhancements (zodiac wedges, glyph placement, responsive scaling) and expose them in the UI.
-- [ ] Implement PDF templates in `classes/Reports` using mPDF and wire them to downloadable chart reports.
+- [x] Add regression fixtures for `TransitService::calculate()` covering aspect detection and house mapping.
+- [x] Finish SVG wheel enhancements (zodiac wedges, glyph placement, responsive scaling) and expose them in the UI.
+- [x] Implement PDF templates in `classes/Reports` using mPDF and wire them to downloadable chart reports.
 
 ## Medium Priority
 - [ ] Expand REST API to support chart deletion/pagination endpoints and synchronize UI flows.

@@ -87,41 +87,49 @@ class ChartWheel
         $innerRadius = $this->size * 0.35;
         $signRadius = $this->size * 0.40;
 
-        // Draw outer circle
-        $svg .= sprintf(
-            '<circle cx="%d" cy="%d" r="%f" fill="none" stroke="%s" stroke-width="2"/>',
-            $this->centerX, $this->centerY, $outerRadius, $this->colors['wheel']
-        );
+        // Draw background wedges for each sign
+        $signColors = [
+            'Aries' => 'rgba(255, 107, 107, 0.1)', 'Taurus' => 'rgba(78, 205, 196, 0.1)', 
+            'Gemini' => 'rgba(255, 230, 109, 0.1)', 'Cancer' => 'rgba(255, 159, 243, 0.1)',
+            'Leo' => 'rgba(255, 159, 67, 0.1)', 'Virgo' => 'rgba(10, 189, 227, 0.1)', 
+            'Libra' => 'rgba(255, 121, 121, 0.1)', 'Scorpio' => 'rgba(84, 160, 255, 0.1)',
+            'Sagittarius' => 'rgba(255, 159, 67, 0.1)', 'Capricorn' => 'rgba(10, 189, 227, 0.1)', 
+            'Aquarius' => 'rgba(200, 214, 229, 0.1)', 'Pisces' => 'rgba(72, 219, 251, 0.1)'
+        ];
 
-        // Draw inner circle
-        $svg .= sprintf(
-            '<circle cx="%d" cy="%d" r="%f" fill="none" stroke="%s" stroke-width="2"/>',
-            $this->centerX, $this->centerY, $innerRadius, $this->colors['wheel']
-        );
-
-        // Draw zodiac signs
         $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
                  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
         for ($i = 0; $i < 12; $i++) {
-            $angle = ($i * 30) - 90; // Start from 0° Aries at top
-            $radians = deg2rad($angle + 15); // Center of each sign
+            $startAngle = ($i * 30) - 90;
+            $endAngle = $startAngle + 30;
             
-            // Sign division lines
-            $lineRadians = deg2rad($angle);
-            $x1 = $this->centerX + $innerRadius * cos($lineRadians);
-            $y1 = $this->centerY + $innerRadius * sin($lineRadians);
-            $x2 = $this->centerX + $outerRadius * cos($lineRadians);
-            $y2 = $this->centerY + $outerRadius * sin($lineRadians);
+            $x1_out = $this->centerX + $outerRadius * cos(deg2rad($startAngle));
+            $y1_out = $this->centerY + $outerRadius * sin(deg2rad($startAngle));
+            $x2_out = $this->centerX + $outerRadius * cos(deg2rad($endAngle));
+            $y2_out = $this->centerY + $outerRadius * sin(deg2rad($endAngle));
             
+            $x1_in = $this->centerX + $innerRadius * cos(deg2rad($startAngle));
+            $y1_in = $this->centerY + $innerRadius * sin(deg2rad($startAngle));
+            $x2_in = $this->centerX + $innerRadius * cos(deg2rad($endAngle));
+            $y2_in = $this->centerY + $innerRadius * sin(deg2rad($endAngle));
+
+            // Create path for the wedge
+            $pathData = sprintf(
+                "M %f %f A %f %f 0 0 1 %f %f L %f %f A %f %f 0 0 0 %f %f Z",
+                $x1_out, $y1_out, $outerRadius, $outerRadius, $x2_out, $y2_out,
+                $x2_in, $y2_in, $innerRadius, $innerRadius, $x1_in, $y1_in
+            );
+
             $svg .= sprintf(
-                '<line x1="%f" y1="%f" x2="%f" y2="%f" stroke="%s" stroke-width="1"/>',
-                $x1, $y1, $x2, $y2, $this->colors['signs']
+                '<path d="%s" fill="%s" stroke="%s" stroke-width="1"/>',
+                $pathData, $signColors[$signs[$i]], $this->colors['wheel']
             );
 
             // Sign symbols
-            $x = $this->centerX + $signRadius * cos($radians);
-            $y = $this->centerY + $signRadius * sin($radians);
+            $midRadians = deg2rad($startAngle + 15);
+            $x = $this->centerX + $signRadius * cos($midRadians);
+            $y = $this->centerY + $signRadius * sin($midRadians);
             
             $svg .= sprintf(
                 '<text x="%f" y="%f" fill="%s" font-size="16" font-weight="bold" text-anchor="middle" dominant-baseline="central">%s</text>',

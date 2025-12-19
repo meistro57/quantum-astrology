@@ -1,265 +1,77 @@
-# Quantum Astrology
+# Quantum Astrology - Agent Guide
 
-Professional astrology software suite with Quantum Minds United branding. Swiss Ephemeris-powered chart calculations with beautiful, responsive UI matching the existing QMU ecosystem.
+This repository contains a professional astrology software suite powered by Swiss Ephemeris and featuring a Quantum Minds United aesthetic.
 
-## Project Structure
+## 🛠 Essential Commands
 
-```
-quantum-astrology/
-├── assets/                    # Frontend assets (CSS, JS, images, fonts)
-├── api/                      # REST API endpoints for chart calculations
-├── classes/                  # Core PHP classes (PSR-4 autoloaded)
-├── pages/                    # UI pages and components
-├── data/                     # Ephemeris data, interpretations, templates
-├── storage/                  # Generated charts, reports, cache, logs
-├── tools/                    # Setup and maintenance scripts
-└── docs/                     # Documentation
-```
+- **Full Setup & Test**: `bash install-and-test.sh`
+  - Installs Composer locally if missing.
+  - Installs PHP dependencies.
+  - Runs database migrations.
+  - Executes syntax and functionality tests.
+- **Setup & Migration**: `php tools/migrate.php`
+  - Handles both MySQL and SQLite automatically.
+  - Track migrations in the `migrations` table.
+- **Development Server**: `bash start_server.sh` or `php -S localhost:8080 index.php`
+- **Tests**: `composer test` or `vendor/bin/phpunit`
+- **Syntax Check**: `php test-syntax.php`
+- **Storage Maintenance**: `php tools/manage-storage.php --list`
+- **Clear Cache**: `php tools/clear-cache.php`
 
-## Core Commands
+## 🏗 Project Structure
 
-- **Setup database**: `php tools/setup-database.php`
-- **Install dependencies**: `composer install`
-- **Run development server**: Start Apache/Nginx pointing to project root
-- **Generate test chart**: `php tools/test-chart-generation.php`
-- **Clear cache**: `php tools/clear-cache.php`
-- **Database backup**: `php tools/backup-database.php`
+- `api/`: Procedural API endpoints (e.g., `chart_svg.php`, `chart_create.php`).
+- `assets/`: Frontend assets (CSS, JS, images).
+- `classes/`: PSR-4 discovery root (`QuantumAstrology`).
+  - `Core/`: Foundational classes (Application, Auth, DB, Env, Session).
+  - `Charts/`: Astrological logic (SwissEphemeris, Chart, ChartWheel, Transit, etc.).
+  - `Database/`: Connection management and migrations.
+  - `Interpretations/`: Engines for reading astrological data.
+- `pages/`: UI page components (Dashboard, Auth, Charts, Reports).
+- `storage/`: Data directories for logs, cache, generated charts, and uploads.
+- `tools/`: CLI utilities for maintenance and setup.
+- `data/`: Static astrological data (ephemeris, cities, interpretations).
 
-## Development Environment
+## 🧩 Key Conventions & Patterns
 
-- **PHP**: 8.0+ required (with PDO, JSON extensions)
-- **Database**: MySQL 5.7+ or MariaDB 10.3+
-- **Web Server**: Apache 2.4+ or Nginx 1.18+
-- **Swiss Ephemeris**: Command-line tools or PHP extension
-- **Composer**: For dependency management
-- **phpMyAdmin**: For database administration
+### PSR-4 Autoloading
+All logic resides in the `classes/` directory under the `QuantumAstrology` namespace.
+Use `require __DIR__ . '/classes/autoload.php';` in entry points if `vendor/autoload.php` isn't available.
 
-## Technology Stack
+### Database Strategy (Dual Support)
+The system supports both MySQL (production) and SQLite (development/fallback).
+- Use `QuantumAstrology\\Core\\DB::conn()` or `QuantumAstrology\\Database\\Connection::getInstance()` to get a PDO instance.
+- Migrations must be idempotent and support both SQL dialects (MySQL/SQLite).
 
-- **Backend**: PHP 8+ with PSR-4 autoloading
-- **Database**: MySQL with JSON column support
-- **Frontend**: Vanilla JavaScript + Quantum UI framework
-- **Charts**: SVG generation for astrological wheels
-- **Reports**: HTML/PDF generation with optional AI narration
-- **APIs**: RESTful endpoints for all calculations
+### Swiss Ephemeris Integration
+Astrological calculations rely on the `swetest` CLI tool.
+- Path defined by `SWEPH_PATH` in `.env`.
+- `QuantumAstrology\\Charts\\SwissEphemeris` handles command execution.
+- **Critical Gotcha**: House calculation output from `swetest` can be finicky. The system includes a heuristic to ensure ASC aligns with Cusp 1 and MC aligns with Cusp 10.
 
-## Architecture Principles
+### Configuration
+Use `QuantumAstrology\\Core\\Env::get($key, $default)` for environment variables.
+Core defines are also available via `config.php`.
 
-### Chart Calculation Flow
-1. User submits birth data → validation
-2. Timezone/DST resolution → coordinate lookup
-3. Swiss Ephemeris calculation → planet positions
-4. House system calculation → chart structure
-5. Aspect calculation → angular relationships
-6. SVG chart generation → visual representation
-7. Database storage → cache for future access
+### Design System
+Follow the **Quantum Minds United** aesthetic:
+- **Colors**: Dark cosmic theme (`#0b0e14`), glassmorphism, gold accents.
+- **CSS**: Located in `assets/css/quantum-dashboard.css`.
+- **UI Components**: Cards, pills, and stats with specific gradients and blurs.
 
-### Data Storage Strategy
-- **User profiles**: Normalized relational tables
-- **Chart data**: JSON columns for complex structures
-- **Interpretations**: Modular JSON files by category
-- **Generated assets**: File system with database references
-- **Cache**: Redis-style approach using MySQL
+## ⚠️ Gotchas & Tips
 
-## Code Style & Standards
+1. **Authentication**: `index.php` (the portal) requires a user session. Use `/login` or `/register` to start.
+2. **Precision**: When modifying chart calculations, always verify orbs and house cusp alignment.
+3. **Paths**: Use absolute paths derived from `ROOT_PATH` or `__DIR__` to avoid issues with different entry points (root vs `api/`).
+4. **SVG Generation**: `ChartWheel.php` generates SVG directly. Always test changes across different screen sizes as the chart is intended to be responsive.
+5. **CSRF**: The application uses `$_SESSION['csrf_token']`. Verify it's present in AJAX requests to API endpoints like `chart_delete.php`.
 
-### PHP Standards
-- **PSR-4** autoloading: `QuantumAstrology\` namespace
-- **Strict typing**: `declare(strict_types=1)` in all files
-- **Error handling**: Try-catch blocks for all external calls
-- **Validation**: Input sanitization for all user data
-- **Documentation**: PHPDoc blocks for all public methods
+## 🧪 Testing Patterns
 
-### Frontend Standards
-- **Quantum Design System**: Match existing QMU aesthetic
-- **Responsive Design**: Mobile-first approach
-- **Accessibility**: ARIA labels, keyboard navigation
-- **Performance**: Lazy loading, optimized assets
-- **Animation**: Smooth transitions, particle effects
+- Unit tests reside in `tests/`.
+- Use `php tools/test-chart-generation.php` for a quick end-to-end check of the calculation engine.
+- Verify API health via `/api/health.php`.
 
-### Database Conventions
-- **Table names**: snake_case with descriptive prefixes
-- **Foreign keys**: Always with proper constraints
-- **Indexes**: On all frequently queried columns
-- **JSON validation**: Schema validation for complex data
-- **Migrations**: Sequential numbered files
-
-## Swiss Ephemeris Integration
-
-### Calculation Requirements
-- **Precision**: Sub-arcsecond accuracy for professional use
-- **Time handling**: UTC conversion, leap seconds, Delta T
-- **Coordinate systems**: Multiple house systems supported
-- **Ephemeris range**: 13,000 BCE to 17,000 CE
-- **Bodies**: Planets, asteroids, fixed stars, Arabic parts
-
-### Implementation Approach
-```php
-// Use command-line interface for reliability
-$command = "swetest -b{$jd} -p{$planets} -f{$format} -sid{$sidereal}";
-$positions = shell_exec($command);
-
-// Cache results for performance
-$cache_key = md5($birth_data . $chart_type . $house_system);
-```
-
-## Design System Integration
-
-### Quantum Minds United Branding
-- **Color Palette**: Dark cosmic theme with gold accents
-- **Typography**: Inter font family, clean hierarchy
-- **Components**: Carousel cards, featured badges, particle effects
-- **Animations**: Smooth hover states, loading transitions
-- **Layout**: Consistent with video/audio/book libraries
-
-### UI Patterns to Follow
-```css
-/* Quantum card styling */
-.quantum-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(15px);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Featured content */
-.featured-badge {
-    background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
-    position: absolute;
-    top: 15px;
-    right: 15px;
-}
-```
-
-## Testing Strategy
-
-### Chart Accuracy Validation
-- **Known birth data**: Test against established charts
-- **Edge cases**: Leap years, DST transitions, polar coordinates
-- **House systems**: Compare Placidus, Whole Sign, Equal, Koch
-- **Aspect calculations**: Verify orbs and exactness
-- **Progression timing**: Test secondary progressions accuracy
-
-### Performance Benchmarks
-- **Chart generation**: < 500ms for natal charts
-- **Database queries**: < 100ms for cached lookups
-- **SVG rendering**: < 200ms for complex wheels
-- **Report generation**: < 2s for detailed PDFs
-- **API responses**: < 1s for all endpoints
-
-## Security Considerations
-
-### Data Protection
-- **Birth data**: Encrypted storage for sensitive information
-- **User authentication**: Secure password hashing
-- **API endpoints**: Rate limiting and input validation
-- **File uploads**: Sanitization and type checking
-- **SQL injection**: Parameterized queries only
-
-### Privacy Requirements
-- **GDPR compliance**: Data export/deletion capabilities
-- **Birth time sensitivity**: Optional anonymization
-- **Chart sharing**: Granular privacy controls
-- **Audit logging**: Track access to sensitive data
-
-## Deployment Guidelines
-
-### Production Requirements
-- **PHP**: 8.1+ with OPcache enabled
-- **MySQL**: 8.0+ with proper indexing
-- **SSL**: Required for birth data transmission
-- **Backups**: Daily automated database backups
-- **Monitoring**: Application performance monitoring
-- **CDN**: For static assets and generated charts
-
-### Environment Configuration
-```php
-// Production settings
-define('APP_ENV', 'production');
-define('APP_DEBUG', false);
-define('CACHE_ENABLED', true);
-define('SWEPH_PATH', '/usr/local/bin/swetest');
-```
-
-## Feature Development Priorities
-
-### Phase 1 (MVP)
-1. **User registration/login** system
-2. **Natal chart calculation** with Swiss Ephemeris
-3. **Basic interpretation** engine
-4. **SVG chart rendering** with interactive elements
-5. **PDF report generation** with QMU branding
-
-### Phase 2 (Professional Features)
-1. **Transit calculations** with timeline visualization
-2. **Secondary progressions** and symbolic timing
-3. **Solar/Lunar returns** with relocation
-4. **Synastry analysis** and composite charts
-5. **Advanced house systems** and coordinate options
-
-### Phase 3 (Advanced Analysis)
-1. **Harmonic charts** and frequency analysis
-2. **Arabic parts** calculation and interpretation
-3. **Fixed stars** integration with magnitudes
-4. **Electional astrology** timing tools
-5. **AI-generated reports** with voice narration
-
-## API Design Patterns
-
-### RESTful Endpoints
-```
-POST /api/charts/natal          # Generate natal chart
-GET  /api/charts/{id}           # Retrieve chart data
-POST /api/transits/calculate    # Calculate transit aspects
-GET  /api/users/{id}/charts     # List user's charts
-POST /api/reports/generate      # Create detailed report
-```
-
-### Response Format
-```json
-{
-    "status": "success",
-    "data": {
-        "chart_id": "12345",
-        "planets": {...},
-        "houses": {...},
-        "aspects": [...]
-    },
-    "meta": {
-        "calculation_time": "234ms",
-        "cached": false
-    }
-}
-```
-
-## Integration Goals
-
-### Ecosystem Compatibility
-- **Design consistency**: Match video/audio/book library aesthetics
-- **User experience**: Familiar navigation patterns
-- **Data sharing**: Export capabilities for external tools
-- **Mobile optimization**: Responsive across all devices
-- **Performance**: Load times comparable to media libraries
-
-### Professional Standards
-- **Accuracy**: Swiss Ephemeris precision for professional use
-- **Reliability**: 99.9% uptime for calculation services
-- **Scalability**: Handle multiple concurrent chart generations
-- **Documentation**: Comprehensive API and user guides
-- **Support**: Integration with existing QMU community
-
-## Maintenance & Updates
-
-### Regular Tasks
-- **Ephemeris updates**: Annual Swiss Ephemeris data refresh
-- **Timezone database**: Quarterly political/DST updates
-- **Security patches**: Monthly dependency updates
-- **Performance optimization**: Quarterly cache analysis
-- **User feedback**: Continuous interpretation improvements
-
-### Quality Assurance
-- **Automated testing**: CI/CD pipeline for all changes
-- **Chart validation**: Compare against reference software
-- **User acceptance**: Beta testing with astrology professionals
-- **Performance monitoring**: Real-time application metrics
-- **Error tracking**: Comprehensive logging and alerting
+## 🗺 Roadmap Reference
+Consult `ROADMAP.md` and `TODO.md` for current development focus. Phase 2 (Advanced Features like Synastry and AI Interpretations) is currently in development.

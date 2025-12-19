@@ -40,54 +40,55 @@ class Application
                 
             case str_starts_with($path, '/api/'):
                 $this->handleApiRequest($path, $method);
-                break;
+                exit;
                 
             case str_starts_with($path, '/assets/'):
                 $this->serveAsset($path);
-                break;
+                exit;
                 
             case $path === '/charts':
                 $this->servePage('charts/index.php');
-                break;
+                exit;
                 
             case $path === '/charts/create':
                 $this->servePage('charts/create.php');
-                break;
+                exit;
                 
             case $path === '/charts/view':
                 $this->servePage('charts/view.php');
-                break;
+                exit;
                 
             case $path === '/charts/relationships':
                 $this->servePage('charts/relationships.php');
-                break;
+                exit;
                 
             case str_starts_with($path, '/charts/'):
                 $this->servePage('charts/index.php');
-                break;
+                exit;
                 
             case str_starts_with($path, '/reports/'):
                 $this->servePage('reports/index.php');
-                break;
+                exit;
                 
             case $path === '/login':
                 $this->servePage('auth/login.php');
-                break;
+                exit;
                 
             case $path === '/register':
                 $this->servePage('auth/register.php');
-                break;
+                exit;
                 
             case $path === '/profile':
                 $this->servePage('auth/profile.php');
-                break;
+                exit;
                 
             case $path === '/logout':
                 $this->handleLogout();
-                break;
+                exit;
                 
             default:
                 $this->handle404();
+                exit;
         }
     }
     

@@ -119,103 +119,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Environment-based configuration bootstrap (`config.php`)
-- Database backup utility script (`tools/backup-database.php`)
-
-## [1.2.0-alpha] - 2024-12-XX - Swiss Ephemeris Integration & Chart System
+## [1.3.0-alpha] - 2025-12-19 - Transit UI & SQLite Reliability
 
 ### Added
-- **Complete Swiss Ephemeris Integration**
-  - Command-line swetest integration with fallback to analytical calculations
-  - Support for all major planets (Sun through Pluto), Moon's nodes, Chiron, and Lilith
-  - Multiple house systems: Placidus, Koch, Equal, Whole Sign, Campanus, Regiomontanus, and more
-  - Precise Julian day calculations and coordinate system transformations
-  - Comprehensive error handling with graceful fallbacks when Swiss Ephemeris is unavailable
+- **Functional Transit Analysis UI**
+  - Integrated `TransitService` with a new interactive frontend at `/charts/transits`.
+  - Supports chart selection, custom date/time picking, and real-time computation of transiting planets.
+  - Displays cross-aspects (natal vs transit) with calculated orbs and house placements.
+- **Enhanced SVG Chart Wheel**
+  - Added color-coded zodiac wedges for improved visual readability.
+  - Implemented dynamic arc paths for all 12 signs in the base wheel.
+- **Report Generation Scaffolding**
+  - Initial `ReportGenerator` class utilizing `mPDF` for PDF exports.
+  - Support for basic natal report templates with calculation metadata.
+- **Infrastructure & Stability Scripts**
+  - `install-and-test.sh`: Automated dependency installer, composer bootstrapper, and migration runner.
+  - `start_server.sh`: Robust server launcher with `.env` port detection and `0.0.0.0` binding for better accessibility.
 
-- **Professional Chart Calculation Engine**
-  - Complete natal chart generation with `Chart::generateNatalChart()` method
-  - Planetary position calculations with longitude, latitude, distance, and speed
-  - House cusp calculations for all 12 houses with proper sign assignments
-  - Major aspect calculation engine supporting conjunction, sextile, square, trine, opposition
-  - Configurable aspect orbs with applying/separating aspect detection
-  - Chart data caching and optimization for performance
-
-- **SVG Chart Wheel Visualization**
-  - Professional astrological chart wheels with astronomical Unicode symbols
-  - Zodiac circle with proper sign divisions and symbols
-  - House divisions with cusp lines and house numbers
-  - Planetary positions displayed with symbols and degree markings
-  - Aspect lines with color coding for different aspect types
-  - Responsive SVG generation with caching system for performance
-
-- **Complete Chart Management System**
-  - Chart creation forms with comprehensive birth data validation
-  - Chart viewing interface with detailed planetary positions and aspects
-  - Chart library with grid layout, search, and management features
-  - Public/private chart sharing with proper access control
-  - Chart editing capabilities with user permission checks
-  - Chart deletion with cascade handling for related data
-
-- **Advanced Database Architecture**
-  - Charts table with JSON columns for complex astrological data storage
-  - Birth profiles table for reusable person data and location information
-  - Chart sessions table for user interaction tracking and preferences
-  - Proper indexing on astrological data fields for query performance
-  - Migration system enhancements for complex schema changes
-
-- **Professional User Interface**
-  - Chart creation forms with timezone selection and coordinate inputs
-  - Interactive chart viewing with planetary information panels
-  - Chart management dashboard with visual chart previews
-  - Responsive design optimized for astrological data presentation
-  - Enhanced navigation with chart-specific menu items and actions
-
-- **API Infrastructure Expansion**
-  - Chart wheel SVG generation endpoint at `/api/charts/{id}/wheel`
-  - RESTful chart data access with proper authentication
-  - HTTP caching headers for chart wheel performance
-  - Comprehensive error handling for API requests
-  - JSON responses with proper status codes and error messages
+### Fixed
+- **Database Connection Reliability**
+  - Resolved connection hang by refactoring core `DB::conn()` to use the unified `Connection` manager.
+  - Ensured immediate SQLite fallback when MySQL drivers or servers are unavailable.
+- **User Authentication Logic**
+  - Fixed registration failure in SQLite environments by replacing MySQL-specific `NOW()` with portable `CURRENT_TIMESTAMP`.
+- **Routing & Server Looping**
+  - Resolved infinite redirect loop in `index.php` by correctly bootstrapping the `Application` router.
+  - Fixed asset serving conflicts between the built-in PHP server and the internal router.
 
 ### Changed
-- **Application Architecture**: Enhanced routing system to handle chart-specific URLs
-- **Dashboard Integration**: Updated main dashboard to link to chart creation and management
-- **Navigation System**: Added chart-related navigation items and user flows
-- **Database Schema**: Expanded with comprehensive astrological data structures
-- **Configuration System**: Added Swiss Ephemeris path configuration and fallback options
-
-### Technical Implementation
-- **New Classes Added**:
-  - `QuantumAstrology\Core\SwissEphemeris` - Swiss Ephemeris integration and calculations
-  - `QuantumAstrology\Charts\Chart` - Chart model with full CRUD operations
-  - `QuantumAstrology\Charts\ChartWheel` - SVG chart wheel generation
-  - `QuantumAstrology\Database\Migrations\CreateChartsTable` - Charts table schema
-  - `QuantumAstrology\Database\Migrations\CreateBirthProfilesTable` - Birth profiles schema
-  - `QuantumAstrology\Database\Migrations\CreateChartSessionsTable` - Chart sessions schema
-
-- **Database Schema Additions**:
-  - Charts table: Comprehensive chart storage with birth data, calculations, and metadata
-  - Birth profiles table: Reusable person profiles with location and timezone data
-  - Chart sessions table: User interaction tracking and chart-specific preferences
-  - Proper foreign key relationships and cascade delete handling
-
-- **API Endpoints Added**:
-  - `GET /api/charts/{id}/wheel` - SVG chart wheel generation
-  - Chart data endpoints with authentication and access control
-  - Caching system for chart wheel generation performance
-
-### Performance Improvements
-- **Chart Wheel Caching**: SVG generation cached to disk with MD5 cache keys
-- **Database Optimization**: Proper indexing on frequently queried chart data
-- **Query Efficiency**: Optimized chart retrieval with minimal database calls
-- **Static Asset Caching**: Enhanced caching headers for chart resources
-
-### Security Enhancements
-- **Chart Access Control**: Public/private chart sharing with user permission validation
-- **Birth Data Protection**: Sensitive birth information properly secured
-- **API Authentication**: Chart-related endpoints require proper user authentication
-- **Input Validation**: Comprehensive validation for birth data and coordinates
+- Refactored `index.php` to serve as a clean entry point delegating to the `Core\Application` class.
+- Updated `AGENTS.md` with comprehensive setup and maintenance instructions.
+- Simplified core database access patterns to ensure architectural consistency.
 
 ## [1.2.1-alpha] - 2025-10-29 - Database Migration System Enhancement
 

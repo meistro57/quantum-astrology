@@ -1,26 +1,28 @@
 # Quantum Astrology - System Status
 
-**Version:** 0.2.0-dev
+**Version:** 1.3.0-alpha
 **Status:** 🚧 Core platform under active development
-**Last Updated:** September 18, 2025
+**Last Updated:** December 19, 2025
 
 ## 📌 Overview
 - The project is in early alpha with core chart generation, authentication, and API scaffolding in place.
-- Swiss Ephemeris CLI integration powers natal charts; transits and reporting services exist but still need polish and UI coverage.
+- Swiss Ephemeris CLI integration powers natal charts; transits and reporting services exist and have been wired to initial UI components.
 - Significant enterprise and AI-assisted features listed in the roadmap are not yet implemented.
 
 ## 🚦 Implementation Snapshot
 
 ### ✅ Stable & Usable Today
-- **Swiss Ephemeris service** via `QuantumAstrology\\Core\\SwissEphemeris` for planetary and house calculations.
+- **Swiss Ephemeris service** via `QuantumAstrology\Core\SwissEphemeris` for planetary and house calculations.
 - **Natal chart pipeline** (`Chart::generateNatalChart`) storing planets, houses, aspects, and metadata in the `charts` table.
 - **Authentication & chart CRUD** flows covering registration, login, chart creation/listing (`api/chart_create.php`, `api/charts_list.php`, `classes/Charts/Chart.php`).
 - **REST endpoints** for health checks, chart retrieval, SVG export, and chart listing within the authenticated API surface.
+- **Transit Analysis**: Full UI and service pipeline integrated at `/charts/transits`.
+- **SVG Wheel**: Enhanced with colored zodiac wedges and responsive layout logic.
+- **Report Scaffolding**: PDF generation engine integrated (`ReportGenerator.php`).
 
 ### 🧪 In Active Development / Needs Validation
-- **Transit calculations** exposed at `api/transits.php` using `TransitService`; requires broader QA and UI integration.
-- **Report generation** scaffolding (`classes/Reports`) with mPDF dependency but lacking finished templates and workflows.
-- **Front-end polish**: chart wheel visuals exist, but aspects like zodiac wedges, glyph styling, and responsive layouts still need refinement.
+- **Progressions & Returns**: Backend logic for secondary progressions and solar returns.
+- **Report Templates**: Expanding templates with rich interpretation blocks.
 
 ### ⏳ Not Yet Implemented
 - Enterprise tooling (comparison dashboards, advanced filtering, collaboration).
@@ -37,6 +39,5 @@
 - Manual verification still required for chart math, transit accuracy, and PDF exports.
 
 ## 🚀 Next Immediate Focus
-- Harden transit calculations with regression fixtures and UI/UX surfaces.
-- Finish SVG wheel enhancements (zodiac wedges, glyph assets) and bundle caching.
+- Finish progressions and solar returns logic.
 - Produce end-to-end chart/report tests to secure the core experience.
