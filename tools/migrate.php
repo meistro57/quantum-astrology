@@ -19,54 +19,41 @@ echo "  SQLite Path: " . DB_SQLITE_PATH . "\n";
 echo "\n";
 
 try {
-    // Try to get PDO connection using Core\DB (MySQL)
+    // Get PDO connection (may be MySQL or SQLite via automatic fallback)
     $pdo = DB::conn();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "✓ Connected to MySQL database\n\n";
-    $isSqlite = false;
-} catch (Exception $e) {
-    // Fallback to SQLite
-    echo "⚠ MySQL connection failed, using SQLite fallback\n";
-    echo "  MySQL Error: " . $e->getMessage() . "\n\n";
 
-    try {
-        // Ensure storage directory exists
-        $storagePath = dirname(DB_SQLITE_PATH);
-        if (!is_dir($storagePath)) {
-            mkdir($storagePath, 0755, true);
-            echo "  Created storage directory: $storagePath\n";
-        }
+    // Detect actual driver to use correct SQL syntax
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $isSqlite = ($driver === 'sqlite');
 
-        // Create SQLite connection directly
-        $pdo = new PDO('sqlite:' . DB_SQLITE_PATH);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $isSqlite = true;
-
+    if ($isSqlite) {
         echo "✓ Connected to SQLite database: " . DB_SQLITE_PATH . "\n\n";
-    } catch (PDOException $sqliteException) {
-        echo "✗ SQLite fallback failed: " . $sqliteException->getMessage() . "\n\n";
-        echo "=== Database Setup Required ===\n\n";
-        echo "Neither MySQL nor SQLite is properly configured. Please choose one option:\n\n";
-        echo "Option 1: Fix MySQL Connection\n";
-        echo "  If you're using MySQL with unix_socket auth (common on Ubuntu/Debian):\n";
-        echo "  1. Connect to MySQL as root: sudo mysql -u root\n";
-        echo "  2. Create database: CREATE DATABASE quantum_astrology;\n";
-        echo "  3. Create user: CREATE USER 'qauser'@'localhost' IDENTIFIED BY 'password';\n";
-        echo "  4. Grant privileges: GRANT ALL ON quantum_astrology.* TO 'qauser'@'localhost';\n";
-        echo "  5. Update .env with new credentials:\n";
-        echo "     DB_USER=qauser\n";
-        echo "     DB_PASS=password\n\n";
-        echo "Option 2: Install SQLite\n";
-        echo "  1. Install PHP SQLite: sudo apt-get install php-sqlite3\n";
-        echo "  2. Restart PHP: sudo service php*-fpm restart (if using FPM)\n\n";
-        echo "Option 3: Use existing MySQL with password\n";
-        echo "  If you have MySQL credentials that work, update your .env file:\n";
-        echo "     DB_HOST=localhost\n";
-        echo "     DB_USER=your_username\n";
-        echo "     DB_PASS=your_password\n\n";
-        exit(1);
+    } else {
+        echo "✓ Connected to MySQL database\n\n";
     }
+} catch (Exception $e) {
+    echo "✗ Database connection failed: " . $e->getMessage() . "\n\n";
+    echo "=== Database Setup Required ===\n\n";
+    echo "Neither MySQL nor SQLite is properly configured. Please choose one option:\n\n";
+    echo "Option 1: Fix MySQL Connection\n";
+    echo "  If you're using MySQL with unix_socket auth (common on Ubuntu/Debian):\n";
+    echo "  1. Connect to MySQL as root: sudo mysql -u root\n";
+    echo "  2. Create database: CREATE DATABASE quantum_astrology;\n";
+    echo "  3. Create user: CREATE USER 'qauser'@'localhost' IDENTIFIED BY 'password';\n";
+    echo "  4. Grant privileges: GRANT ALL ON quantum_astrology.* TO 'qauser'@'localhost';\n";
+    echo "  5. Update .env with new credentials:\n";
+    echo "     DB_USER=qauser\n";
+    echo "     DB_PASS=password\n\n";
+    echo "Option 2: Install SQLite\n";
+    echo "  1. Install PHP SQLite: sudo apt-get install php-sqlite3\n";
+    echo "  2. Restart PHP: sudo service php*-fpm restart (if using FPM)\n\n";
+    echo "Option 3: Use existing MySQL with password\n";
+    echo "  If you have MySQL credentials that work, update your .env file:\n";
+    echo "     DB_HOST=localhost\n";
+    echo "     DB_USER=your_username\n";
+    echo "     DB_PASS=your_password\n\n";
+    exit(1);
 }
 
 /**
