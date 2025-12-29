@@ -7,6 +7,7 @@
     --quantum-dark: #0f1419;
     --quantum-darker: #0a0e13;
     --quantum-blue: #4a90e2;
+    --quantum-primary: #4a90e2;
     --quantum-purple: #8b5cf6;
     --quantum-gold: #ffd700;
     --quantum-text: #e2e8f0;
@@ -26,6 +27,17 @@ body {
     position: relative;
     line-height: 1.6;
 }
+
+/* Particles container (used in forms) */
+.particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
 }
 
 /* Particles background */
