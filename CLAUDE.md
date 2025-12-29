@@ -194,15 +194,61 @@ Entry point is `index.php` which:
   - Error fallbacks for missing Swiss Ephemeris installation
   - Debug modes for development and calculation verification
 
-### Components (Coming Soon)
+### Advanced Features (Implemented)
 
-- **Advanced Chart Types**: Transit charts, progressions, solar returns, composites
-- **Interpretation System**: AI-powered chart readings and aspect interpretations
-- **Report Generation**: Professional PDF reports with QMU branding
+- **Transit Calculations**: ✅ Complete real-time planetary transit tracking with:
+  - Current transits to natal chart aspects
+  - Upcoming transit calculations (configurable days ahead)
+  - Transit-to-natal aspect orb calculations
+  - API endpoints: `/api/charts/{id}/transits`, `/api/charts/{id}/transits/current`, `/api/charts/{id}/transits/upcoming`
+
+- **Secondary Progressions**: ✅ Day-for-year progression calculations with:
+  - Progressed planetary positions
+  - Progressed-to-natal aspects
+  - Progressed lunar phases and returns
+  - API endpoints: `/api/charts/{id}/progressions`, `/api/charts/{id}/progressions/current`
+
+- **Solar Returns**: ✅ Complete solar return system with:
+  - Exact solar return moment calculations
+  - Relocated solar returns for different cities
+  - Annual profections (planetary rulers)
+  - Multi-year solar return calculations
+  - API endpoints: `/api/charts/{id}/solar-returns`, `/api/charts/{id}/solar-returns/{year}`
+
+- **Synastry Analysis**: ✅ Comprehensive relationship chart comparison with:
+  - Cross-aspects between two charts
+  - House overlays (where partner's planets fall in your houses)
+  - Compatibility scoring (romantic, emotional, intellectual, sexual, spiritual)
+  - Relationship dynamics analysis
+  - API endpoints: `/api/charts/{id}/synastry/{id2}`, `/api/charts/{id}/synastry/{id2}/insights`
+
+- **Composite Charts**: ✅ Midpoint method composite calculations with:
+  - Relationship purpose and evolutionary goal analysis
+  - Elemental balance in composite chart
+  - Composite planetary positions and aspects
+  - API endpoints: `/api/charts/{id}/composite/{id2}`, `/api/charts/{id}/composite/{id2}/insights`
+
+- **Interpretation System**: ✅ Complete interpretation framework with:
+  - Sun/Moon/Rising synthesis
+  - Planetary placement interpretations
+  - Elemental and modal balance analysis
+  - Chart shape patterns (Jones Patterns)
+  - Dominant planet detection
+  - AI-powered natural language interpretations (Ollama integration)
+  - API endpoints: `/api/charts/{id}/interpretation`, `/api/charts/{id}/interpretation/ai`
+
+- **Aspect Pattern Detection**: ✅ Advanced pattern recognition with:
+  - Grand Trines, T-Squares, Yods (Finger of God)
+  - Grand Crosses, Kites, Mystic Rectangles
+  - Cradles and Boomerangs
+  - Pattern interpretations and strength scoring
+  - API endpoint: `/api/charts/{id}/patterns`
+
+### Components (In Progress)
+
+- **Advanced UI Pages**: Progressions, Solar Returns, Synastry/Composite interfaces
+- **Report Generation**: Professional PDF reports with QMU branding (basic stub exists)
 - **Audio Synthesis**: Voice narration of chart interpretations
-- **Advanced Visualization**: Interactive chart wheels with zoom and aspect overlays
-- **Chart Comparison**: Synastry analysis and relationship compatibility
-- **Timing Analysis**: Transit tracking and forecasting tools
 
 ## Code Standards
 
@@ -351,7 +397,7 @@ Match the existing QMU ecosystem design patterns:
 7. Session management and authentication middleware
 8. Robust database migration system with dual MySQL/SQLite support
 
-### ✅ Phase 1.2 (Swiss Ephemeris Integration Complete)
+### ✅ Phase 1 (Swiss Ephemeris Integration Complete)
 1. Swiss Ephemeris integration with command-line and analytical fallback
 2. Complete chart database schema with JSON columns for complex astrological data
 3. Professional natal chart calculation engine with planetary positions and houses
@@ -363,21 +409,29 @@ Match the existing QMU ecosystem design patterns:
 9. API endpoints for chart wheel generation and data export
 10. Caching system for chart wheel performance optimization
 
-### 🔄 Phase 2 (Advanced Features - Next Focus)
-1. Transit calculations with real-time planetary movements
-2. Secondary progressions and solar return calculations
-3. Synastry and composite chart analysis
-4. Advanced interpretation system with AI integration
-5. Professional PDF report generation with QMU branding
+### ✅ Phase 2 (Advanced Features Complete)
+1. ✅ Transit calculations with real-time planetary movements
+2. ✅ Secondary progressions and solar return calculations
+3. ✅ Synastry and composite chart analysis
+4. ✅ Advanced interpretation system with AI integration (Ollama-ready)
+5. ✅ Aspect pattern detection (Grand Trines, T-Squares, Yods, etc.)
+6. ✅ Comprehensive API endpoints for all advanced features
 
-### 📋 Phase 3 (Professional Features)
-1. Interactive transit timeline with date ranges
-2. Advanced aspect pattern recognition (Grand Trines, T-Squares, Yods)
-3. Modular interpretation system with customizable rules
-4. Professional chart comparison tools
+### 🔄 Phase 3 (UI & Reports - Current Focus)
+1. Interactive UI pages for Progressions, Solar Returns, Synastry/Composite
+2. Enhanced Transit Timeline with date range selection
+3. Professional PDF report generation with QMU branding
+4. Chart comparison visualization tools
 5. Advanced chart filtering and search capabilities
 
-### 🚀 Phase 4 (Advanced Features)
+### 📋 Phase 4 (Professional Features)
+1. Audio synthesis for chart interpretation narration
+2. Modular interpretation system with customizable rules
+3. Chart export in multiple formats (PDF, PNG, JSON)
+4. Batch chart processing capabilities
+5. API rate limiting and usage analytics
+
+### 🚀 Phase 5 (Enterprise Features)
 1. Mobile app development with React Native
 2. Advanced API integrations and third-party services
 3. Multi-language support for international users
