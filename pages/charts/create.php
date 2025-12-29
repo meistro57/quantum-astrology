@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($chart) {
             Session::flash('success', 'Natal chart created successfully!');
-            header('Location: /quantum-astrology/charts/view?id=' . $chart->getId());
+            header('Location: /charts/view?id=' . $chart->getId());
             exit;
         } else {
             $errors[] = 'Failed to create chart. Please try again.';
@@ -194,7 +194,7 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/quantum-astrology/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
         .chart-creator { max-width: 900px; margin: 0 auto; padding: 2rem; }
         .creator-header { text-align: center; margin-bottom: 3rem; }
@@ -396,7 +396,7 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
             </div>
 
             <div class="button-group">
-                <a href="/quantum-astrology/" class="btn btn-secondary">Cancel</a>
+                <a href="/" class="btn btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-primary">Create Chart</button>
             </div>
         </form>
