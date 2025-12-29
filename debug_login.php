@@ -51,9 +51,9 @@ try {
     $pdo = Connection::getInstance();
     echo "<span class='success'>✅ Database connection successful</span><br>";
     
-    // Check if users table exists
-    $stmt = $pdo->query("SHOW TABLES LIKE 'users'");
-    if ($stmt->rowCount() > 0) {
+    // Check if users table exists (SQLite)
+    $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+    if ($stmt->fetchColumn()) {
         echo "<span class='success'>✅ Users table exists</span><br>";
         
         // Count users
@@ -220,8 +220,8 @@ echo "<pre>";
 echo "PHP Version: " . PHP_VERSION . "\n";
 echo "App Debug: " . (APP_DEBUG ? 'Enabled' : 'Disabled') . "\n";
 echo "App Environment: " . APP_ENV . "\n";
-echo "Database Host: " . DB_HOST . "\n";
-echo "Database Name: " . DB_NAME . "\n";
+echo "Database: SQLite\n";
+echo "Database Path: " . DB_SQLITE_PATH . "\n";
 echo "HTTPS: " . (HTTPS ? 'Yes' : 'No') . "\n";
 echo "Request URI: " . ($_SERVER['REQUEST_URI'] ?? 'Not set') . "\n";
 echo "</pre>";

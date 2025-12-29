@@ -14,43 +14,34 @@ class Connection
     {
         if (self::$instance === null) {
             try {
-                $dsn = sprintf(
-                    'mysql:host=%s;port=%s;dbname=%s;charset=%s',
-                    DB_HOST,
-                    DB_PORT,
-                    DB_NAME,
-                    DB_CHARSET
-                );
+                // Ensure storage directory exists
+                $dbDir = dirname(DB_SQLITE_PATH);
+                if (!is_dir($dbDir)) {
+                    mkdir($dbDir, 0755, true);
+                }
 
-                self::$instance = new PDO($dsn, DB_USER, DB_PASS, [
+                $dsn = 'sqlite:' . DB_SQLITE_PATH;
+                self::$instance = new PDO($dsn, null, null, [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
                 ]);
+
+                // Enable foreign keys for SQLite
+                self::$instance->exec('PRAGMA foreign_keys = ON');
+
+                // Initialize tables if needed (for fresh installs)
+                self::initializeTables(self::$instance);
             } catch (PDOException $e) {
-                error_log("Database connection failed: " . $e->getMessage() . ". Falling back to SQLite.");
-
-                try {
-                    @mkdir(dirname(DB_SQLITE_PATH), 0755, true);
-                    $dsn = 'sqlite:' . DB_SQLITE_PATH;
-                    self::$instance = new PDO($dsn, null, null, [
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        PDO::ATTR_EMULATE_PREPARES => false,
-                    ]);
-
-                    self::initializeSqlite(self::$instance);
-                } catch (PDOException $sqliteException) {
-                    error_log("SQLite fallback failed: " . $sqliteException->getMessage());
-                    throw new PDOException("Database connection failed");
-                }
+                error_log("SQLite connection failed: " . $e->getMessage());
+                throw new PDOException("Database connection failed: " . $e->getMessage());
             }
         }
 
         return self::$instance;
     }
 
-    private static function initializeSqlite(PDO $pdo): void
+    private static function initializeTables(PDO $pdo): void
     {
         $pdo->exec('CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +75,8 @@ class Connection
             calculation_metadata TEXT,
             is_public INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )');
 
         $pdo->exec('CREATE TABLE IF NOT EXISTS birth_profiles (
@@ -99,7 +91,8 @@ class Connection
             notes TEXT,
             is_private INTEGER DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )');
 
         $pdo->exec('CREATE TABLE IF NOT EXISTS chart_sessions (
@@ -112,16 +105,19 @@ class Connection
             display_preferences TEXT,
             last_accessed TEXT DEFAULT CURRENT_TIMESTAMP,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (chart_id) REFERENCES charts(id) ON DELETE CASCADE,
+            UNIQUE(user_id, chart_id)
         )');
 
         $pdo->exec('CREATE TABLE IF NOT EXISTS migrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            migration TEXT,
-            batch INTEGER
+            migration TEXT NOT NULL,
+            batch INTEGER NOT NULL
         )');
     }
-    
+
     public static function query(string $sql, array $params = []): \PDOStatement
     {
         $pdo = self::getInstance();
@@ -129,14 +125,14 @@ class Connection
         $stmt->execute($params);
         return $stmt;
     }
-    
+
     public static function fetchOne(string $sql, array $params = []): ?array
     {
         $stmt = self::query($sql, $params);
         $result = $stmt->fetch();
         return $result ?: null;
     }
-    
+
     public static function fetchAll(string $sql, array $params = []): array
     {
         $stmt = self::query($sql, $params);

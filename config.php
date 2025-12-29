@@ -38,13 +38,7 @@ define('ROOT_PATH', __DIR__);
 define('STORAGE_PATH', ROOT_PATH . '/storage');
 define('LOGS_PATH', STORAGE_PATH . '/logs');
 
-// Database configuration
-define('DB_HOST', (string) env('DB_HOST', 'localhost'));
-define('DB_PORT', (int) env('DB_PORT', 3306));
-define('DB_NAME', (string) env('DB_NAME', 'quantum_astrology'));
-define('DB_USER', (string) env('DB_USER', 'root'));
-define('DB_PASS', (string) env('DB_PASS', ''));
-define('DB_CHARSET', (string) env('DB_CHARSET', 'utf8mb4'));
+// Database configuration (SQLite)
 define('DB_SQLITE_PATH', (string) env('DB_SQLITE_PATH', STORAGE_PATH . '/database.sqlite'));
 
 // Cache configuration
