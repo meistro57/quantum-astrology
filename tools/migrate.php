@@ -11,115 +11,69 @@ echo "=== Quantum Astrology Database Migration Tool ===\n\n";
 
 // Display database configuration being used
 echo "Database Configuration:\n";
-echo "  Host: " . DB_HOST . "\n";
-echo "  Port: " . DB_PORT . "\n";
-echo "  Database: " . DB_NAME . "\n";
-echo "  User: " . DB_USER . "\n";
 echo "  SQLite Path: " . DB_SQLITE_PATH . "\n";
 echo "\n";
 
 try {
-    // Get PDO connection (may be MySQL or SQLite via automatic fallback)
+    // Get PDO connection (SQLite)
     $pdo = DB::conn();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Detect actual driver to use correct SQL syntax
-    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-    $isSqlite = ($driver === 'sqlite');
+    // Enable foreign keys for SQLite
+    $pdo->exec('PRAGMA foreign_keys = ON');
 
-    if ($isSqlite) {
-        echo "✓ Connected to SQLite database: " . DB_SQLITE_PATH . "\n\n";
-    } else {
-        echo "✓ Connected to MySQL database\n\n";
-    }
+    echo "✓ Connected to SQLite database: " . DB_SQLITE_PATH . "\n\n";
 } catch (Exception $e) {
     echo "✗ Database connection failed: " . $e->getMessage() . "\n\n";
     echo "=== Database Setup Required ===\n\n";
-    echo "Neither MySQL nor SQLite is properly configured. Please choose one option:\n\n";
-    echo "Option 1: Fix MySQL Connection\n";
-    echo "  If you're using MySQL with unix_socket auth (common on Ubuntu/Debian):\n";
-    echo "  1. Connect to MySQL as root: sudo mysql -u root\n";
-    echo "  2. Create database: CREATE DATABASE quantum_astrology;\n";
-    echo "  3. Create user: CREATE USER 'qauser'@'localhost' IDENTIFIED BY 'password';\n";
-    echo "  4. Grant privileges: GRANT ALL ON quantum_astrology.* TO 'qauser'@'localhost';\n";
-    echo "  5. Update .env with new credentials:\n";
-    echo "     DB_USER=qauser\n";
-    echo "     DB_PASS=password\n\n";
-    echo "Option 2: Install SQLite\n";
-    echo "  1. Install PHP SQLite: sudo apt-get install php-sqlite3\n";
-    echo "  2. Restart PHP: sudo service php*-fpm restart (if using FPM)\n\n";
-    echo "Option 3: Use existing MySQL with password\n";
-    echo "  If you have MySQL credentials that work, update your .env file:\n";
-    echo "     DB_HOST=localhost\n";
-    echo "     DB_USER=your_username\n";
-    echo "     DB_PASS=your_password\n\n";
+    echo "SQLite connection failed. Please check:\n\n";
+    echo "1. PHP SQLite extension is installed:\n";
+    echo "   sudo apt-get install php-sqlite3\n\n";
+    echo "2. Storage directory is writable:\n";
+    echo "   chmod 755 storage/\n\n";
     exit(1);
 }
 
 /**
  * Check if a table exists in the database
  */
-function table_exists(PDO $pdo, string $table, bool $isSqlite): bool
+function table_exists(PDO $pdo, string $table): bool
 {
-    if ($isSqlite) {
-        $stmt = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");
-        $stmt->execute([$table]);
-        return (bool)$stmt->fetchColumn();
-    } else {
-        $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-        $stmt->execute([$table]);
-        return (bool)$stmt->fetchColumn();
-    }
+    $stmt = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");
+    $stmt->execute([$table]);
+    return (bool)$stmt->fetchColumn();
 }
 
 /**
  * Check if a column exists in a table
  */
-function column_exists(PDO $pdo, string $table, string $column, bool $isSqlite): bool
+function column_exists(PDO $pdo, string $table, string $column): bool
 {
-    if ($isSqlite) {
-        $stmt = $pdo->query("PRAGMA table_info($table)");
-        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($columns as $col) {
-            if ($col['name'] === $column) {
-                return true;
-            }
+    $stmt = $pdo->query("PRAGMA table_info($table)");
+    $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($columns as $col) {
+        if ($col['name'] === $column) {
+            return true;
         }
-        return false;
-    } else {
-        $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
-        $stmt->execute([$table, $column]);
-        return (bool)$stmt->fetchColumn();
     }
+    return false;
 }
 
 /**
  * Create migrations tracking table
  */
-function ensure_migrations_table(PDO $pdo, bool $isSqlite): void
+function ensure_migrations_table(PDO $pdo): void
 {
-    if (!table_exists($pdo, 'migrations', $isSqlite)) {
+    if (!table_exists($pdo, 'migrations')) {
         echo "• Creating migrations tracking table...\n";
-        if ($isSqlite) {
-            $pdo->exec("
-                CREATE TABLE migrations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    migration TEXT NOT NULL,
-                    batch INTEGER NOT NULL DEFAULT 1,
-                    executed_at TEXT DEFAULT CURRENT_TIMESTAMP
-                )
-            ");
-        } else {
-            $pdo->exec("
-                CREATE TABLE migrations (
-                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                    migration VARCHAR(255) NOT NULL,
-                    batch INT NOT NULL DEFAULT 1,
-                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_migration (migration)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            ");
-        }
+        $pdo->exec("
+            CREATE TABLE migrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                migration TEXT NOT NULL,
+                batch INTEGER NOT NULL DEFAULT 1,
+                executed_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ");
         echo "  ✔ Migrations table created\n";
     }
 }
@@ -154,7 +108,7 @@ function get_next_batch(PDO $pdo): int
 }
 
 // Ensure migrations tracking table exists
-ensure_migrations_table($pdo, $isSqlite);
+ensure_migrations_table($pdo);
 
 // Get next batch number
 $batch = get_next_batch($pdo);

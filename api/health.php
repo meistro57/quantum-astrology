@@ -13,17 +13,17 @@ $resp = [
   'ok' => true,
   'php' => PHP_VERSION,
   'time' => gmdate('c'),
-  'db' => ['ok' => false],
+  'db' => ['ok' => false, 'type' => 'sqlite'],
   'swetest' => ['present' => false, 'version' => null, 'path' => null],
 ];
 
+// Check SQLite database
+$dbPath = Env::get('DB_SQLITE_PATH', __DIR__ . '/../storage/database.sqlite');
 try {
-    $dsn  = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', Env::get('DB_HOST', 'localhost'), Env::get('DB_NAME', 'quantum_astrology'));
-    $user = Env::get('DB_USER', 'root');
-    $pass = Env::get('DB_PASS', '');
-    $pdo  = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $pdo = new PDO('sqlite:' . $dbPath, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $pdo->query('SELECT 1');
     $resp['db']['ok'] = true;
+    $resp['db']['path'] = $dbPath;
 } catch (Throwable $e) {
     $resp['ok'] = false;
     $resp['db']['error'] = $e->getMessage();

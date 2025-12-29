@@ -11,8 +11,7 @@ Quantum Astrology is a professional astrology software suite built with PHP 8+ a
 ### Essential Setup Commands
 - **Install dependencies**: `composer install`
 - **Run database migrations**: `php tools/migrate.php` (creates all tables with migration tracking)
-  - Supports both MySQL and SQLite databases
-  - Automatically detects database type and uses appropriate SQL syntax
+  - Uses SQLite for simple, zero-configuration database
   - Idempotent: can be run multiple times safely
   - Tracks executed migrations to avoid duplicates
 - **Run development server**: `php -S localhost:8080 index.php`
@@ -40,36 +39,17 @@ Quantum Astrology is a professional astrology software suite built with PHP 8+ a
 
 ### First Time Setup
 
-1. **Database Configuration**: Choose your database backend:
-
-   **Option A: SQLite (Quick Setup for Development)**
+1. **Database Configuration**: SQLite (Zero Configuration)
    - Requires: `php-sqlite3` extension
    - Install: `sudo apt-get install php8.2-sqlite3`
    - No additional configuration needed - SQLite database will be auto-created at `./storage/database.sqlite`
-
-   **Option B: MySQL (Recommended for Production)**
-   - Ensure your `.env` file has correct database credentials:
-   ```env
-   DB_HOST=localhost
-   DB_NAME=quantum_astrology
-   DB_USER=your_username
-   DB_PASS=your_password
-   ```
-   - Create the database and user:
-   ```bash
-   sudo mysql -u root
-   CREATE DATABASE quantum_astrology;
-   CREATE USER 'qauser'@'localhost' IDENTIFIED BY 'password';
-   GRANT ALL ON quantum_astrology.* TO 'qauser'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
 
 2. **Run Migrations**: Initialize the database schema:
    ```bash
    php tools/migrate.php
    ```
    The migration tool will:
-   - Auto-detect MySQL or fallback to SQLite
+   - Create the SQLite database file automatically
    - Create all required tables (users, charts, birth_profiles, chart_sessions)
    - Set up proper indexes and foreign keys
    - Track migrations to prevent duplicate execution
@@ -155,16 +135,14 @@ Entry point is `index.php` which:
   - Chart editing and deletion with user permissions
 
 - **Database Architecture**: ✅ Professional astrological database with:
-  - Dual database support: MySQL (production) and SQLite (development)
-  - Automatic database detection and appropriate SQL syntax generation
-  - Charts table with JSON/TEXT columns for complex astrological data
+  - SQLite database for simple, zero-configuration deployment
+  - Charts table with TEXT columns for complex astrological data (JSON-encoded)
   - Birth profiles table for reusable person data
   - Chart sessions table for user interaction tracking
   - Robust migration system (`tools/migrate.php`) with:
     - Migration tracking and batch management
     - Idempotent execution (safe to run multiple times)
-    - Database-specific SQL generation
-    - Foreign key support on both MySQL and SQLite
+    - Foreign key support with PRAGMA foreign_keys = ON
   - Proper indexing on frequently queried astrological data
 
 - **User Authentication System**: ✅ Complete user management with:
@@ -269,15 +247,14 @@ Entry point is `index.php` which:
 ### Database Conventions
 
 - Table names in snake_case
-- JSON columns (MySQL) or TEXT columns (SQLite) for complex astrological structures (planet positions, aspects, interpretations)
-- Foreign key constraints properly defined (both MySQL and SQLite)
+- TEXT columns for complex astrological structures (JSON-encoded planet positions, aspects, interpretations)
+- Foreign key constraints with ON DELETE CASCADE
 - Indexes on frequently queried columns
 - Sequential numbered migration files in `classes/Database/Migrations/`
 - Each migration class must:
-  - Detect database driver using `PDO::ATTR_DRIVER_NAME`
-  - Provide database-specific SQL for both MySQL and SQLite
   - Implement both `up()` and `down()` methods
   - Use `Connection::getInstance()` to get PDO instance
+  - Enable foreign keys with `PRAGMA foreign_keys = ON`
 
 ### Frontend Standards
 
@@ -382,11 +359,8 @@ Match the existing QMU ecosystem design patterns:
 
 ## Environment Requirements
 
-- **PHP**: 8.0+ with PDO, JSON extensions
-- **Database**:
-  - MySQL 5.7+ or MariaDB 10.3+ with `pdo_mysql` extension (recommended for production)
-  - SQLite 3.0+ with `pdo_sqlite` extension (supported for development)
-  - System automatically detects and adapts to available database
+- **PHP**: 8.0+ with PDO, JSON, SQLite extensions
+- **Database**: SQLite 3.0+ with `pdo_sqlite` extension (auto-configured, zero setup)
 - **Web Server**: Apache 2.4+ or Nginx 1.18+ (or PHP built-in server for development)
 - **Swiss Ephemeris**: PHP library preferred, command-line tools as fallback
 - **Composer**: For dependency management and autoloading
@@ -401,7 +375,7 @@ Match the existing QMU ecosystem design patterns:
 5. Configuration and error handling systems
 6. Complete user authentication system with registration, login, and profile management
 7. Session management and authentication middleware
-8. Robust database migration system with dual MySQL/SQLite support
+8. Robust database migration system with SQLite
 
 ### ✅ Phase 1 (Swiss Ephemeris Integration Complete)
 1. Swiss Ephemeris integration with command-line and analytical fallback
