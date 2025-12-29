@@ -13,26 +13,77 @@ class AIInterpreter
     private array $aiConfig;
     private string $apiEndpoint;
     private string $apiKey;
-    
+    private string $provider;
+
+    // Supported AI providers
+    private const PROVIDERS = [
+        'ollama' => 'http://localhost:11434',
+        'openrouter' => 'https://openrouter.ai/api/v1',
+        'openai' => 'https://api.openai.com/v1',
+        'anthropic' => 'https://api.anthropic.com/v1',
+        'deepseek' => 'https://api.deepseek.com/v1',
+        'gemini' => 'https://generativelanguage.googleapis.com/v1beta',
+    ];
+
+    // Default models per provider
+    private const DEFAULT_MODELS = [
+        'ollama' => 'llama3.1',
+        'openrouter' => 'anthropic/claude-3.5-sonnet',
+        'openai' => 'gpt-4o-mini',
+        'anthropic' => 'claude-sonnet-4-20250514',
+        'deepseek' => 'deepseek-chat',
+        'gemini' => 'gemini-1.5-flash',
+    ];
+
     public function __construct(Chart $chart, array $aiConfig = [])
     {
         $this->chart = $chart;
         $this->aiConfig = $aiConfig;
         $this->initializeAIConfig();
     }
-    
+
     /**
      * Initialize AI configuration from environment or defaults
      */
     private function initializeAIConfig(): void
     {
-        $this->apiEndpoint = $this->aiConfig['endpoint'] ?? $_ENV['AI_API_ENDPOINT'] ?? 'http://localhost:11434';
+        // Determine provider from config or environment
+        $this->provider = strtolower($this->aiConfig['provider'] ?? $_ENV['AI_PROVIDER'] ?? 'ollama');
+
+        // Get API key from config or environment
         $this->apiKey = $this->aiConfig['api_key'] ?? $_ENV['AI_API_KEY'] ?? '';
-        
-        // Default to local Ollama installation or mock responses for demo
-        if (empty($this->apiEndpoint)) {
-            $this->apiEndpoint = 'mock'; // Use mock responses for demonstration
+
+        // Set endpoint based on provider or use custom endpoint
+        if (isset($this->aiConfig['endpoint'])) {
+            $this->apiEndpoint = $this->aiConfig['endpoint'];
+        } elseif (isset($_ENV['AI_API_ENDPOINT'])) {
+            $this->apiEndpoint = $_ENV['AI_API_ENDPOINT'];
+        } elseif (isset(self::PROVIDERS[$this->provider])) {
+            $this->apiEndpoint = self::PROVIDERS[$this->provider];
+        } else {
+            $this->apiEndpoint = 'mock';
         }
+
+        // If no API key for cloud providers, fall back to mock
+        if (empty($this->apiKey) && $this->provider !== 'ollama') {
+            $this->apiEndpoint = 'mock';
+        }
+    }
+
+    /**
+     * Get the current provider name
+     */
+    public function getProvider(): string
+    {
+        return $this->provider;
+    }
+
+    /**
+     * Get the model being used
+     */
+    public function getModel(): string
+    {
+        return $this->aiConfig['model'] ?? $_ENV['AI_MODEL'] ?? self::DEFAULT_MODELS[$this->provider] ?? 'default';
     }
     
     /**
@@ -278,18 +329,23 @@ class AIInterpreter
     {
         $startTime = microtime(true);
 
-        // Determine which AI service to use
-        if (str_contains($this->apiEndpoint, 'openai.com')) {
-            $response = $this->callOpenAI($prompt);
-        } elseif (str_contains($this->apiEndpoint, 'anthropic.com')) {
-            $response = $this->callClaude($prompt);
-        } else {
-            // Default to Ollama (local LLM)
-            $response = $this->callOllama($prompt);
-        }
+        // Route to the correct provider
+        $response = match ($this->provider) {
+            'openrouter' => $this->callOpenRouter($prompt),
+            'openai' => $this->callOpenAI($prompt),
+            'anthropic' => $this->callClaude($prompt),
+            'deepseek' => $this->callDeepSeek($prompt),
+            'gemini' => $this->callGemini($prompt),
+            'ollama' => $this->callOllama($prompt),
+            default => $this->callOllama($prompt),
+        };
 
         $processingTime = round((microtime(true) - $startTime) * 1000);
-        Logger::debug("AI API request completed", ['time_ms' => $processingTime]);
+        Logger::debug("AI API request completed", [
+            'provider' => $this->provider,
+            'model' => $this->getModel(),
+            'time_ms' => $processingTime
+        ]);
 
         return $response;
     }
@@ -450,7 +506,190 @@ class AIInterpreter
         $data = json_decode($response, true);
         return $data['content'][0]['text'] ?? null;
     }
-    
+
+    /**
+     * Call OpenRouter API (unified gateway to multiple models)
+     * Supports Claude, GPT-4, Llama, Mistral, and many more
+     */
+    private function callOpenRouter(string $prompt): ?string
+    {
+        if (empty($this->apiKey)) {
+            Logger::warning("OpenRouter API key not configured");
+            return null;
+        }
+
+        $model = $this->getModel();
+        $endpoint = rtrim($this->apiEndpoint, '/') . '/chat/completions';
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ],
+            'temperature' => 0.7,
+            'max_tokens' => 1024
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey,
+                'HTTP-Referer: ' . ($_ENV['APP_URL'] ?? 'https://quantum-astrology.local'),
+                'X-Title: Quantum Astrology'
+            ],
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            Logger::warning("OpenRouter API call failed", [
+                'error' => $error,
+                'status' => $httpCode,
+                'model' => $model
+            ]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['choices'][0]['message']['content'] ?? null;
+    }
+
+    /**
+     * Call DeepSeek API
+     */
+    private function callDeepSeek(string $prompt): ?string
+    {
+        if (empty($this->apiKey)) {
+            Logger::warning("DeepSeek API key not configured");
+            return null;
+        }
+
+        $model = $this->getModel();
+        $endpoint = rtrim($this->apiEndpoint, '/') . '/chat/completions';
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ],
+            'temperature' => 0.7,
+            'max_tokens' => 1024
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey
+            ],
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            Logger::warning("DeepSeek API call failed", [
+                'error' => $error,
+                'status' => $httpCode,
+                'model' => $model
+            ]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['choices'][0]['message']['content'] ?? null;
+    }
+
+    /**
+     * Call Google Gemini API
+     */
+    private function callGemini(string $prompt): ?string
+    {
+        if (empty($this->apiKey)) {
+            Logger::warning("Gemini API key not configured");
+            return null;
+        }
+
+        $model = $this->getModel();
+        $endpoint = rtrim($this->apiEndpoint, '/') . '/models/' . $model . ':generateContent?key=' . $this->apiKey;
+
+        $payload = [
+            'contents' => [
+                [
+                    'role' => 'user',
+                    'parts' => [
+                        [
+                            'text' => "You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.\n\n" . $prompt
+                        ]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'maxOutputTokens' => 1024
+            ]
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json'
+            ],
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            Logger::warning("Gemini API call failed", [
+                'error' => $error,
+                'status' => $httpCode,
+                'model' => $model
+            ]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+    }
+
     /**
      * Get mock response for demonstration
      */
@@ -528,17 +767,77 @@ class AIInterpreter
             return 'Mock AI Responses v1.0';
         }
 
-        if (str_contains($this->apiEndpoint, 'openai.com')) {
-            return 'OpenAI ' . ($this->aiConfig['model'] ?? 'gpt-4o-mini');
-        }
+        $model = $this->getModel();
+        $providerNames = [
+            'ollama' => 'Ollama',
+            'openrouter' => 'OpenRouter',
+            'openai' => 'OpenAI',
+            'anthropic' => 'Anthropic',
+            'deepseek' => 'DeepSeek',
+            'gemini' => 'Google Gemini',
+        ];
 
-        if (str_contains($this->apiEndpoint, 'anthropic.com')) {
-            return 'Anthropic ' . ($this->aiConfig['model'] ?? 'claude-sonnet-4-20250514');
-        }
+        $providerName = $providerNames[$this->provider] ?? ucfirst($this->provider);
+        return $providerName . ' ' . $model;
+    }
 
-        // Default to Ollama
-        $model = $this->aiConfig['model'] ?? $_ENV['OLLAMA_MODEL'] ?? 'llama3.1';
-        return 'Ollama ' . $model;
+    /**
+     * Get list of supported providers with their configuration info
+     */
+    public static function getSupportedProviders(): array
+    {
+        return [
+            'ollama' => [
+                'name' => 'Ollama (Local)',
+                'description' => 'Run AI models locally with Ollama',
+                'requires_key' => false,
+                'default_model' => 'llama3.1',
+                'models' => ['llama3.1', 'llama3.2', 'mistral', 'mixtral', 'codellama', 'phi3'],
+            ],
+            'openrouter' => [
+                'name' => 'OpenRouter',
+                'description' => 'Unified gateway to 100+ AI models',
+                'requires_key' => true,
+                'default_model' => 'anthropic/claude-3.5-sonnet',
+                'models' => [
+                    'anthropic/claude-3.5-sonnet',
+                    'anthropic/claude-3-opus',
+                    'openai/gpt-4o',
+                    'openai/gpt-4o-mini',
+                    'meta-llama/llama-3.1-70b-instruct',
+                    'google/gemini-pro-1.5',
+                    'mistralai/mistral-large',
+                ],
+            ],
+            'openai' => [
+                'name' => 'OpenAI',
+                'description' => 'GPT-4 and ChatGPT models',
+                'requires_key' => true,
+                'default_model' => 'gpt-4o-mini',
+                'models' => ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+            ],
+            'anthropic' => [
+                'name' => 'Anthropic',
+                'description' => 'Claude AI models',
+                'requires_key' => true,
+                'default_model' => 'claude-sonnet-4-20250514',
+                'models' => ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'],
+            ],
+            'deepseek' => [
+                'name' => 'DeepSeek',
+                'description' => 'Cost-effective AI with strong reasoning',
+                'requires_key' => true,
+                'default_model' => 'deepseek-chat',
+                'models' => ['deepseek-chat', 'deepseek-coder'],
+            ],
+            'gemini' => [
+                'name' => 'Google Gemini',
+                'description' => 'Google\'s multimodal AI models',
+                'requires_key' => true,
+                'default_model' => 'gemini-1.5-flash',
+                'models' => ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'],
+            ],
+        ];
     }
     
     /**

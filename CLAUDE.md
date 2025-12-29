@@ -234,7 +234,13 @@ Entry point is `index.php` which:
   - Elemental and modal balance analysis
   - Chart shape patterns (Jones Patterns)
   - Dominant planet detection
-  - AI-powered natural language interpretations (Ollama integration)
+  - AI-powered natural language interpretations with multi-provider support:
+    - **Ollama** - Local AI (free, privacy-focused)
+    - **OpenRouter** - Unified gateway to 100+ models (recommended)
+    - **OpenAI** - GPT-4 and ChatGPT models
+    - **Anthropic** - Claude models
+    - **DeepSeek** - Cost-effective with strong reasoning
+    - **Google Gemini** - Multimodal AI models
   - API endpoints: `/api/charts/{id}/interpretation`, `/api/charts/{id}/interpretation/ai`
 
 - **Aspect Pattern Detection**: ✅ Advanced pattern recognition with:
