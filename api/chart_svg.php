@@ -2,7 +2,7 @@
 # api/chart_svg.php (safe points, no destructuring assignments)
 declare(strict_types=1);
 
-require __DIR__ . '/../classes/autoload.php';
+require __DIR__ . '/../config.php';
 
 use QuantumAstrology\Charts\ChartService;
 
