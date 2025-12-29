@@ -13,3 +13,6 @@ composer.lock
 # local artefacts
 index.php.bak*
 wheel.svg
+
+# PHPUnit
+.phpunit.result.cache
