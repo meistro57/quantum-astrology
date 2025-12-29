@@ -276,14 +276,179 @@ class AIInterpreter
      */
     private function makeAPIRequest(string $prompt): ?string
     {
-        // This would implement actual API calls to services like:
-        // - Ollama (local LLM)
-        // - OpenAI API
-        // - Claude API
-        // - Local fine-tuned models
-        
-        // For now, return null to trigger fallback
-        return null;
+        $startTime = microtime(true);
+
+        // Determine which AI service to use
+        if (str_contains($this->apiEndpoint, 'openai.com')) {
+            $response = $this->callOpenAI($prompt);
+        } elseif (str_contains($this->apiEndpoint, 'anthropic.com')) {
+            $response = $this->callClaude($prompt);
+        } else {
+            // Default to Ollama (local LLM)
+            $response = $this->callOllama($prompt);
+        }
+
+        $processingTime = round((microtime(true) - $startTime) * 1000);
+        Logger::debug("AI API request completed", ['time_ms' => $processingTime]);
+
+        return $response;
+    }
+
+    /**
+     * Call Ollama local LLM API
+     */
+    private function callOllama(string $prompt): ?string
+    {
+        $model = $this->aiConfig['model'] ?? $_ENV['OLLAMA_MODEL'] ?? 'llama3.1';
+        $endpoint = rtrim($this->apiEndpoint, '/') . '/api/generate';
+
+        $payload = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'stream' => false,
+            'options' => [
+                'temperature' => 0.7,
+                'top_p' => 0.9,
+                'num_predict' => 1024
+            ]
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 120, // 2 minute timeout for generation
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            Logger::warning("Ollama API connection failed", ['error' => $error]);
+            return null;
+        }
+
+        if ($httpCode !== 200) {
+            Logger::warning("Ollama API returned non-200 status", ['status' => $httpCode, 'response' => $response]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['response'] ?? null;
+    }
+
+    /**
+     * Call OpenAI API (GPT models)
+     */
+    private function callOpenAI(string $prompt): ?string
+    {
+        if (empty($this->apiKey)) {
+            Logger::warning("OpenAI API key not configured");
+            return null;
+        }
+
+        $model = $this->aiConfig['model'] ?? 'gpt-4o-mini';
+        $endpoint = 'https://api.openai.com/v1/chat/completions';
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ],
+            'temperature' => 0.7,
+            'max_tokens' => 1024
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey
+            ],
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            Logger::warning("OpenAI API call failed", ['error' => $error, 'status' => $httpCode]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['choices'][0]['message']['content'] ?? null;
+    }
+
+    /**
+     * Call Anthropic Claude API
+     */
+    private function callClaude(string $prompt): ?string
+    {
+        if (empty($this->apiKey)) {
+            Logger::warning("Claude API key not configured");
+            return null;
+        }
+
+        $model = $this->aiConfig['model'] ?? 'claude-sonnet-4-20250514';
+        $endpoint = 'https://api.anthropic.com/v1/messages';
+
+        $payload = [
+            'model' => $model,
+            'max_tokens' => 1024,
+            'system' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.',
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => $prompt
+                ]
+            ]
+        ];
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $this->apiKey,
+                'anthropic-version: 2023-06-01'
+            ],
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            Logger::warning("Claude API call failed", ['error' => $error, 'status' => $httpCode]);
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        return $data['content'][0]['text'] ?? null;
     }
     
     /**
@@ -362,8 +527,18 @@ class AIInterpreter
         if ($this->apiEndpoint === 'mock') {
             return 'Mock AI Responses v1.0';
         }
-        
-        return 'AI Model Information'; // Would be populated based on actual API
+
+        if (str_contains($this->apiEndpoint, 'openai.com')) {
+            return 'OpenAI ' . ($this->aiConfig['model'] ?? 'gpt-4o-mini');
+        }
+
+        if (str_contains($this->apiEndpoint, 'anthropic.com')) {
+            return 'Anthropic ' . ($this->aiConfig['model'] ?? 'claude-sonnet-4-20250514');
+        }
+
+        // Default to Ollama
+        $model = $this->aiConfig['model'] ?? $_ENV['OLLAMA_MODEL'] ?? 'llama3.1';
+        return 'Ollama ' . $model;
     }
     
     /**

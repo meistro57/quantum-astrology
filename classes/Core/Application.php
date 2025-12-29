@@ -61,7 +61,24 @@ class Application
             case $path === '/charts/relationships':
                 $this->servePage('charts/relationships.php');
                 exit;
-                
+
+            case $path === '/charts/transits':
+                $this->servePage('charts/transits/index.php');
+                exit;
+
+            case $path === '/charts/progressions':
+                $this->servePage('charts/progressions/index.php');
+                exit;
+
+            case $path === '/charts/solar-returns':
+                $this->servePage('charts/solar-returns/index.php');
+                exit;
+
+            case $path === '/forecasting':
+            case $path === '/forecasting/':
+                $this->servePage('forecasting/index.php');
+                exit;
+
             case str_starts_with($path, '/charts/'):
                 $this->servePage('charts/index.php');
                 exit;
