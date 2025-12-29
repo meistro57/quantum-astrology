@@ -96,6 +96,7 @@ class Application
                 exit;
                 
             case $path === '/profile':
+            case $path === '/settings':
                 $this->servePage('auth/profile.php');
                 exit;
                 
