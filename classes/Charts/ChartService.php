@@ -49,7 +49,7 @@ final class ChartService
         $pdo = DB::conn();
         $stmt = $pdo->prepare("
             INSERT INTO charts
-              (user_id, name, birth_datetime, birth_timezone, birth_latitude, birth_longitude, house_system, is_public, planets_json, houses_json, aspects_json)
+              (user_id, name, birth_datetime, birth_timezone, birth_latitude, birth_longitude, house_system, is_public, planetary_positions, house_positions, aspects)
             VALUES
               (NULL,    :name, :dt,             :tz,            :lat,           :lon,            :hsys,        0,        :planets,     :houses,     :aspects)
         ");
@@ -88,9 +88,9 @@ final class ChartService
                 'lon'      => (float)$row['birth_longitude'],
                 'house'    => $row['house_system'],
             ],
-            'planets'  => json_decode($row['planets_json'], true) ?? [],
-            'houses'   => json_decode($row['houses_json'],  true) ?? [],
-            'aspects'  => json_decode($row['aspects_json'], true) ?? [],
+            'planets'  => json_decode($row['planetary_positions'] ?? '', true) ?? [],
+            'houses'   => json_decode($row['house_positions'] ?? '',  true) ?? [],
+            'aspects'  => json_decode($row['aspects'] ?? '', true) ?? [],
             'created'  => $row['created_at'],
             'updated'  => $row['updated_at'],
         ];
