@@ -15,18 +15,64 @@ echo -e "${YELLOW}  Quantum Astrology - Dependency Setup & Test  ${NC}"
 echo -e "${YELLOW}================================================${NC}"
 
 # 1. Check for PHP
-echo -e "\n${YELLOW}[1/7] Checking for PHP...${NC}"
+echo -e "\n${YELLOW}[1/8] Checking for PHP...${NC}"
 if ! command -v php &> /dev/null; then
     echo -e "${RED}❌ PHP NOT FOUND${NC}"
     echo "Please install PHP 8.0+ and required extensions:"
-    echo -e "${YELLOW}sudo apt update && sudo apt install -y php-cli php-json php-pdo php-mbstring php-sqlite3 php-curl php-xml php-zip${NC}"
+    echo -e "${YELLOW}sudo apt update && sudo apt install -y php-cli php-json php-pdo php-mbstring php-sqlite3 php-curl php-xml php-zip php-gd${NC}"
     exit 1
 fi
 PHP_VER=$(php -r 'echo PHP_VERSION;')
+PHP_MAJOR=$(php -r 'echo PHP_MAJOR_VERSION;')
+PHP_MINOR=$(php -r 'echo PHP_MINOR_VERSION;')
 echo -e "${GREEN}✅ PHP $PHP_VER found.${NC}"
 
-# 2. Check for Composer
-echo -e "\n${YELLOW}[2/7] Checking for Composer...${NC}"
+# 2. Check for required PHP extensions
+echo -e "\n${YELLOW}[2/8] Checking required PHP extensions...${NC}"
+MISSING_EXTS=""
+
+# Check for GD extension (required by mpdf for PDF generation)
+if ! php -m | grep -qi "^gd$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-gd"
+fi
+
+# Check for PDO SQLite or MySQL
+if ! php -m | grep -qi "^pdo_sqlite$" && ! php -m | grep -qi "^pdo_mysql$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-sqlite3"
+fi
+
+# Check for mbstring
+if ! php -m | grep -qi "^mbstring$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-mbstring"
+fi
+
+# Check for curl
+if ! php -m | grep -qi "^curl$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-curl"
+fi
+
+# Check for xml
+if ! php -m | grep -qi "^xml$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-xml"
+fi
+
+# Check for zip
+if ! php -m | grep -qi "^zip$"; then
+    MISSING_EXTS="${MISSING_EXTS} php${PHP_MAJOR}.${PHP_MINOR}-zip"
+fi
+
+if [ -n "$MISSING_EXTS" ]; then
+    echo -e "${RED}❌ Missing required PHP extensions${NC}"
+    echo -e "Please install the following extensions:"
+    echo -e "${YELLOW}sudo apt update && sudo apt install -y${MISSING_EXTS}${NC}"
+    echo ""
+    echo "After installing, run this script again."
+    exit 1
+fi
+echo -e "${GREEN}✅ All required PHP extensions found.${NC}"
+
+# 3. Check for Composer
+echo -e "\n${YELLOW}[3/8] Checking for Composer...${NC}"
 if ! command -v composer &> /dev/null && [ ! -f "composer.phar" ]; then
     echo "Installing Composer locally..."
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -40,13 +86,13 @@ else
 fi
 echo -e "${GREEN}✅ Composer ready.${NC}"
 
-# 3. Install Dependencies
-echo -e "\n${YELLOW}[3/7] Installing PHP dependencies via Composer...${NC}"
+# 4. Install Dependencies
+echo -e "\n${YELLOW}[4/8] Installing PHP dependencies via Composer...${NC}"
 $COMPOSER_BIN install --no-interaction --prefer-dist
 echo -e "${GREEN}✅ Dependencies installed.${NC}"
 
-# 4. Check for Swiss Ephemeris
-echo -e "\n${YELLOW}[4/7] Checking for Swiss Ephemeris (swetest)...${NC}"
+# 5. Check for Swiss Ephemeris
+echo -e "\n${YELLOW}[5/8] Checking for Swiss Ephemeris (swetest)...${NC}"
 SWEPH_BIN=$(grep "SWEPH_PATH" .env 2>/dev/null | cut -d '=' -f2 || echo "/usr/local/bin/swetest")
 if [ ! -f "$SWEPH_BIN" ] && ! command -v swetest &> /dev/null; then
     echo -e "${YELLOW}⚠️  swetest not found at $SWEPH_BIN${NC}"
@@ -56,8 +102,8 @@ else
     echo -e "${GREEN}✅ Swiss Ephemeris tool found.${NC}"
 fi
 
-# 5. Environment & Database
-echo -e "\n${YELLOW}[5/7] Setting up environment and database...${NC}"
+# 6. Environment & Database
+echo -e "\n${YELLOW}[6/8] Setting up environment and database...${NC}"
 if [ ! -f .env ]; then
     echo "Creating .env from .env.example..."
     cp .env.example .env
@@ -71,13 +117,13 @@ echo "Running migrations..."
 php tools/migrate.php
 echo -e "${GREEN}✅ Database migrations completed.${NC}"
 
-# 6. Syntax & Setup Verification
-echo -e "\n${YELLOW}[6/7] Verifying setup syntax...${NC}"
+# 7. Syntax & Setup Verification
+echo -e "\n${YELLOW}[7/8] Verifying setup syntax...${NC}"
 php test-syntax.php
 echo -e "${GREEN}✅ Syntax check passed.${NC}"
 
-# 7. Run Functionality Tests
-echo -e "\n${YELLOW}[7/7] Running functionality tests...${NC}"
+# 8. Run Functionality Tests
+echo -e "\n${YELLOW}[8/8] Running functionality tests...${NC}"
 
 # Run PHPUnit
 if [ -f "vendor/bin/phpunit" ]; then
