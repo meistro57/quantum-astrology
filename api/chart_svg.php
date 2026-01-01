@@ -2,14 +2,14 @@
 # api/chart_svg.php
 declare(strict_types=1);
 
-// Enable error reporting to catch issues in the SVG output
+// 1. Safety wrapper to catch fatal errors
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 try {
     require __DIR__ . '/../config.php';
 
-    // Ensure autoloader is present if config didn't load it
+    // Manual fallback if autoloader is missing in config
     if (!class_exists('QuantumAstrology\Charts\ChartService')) {
         $autoload = __DIR__ . '/../classes/autoload.php';
         if (file_exists($autoload)) require $autoload;
@@ -18,17 +18,18 @@ try {
     use QuantumAstrology\Charts\ChartService;
 
     header('Content-Type: image/svg+xml');
+    // Prevent browser caching while debugging
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $id   = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     $size = isset($_GET['size']) ? max(600, min(3000, (int)$_GET['size'])) : 1200;
 
-    if ($id <= 0) throw new Exception("Invalid Chart ID");
+    if ($id <= 0) throw new Exception("Invalid Chart ID provided");
 
     $chart = ChartService::get($id);
-    if (!$chart) throw new Exception("Chart #$id not found");
+    if (!$chart) throw new Exception("Chart #$id not found in database");
 
-    // -- Geometry Settings --
+    // -- Geometry Calculations --
     $cx = $cy = $size / 2;
     $R_Outer   = $size * 0.48; 
     $R_Inner   = $size * 0.40;
@@ -36,173 +37,149 @@ try {
     $R_Aspect  = $size * 0.24; 
     $R_Planet  = $size * 0.34; 
 
-    // -- Data Prep --
-    $houses = $chart['houses'] ?? null;
-    $asc = is_array($houses) ? (float)($houses['angles']['ASC'] ?? 0.0) : 0.0;
+    $houses   = $chart['houses'] ?? null;
+    $asc      = is_array($houses) ? (float)($houses['angles']['ASC'] ?? 0.0) : 0.0;
     $rotation = 180.0 - $asc;
 
     $planets = $chart['planets'] ?? [];
     $aspects = $chart['aspects'] ?? [];
 
-    // Helper Math
+    // Helper Functions
     function rad(float $deg): float { return $deg * M_PI / 180.0; }
     function norm(float $deg): float { $x = fmod($deg, 360.0); return $x < 0 ? $x + 360.0 : $x; }
     function xy(float $cx, float $cy, float $r, float $deg): array {
         return ['x' => $cx + $r * cos(rad($deg)), 'y' => $cy + $r * sin(rad($deg))];
     }
 
-    // -- Collision Detection Prep --
-    $planetRenderList = [];
+    // -- Prep Planets & Collision Logic --
+    $renderList = [];
     foreach ($planets as $p) {
-        // Validation to prevent 500s on bad data
-        if (!isset($p['lon']) || !isset($p['planet'])) continue; 
-        
-        $rawDeg = norm((float)$p['lon'] + $rotation);
-        $planetRenderList[] = [
-            'name' => $p['planet'],
-            'raw_deg' => $rawDeg,
-            'label_deg' => $rawDeg, 
-            'symbol' => substr($p['planet'], 0, 2)
+        if (!isset($p['lon'])) continue; // Skip invalid entries
+        $raw = norm((float)$p['lon'] + $rotation);
+        $renderList[] = [
+            'name' => $p['planet'] ?? $p['name'] ?? '?',
+            'raw'  => $raw,
+            'pos'  => $raw, // adjusted position
+            'sym'  => substr($p['planet'] ?? $p['name'] ?? '??', 0, 2)
         ];
     }
-
-    // Sort for collision logic
-    usort($planetRenderList, fn($a, $b) => $a['raw_deg'] <=> $b['raw_deg']);
-
-    // Iterative Repulsion
-    if (count($planetRenderList) > 1) {
-        for ($iter = 0; $iter < 12; $iter++) {
-            for ($i = 0; $i < count($planetRenderList); $i++) {
-                $curr = &$planetRenderList[$i];
-                $next = &$planetRenderList[($i + 1) % count($planetRenderList)];
+    
+    // Sort by angle for collision logic
+    usort($renderList, fn($a, $b) => $a['raw'] <=> $b['raw']);
+    
+    // Spread out overlapping labels
+    if (count($renderList) > 1) {
+        for ($iter = 0; $iter < 10; $iter++) {
+            for ($i = 0; $i < count($renderList); $i++) {
+                $curr = &$renderList[$i];
+                $next = &$renderList[($i + 1) % count($renderList)];
+                $diff = $next['pos'] - $curr['pos'];
+                if ($diff < 0) $diff += 360;
                 
-                $diff = $next['label_deg'] - $curr['label_deg'];
-                if ($diff < 0) $diff += 360; 
-                
-                $minSep = 5.5; 
-                if ($diff < $minSep) {
-                    $push = ($minSep - $diff) / 2;
-                    $curr['label_deg'] -= $push;
-                    $next['label_deg'] += $push;
+                if ($diff < 5.5) { // 5.5 degrees separation
+                    $push = (5.5 - $diff) / 2;
+                    $curr['pos'] -= $push;
+                    $next['pos'] += $push;
                 }
             }
         }
     }
 
-    // -- SVG Output --
+    // -- Draw SVG --
     echo "<?xml version='1.0' encoding='UTF-8'?>\n";
-    printf("<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' viewBox='0 0 %d %d'>\n", $size, $size, $size, $size);
+    printf("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 %d %d'>\n", $size, $size);
     ?>
     <defs>
         <style>
-            .bg { fill: #ffffff; }
             .ring { fill: none; stroke: #1a202c; stroke-width: 2; }
-            .cusp { stroke: #2d3748; stroke-width: 1.5; }
-            .axis { stroke: #1a202c; stroke-width: 3; stroke-linecap: round; }
-            .tick { stroke: #a0aec0; stroke-width: 1; }
-            .glyph { font-family: 'Segoe UI Symbol', 'DejaVu Sans', sans-serif; font-size: <?= $size * 0.025 ?>px; font-weight: bold; fill: #1a202c; }
-            .deg-text { font-family: sans-serif; font-size: <?= $size * 0.012 ?>px; fill: #718096; }
-            .asp { fill: none; stroke-opacity: 0.6; stroke-width: 1.5; }
+            .cusp { stroke: #2d3748; stroke-width: 1; }
+            .axis { stroke: #1a202c; stroke-width: 3; }
+            .glyph { font-family: sans-serif; font-size: <?= $size * 0.025 ?>px; font-weight: bold; fill: #111; }
+            .deg   { font-family: sans-serif; font-size: <?= $size * 0.012 ?>px; fill: #666; }
+            .asp   { stroke-width: 1.5; opacity: 0.6; }
             .Conjunction { stroke: #ecc94b; stroke-width: 3; }
-            .Opposition { stroke: #e53e3e; stroke-width: 2; }
-            .Square { stroke: #e53e3e; }
-            .Trine { stroke: #38a169; }
-            .Sextile { stroke: #3182ce; }
+            .Opposition  { stroke: #e53e3e; }
+            .Trine       { stroke: #38a169; }
+            .Square      { stroke: #e53e3e; }
             .sign-bg-fire { fill: rgba(255, 100, 100, 0.1); }
             .sign-bg-water { fill: rgba(100, 100, 255, 0.1); }
             .sign-bg-air { fill: rgba(255, 255, 100, 0.1); }
             .sign-bg-earth { fill: rgba(100, 255, 100, 0.1); }
         </style>
     </defs>
-
-    <rect class="bg" width="100%" height="100%" />
+    
+    <rect width="100%" height="100%" fill="white" />
 
     <?php
+    // Zodiac Ring Backgrounds
     $elements = ['fire', 'earth', 'air', 'water'];
     for ($i = 0; $i < 12; $i++) {
-        $start = norm(($i * 30) + $rotation);
-        $end = norm((($i + 1) * 30) + $rotation);
-        $p1 = xy($cx, $cy, $R_Outer, $start);
-        $p2 = xy($cx, $cy, $R_Outer, $end);
-        $p3 = xy($cx, $cy, $R_Inner, $end);
-        $p4 = xy($cx, $cy, $R_Inner, $start);
-        $elClass = 'sign-bg-' . $elements[$i % 4];
-        printf("<path d='M %.1f %.1f A %.1f %.1f 0 0 1 %.1f %.1f L %.1f %.1f A %.1f %.1f 0 0 0 %.1f %.1f Z' class='%s' stroke='none' />\n",
+        $a1 = norm($i * 30 + $rotation);
+        $a2 = norm(($i + 1) * 30 + $rotation);
+        $p1 = xy($cx, $cy, $R_Outer, $a1); $p2 = xy($cx, $cy, $R_Outer, $a2);
+        $p3 = xy($cx, $cy, $R_Inner, $a2); $p4 = xy($cx, $cy, $R_Inner, $a1);
+        printf("<path d='M %.1f %.1f A %.1f %.1f 0 0 1 %.1f %.1f L %.1f %.1f A %.1f %.1f 0 0 0 %.1f %.1f Z' class='sign-bg-%s' stroke='none' />\n",
             $p1['x'], $p1['y'], $R_Outer, $R_Outer, $p2['x'], $p2['y'],
-            $p3['x'], $p3['y'], $R_Inner, $R_Inner, $p4['x'], $p4['y'], $elClass
-        );
+            $p3['x'], $p3['y'], $R_Inner, $R_Inner, $p4['x'], $p4['y'], $elements[$i % 4]);
     }
-    ?>
 
-    <circle class="ring" cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $R_Outer ?>" />
-    <circle class="ring" cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $R_Inner ?>" />
-    <circle class="ring" cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $R_House ?>" />
-
-    <?php
+    // Rings & Cusps
+    echo "<circle class='ring' cx='$cx' cy='$cy' r='$R_Outer' />";
+    echo "<circle class='ring' cx='$cx' cy='$cy' r='$R_Inner' />";
     if (isset($houses['cusps'])) {
         foreach ($houses['cusps'] as $h => $deg) {
-            $drawDeg = norm((float)$deg + $rotation);
-            $p1 = xy($cx, $cy, $R_House, $drawDeg);
-            $p2 = xy($cx, $cy, $R_Inner, $drawDeg);
-            $cls = in_array($h, [1, 4, 7, 10]) ? 'axis' : 'cusp';
-            printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' class='%s' />\n", $p1['x'], $p1['y'], $p2['x'], $p2['y'], $cls);
-            // House Number
-            $pt = xy($cx, $cy, $R_House * 0.85, $drawDeg + 15); 
-            printf("<text x='%.1f' y='%.1f' text-anchor='middle' font-size='10' fill='#999'>%d</text>", $pt['x'], $pt['y'], $h);
+            $d = norm((float)$deg + $rotation);
+            $p1 = xy($cx, $cy, $R_House, $d); $p2 = xy($cx, $cy, $R_Inner, $d);
+            $cls = in_array($h, [1,4,7,10]) ? 'axis' : 'cusp';
+            printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' class='%s' />", $p1['x'], $p1['y'], $p2['x'], $p2['y'], $cls);
         }
     }
 
     // Aspects
-    $planetCoords = [];
-    foreach ($planetRenderList as $p) $planetCoords[$p['name']] = $p['raw_deg'];
-
-    foreach ($aspects as $asp) {
-        if (!isset($planetCoords[$asp['a']]) || !isset($planetCoords[$asp['b']])) continue;
-        $pt1 = xy($cx, $cy, $R_Aspect, $planetCoords[$asp['a']]);
-        $pt2 = xy($cx, $cy, $R_Aspect, $planetCoords[$asp['b']]);
-        printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' class='asp %s' />\n",
-            $pt1['x'], $pt1['y'], $pt2['x'], $pt2['y'], $asp['type']
-        );
+    $pmap = [];
+    foreach ($renderList as $p) $pmap[$p['name']] = $p['raw'];
+    foreach ($aspects as $a) {
+        if (isset($pmap[$a['planet1'] ?? $a['a']], $pmap[$a['planet2'] ?? $a['b']])) {
+            $d1 = $pmap[$a['planet1'] ?? $a['a']];
+            $d2 = $pmap[$a['planet2'] ?? $a['b']];
+            $q1 = xy($cx, $cy, $R_Aspect, $d1); $q2 = xy($cx, $cy, $R_Aspect, $d2);
+            printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' class='asp %s' />", 
+                $q1['x'], $q1['y'], $q2['x'], $q2['y'], $a['aspect'] ?? $a['type']);
+        }
     }
 
     // Planets
-    foreach ($planetRenderList as $p) {
-        $tickStart = xy($cx, $cy, $R_Inner, $p['raw_deg']);
-        $tickEnd   = xy($cx, $cy, $R_Inner - 10, $p['raw_deg']);
-        echo "<line x1='{$tickStart['x']}' y1='{$tickStart['y']}' x2='{$tickEnd['x']}' y2='{$tickEnd['y']}' class='tick' />";
+    foreach ($renderList as $p) {
+        $pt = xy($cx, $cy, $R_Planet, $p['pos']);
+        // Tick mark
+        $t1 = xy($cx, $cy, $R_Inner, $p['raw']); $t2 = xy($cx, $cy, $R_Inner-10, $p['raw']);
+        printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='#aaa' />", $t1['x'], $t1['y'], $t2['x'], $t2['y']);
         
-        $labelPos = xy($cx, $cy, $R_Planet, $p['label_deg']);
-        if (abs($p['raw_deg'] - $p['label_deg']) > 1.0) {
-            $connEnd = xy($cx, $cy, $R_Inner - 10, $p['raw_deg']);
-            printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='#cbd5e0' stroke-width='1' />",
-                $labelPos['x'], $labelPos['y'], $connEnd['x'], $connEnd['y']
-            );
+        // Connector if shifted
+        if (abs($p['raw'] - $p['pos']) > 1) {
+            printf("<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='#ddd' />", $pt['x'], $pt['y'], $t2['x'], $t2['y']);
         }
         
-        $abbr = $p['name'] === 'Sun' ? '☉' : ($p['name'] === 'Moon' ? '☽' : substr($p['name'], 0, 2));
-        printf("<text x='%.1f' y='%.1f' text-anchor='middle' dominant-baseline='central' class='glyph'>%s</text>", 
-            $labelPos['x'], $labelPos['y'], $abbr
-        );
-        
-        $degPos = xy($cx, $cy, $R_Planet + ($size * 0.04), $p['label_deg']);
-        printf("<text x='%.1f' y='%.1f' text-anchor='middle' dominant-baseline='central' class='deg-text'>%d°</text>",
-            $degPos['x'], $degPos['y'], floor(fmod($p['raw_deg'] - $rotation, 30))
-        );
+        // Glyph & Degree
+        printf("<text x='%.1f' y='%.1f' class='glyph' text-anchor='middle' dominant-baseline='central'>%s</text>", 
+            $pt['x'], $pt['y'], $p['sym']);
+        $dpt = xy($cx, $cy, $R_Planet + ($size*0.045), $p['pos']);
+        printf("<text x='%.1f' y='%.1f' class='deg' text-anchor='middle'>%.0f°</text>", 
+            $dpt['x'], $dpt['y'], fmod($p['raw'] - $rotation, 30));
     }
     ?>
-    <text x="20" y="<?= $size - 20 ?>" font-family="sans-serif" font-size="12" fill="#999">Quantum Astrology v1.3</text>
     </svg>
-
 <?php
 } catch (Throwable $e) {
-    // Generate an Error SVG so the user sees the problem directly in the image
+    // 2. ERROR HANDLER: Generates a valid SVG image containing the error message
+    // This allows you to see the error directly in the <img src="..."> tag
     header('Content-Type: image/svg+xml');
     echo '<?xml version="1.0" standalone="no"?>';
     echo '<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">';
-    echo '<rect width="100%" height="100%" fill="#fee" />';
-    echo '<text x="10" y="30" font-family="monospace" fill="red" font-size="14">Error Generating Chart:</text>';
-    echo '<text x="10" y="60" font-family="monospace" fill="red" font-size="12">' . htmlspecialchars($e->getMessage()) . '</text>';
-    echo '<text x="10" y="80" font-family="monospace" fill="#555" font-size="10">File: ' . htmlspecialchars(basename($e->getFile())) . ':' . $e->getLine() . '</text>';
+    echo '<rect width="100%" height="100%" fill="#fff0f0" stroke="#ff0000" stroke-width="2" />';
+    echo '<text x="20" y="40" font-family="monospace" font-weight="bold" fill="#cc0000" font-size="16">System Malfunction (Error 500)</text>';
+    echo '<text x="20" y="80" font-family="monospace" fill="#333" font-size="12">' . htmlspecialchars($e->getMessage()) . '</text>';
+    echo '<text x="20" y="110" font-family="monospace" fill="#666" font-size="10">File: ' . htmlspecialchars(basename($e->getFile())) . ':' . $e->getLine() . '</text>';
     echo '</svg>';
 }
 ?>
