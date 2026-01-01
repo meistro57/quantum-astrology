@@ -232,6 +232,12 @@ $hasProfileBirthData = (
         .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
         .form-checkbox { width: 18px; height: 18px; accent-color: var(--quantum-primary); }
         .location-helper { background: rgba(74, 144, 226, 0.1); border: 1px solid rgba(74, 144, 226, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); }
+        .map-link-row { display: flex; gap: 0.75rem; align-items: center; }
+        .map-link-row .form-input { flex: 1; }
+        .map-link-row .btn { padding: 0.75rem 1.25rem; white-space: nowrap; }
+        .map-link-status { margin-top: 0.35rem; color: rgba(255, 255, 255, 0.75); }
+        .map-link-status.success { color: #7dd87d; }
+        .map-link-status.error { color: #ff6b6b; }
         .button-group { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .btn { padding: 0.875rem 2rem; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-block; text-align: center; }
         .btn-primary { background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-purple)); color: white; }
@@ -357,6 +363,21 @@ $hasProfileBirthData = (
                            value="<?= htmlspecialchars($formData['birth_location_name'] ?? '') ?>">
                 </div>
 
+                <div class="form-group">
+                    <label for="map_link" class="form-label">Google Maps Link (optional)</label>
+                    <div class="map-link-row">
+                        <input type="url"
+                               id="map_link"
+                               name="map_link"
+                               class="form-input"
+                               placeholder="Paste a Google Maps share link"
+                               inputmode="url"
+                               autocomplete="off">
+                        <button type="button" id="map_link_button" class="btn btn-secondary">Extract Coordinates</button>
+                    </div>
+                    <p id="map_link_status" class="helper-text map-link-status">Paste a link like "https://maps.app.goo.gl/qHdWJxztqmys8bb27" to fill latitude and longitude automatically.</p>
+                </div>
+
                 <div class="coordinate-inputs">
                     <div class="coordinate-group">
                         <label for="birth_latitude" class="form-label">Latitude <span class="required">*</span></label>
@@ -386,7 +407,7 @@ $hasProfileBirthData = (
                 </div>
 
                 <div class="location-helper">
-                    <strong>Need coordinates?</strong> Use online tools like Google Maps or geographic coordinate finders.
+                    <strong>Need coordinates?</strong> Paste a Google Maps share link above or use online tools to find exact values.
                     Right-click on a location in Google Maps to get precise latitude and longitude values. You can enter
                     coordinates with direction letters (e.g., <code>34.05N</code> or <code>118.25W</code>) and we'll convert
                     them automatically.
@@ -544,6 +565,73 @@ $hasProfileBirthData = (
                 const lng = parseCoordinate(lngInput.value, 'E', 'W');
                 if (latLabel) latLabel.textContent = Number.isNaN(lat) ? '°N/S' : (lat >= 0 ? '°N' : '°S');
                 if (lngLabel) lngLabel.textContent = Number.isNaN(lng) ? '°E/W' : (lng >= 0 ? '°E' : '°W');
+            }
+
+            const mapLinkInput = document.getElementById('map_link');
+            const mapLinkButton = document.getElementById('map_link_button');
+            const mapLinkStatus = document.getElementById('map_link_status');
+
+            const setMapLinkStatus = (message, variant = 'info') => {
+                if (!mapLinkStatus) return;
+                mapLinkStatus.textContent = message;
+                mapLinkStatus.classList.remove('success', 'error');
+                if (variant === 'success' || variant === 'error') {
+                    mapLinkStatus.classList.add(variant);
+                }
+            };
+
+            const resolveMapLink = async () => {
+                if (!mapLinkInput || !mapLinkButton) {
+                    return;
+                }
+
+                const link = mapLinkInput.value.trim();
+                if (!link) {
+                    setMapLinkStatus('Please paste a Google Maps share link first.', 'error');
+                    return;
+                }
+
+                setMapLinkStatus('Resolving link for coordinates...');
+                mapLinkButton.disabled = true;
+                mapLinkButton.textContent = 'Resolving...';
+
+                try {
+                    const response = await fetch('/api/resolve_map_link.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: link }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok || !payload?.ok) {
+                        const message = payload?.error?.message ?? 'Could not resolve the link.';
+                        throw new Error(message);
+                    }
+
+                    birthFields.latitude.value = payload.latitude;
+                    birthFields.longitude.value = payload.longitude;
+                    updateCoordinateLabels();
+                    setMapLinkStatus('Coordinates extracted and filled in.', 'success');
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Could not resolve the link.';
+                    setMapLinkStatus(message, 'error');
+                } finally {
+                    mapLinkButton.disabled = false;
+                    mapLinkButton.textContent = 'Extract Coordinates';
+                }
+            };
+
+            if (mapLinkButton) {
+                mapLinkButton.addEventListener('click', resolveMapLink);
+            }
+
+            if (mapLinkInput) {
+                mapLinkInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        resolveMapLink();
+                    }
+                });
             }
             latInput.addEventListener('input', updateCoordinateLabels);
             lngInput.addEventListener('input', updateCoordinateLabels);
