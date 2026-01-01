@@ -534,3 +534,73 @@ class ReportGenerator
         ';
     }
 }
+/**
+     * Generate PDF for synastry/compatibility report
+     */
+    private function buildSynastryReportHTML(Chart $chart1, Chart $chart2, array $synastryData, array $options): string
+    {
+        $html = $this->buildCoverPage($chart1); // You might want a custom cover for couples
+        
+        $html .= '<div class="page-break"></div>';
+        $html .= '<h1>Synastry Analysis</h1>';
+        $html .= '<h3>' . $chart1->getName() . ' & ' . $chart2->getName() . '</h3>';
+        
+        // Compatibility Score (if available in your logic)
+        $score = $synastryData['compatibility_scores']['overall'] ?? 0;
+        $html .= '<div class="info-box">';
+        $html .= '<h2>Compatibility Score: ' . number_format($score, 1) . '%</h2>';
+        $html .= '</div>';
+
+        // Aspects Table
+        $html .= '<h2>Inter-Chart Aspects</h2>';
+        $html .= '<table class="aspect-table">';
+        $html .= '<thead><tr>';
+        $html .= '<th>' . $chart1->getName() . ' (Planet)</th>';
+        $html .= '<th>Aspect</th>';
+        $html .= '<th>' . $chart2->getName() . ' (Planet)</th>';
+        $html .= '<th>Orb</th>';
+        $html .= '</tr></thead><tbody>';
+
+        foreach ($synastryData['synastry_aspects'] ?? [] as $aspect) {
+            $p1 = ucfirst($aspect['person1_planet']);
+            $p2 = ucfirst($aspect['person2_planet']);
+            $type = ucfirst($aspect['aspect']);
+            $orb = number_format($aspect['orb'], 2) . '°';
+            
+            // Color code harsh vs soft aspects
+            $class = in_array($type, ['Square', 'Opposition']) ? 'aspect-square' : 'aspect-trine';
+
+            $html .= '<tr>';
+            $html .= "<td>$p1</td>";
+            $html .= "<td class='$class'>$type</td>";
+            $html .= "<td>$p2</td>";
+            $html .= "<td>$orb</td>";
+            $html .= '</tr>';
+        }
+        $html .= '</tbody></table>';
+
+        // AI/Manual Interpretations
+        if (isset($synastryData['relationship_dynamics'])) {
+            $html .= '<div class="page-break"></div>';
+            $html .= '<h2>Relationship Dynamics</h2>';
+            
+            $dynamics = $synastryData['relationship_dynamics'];
+            
+            $html .= '<div class="interpretation-box">';
+            $html .= '<h3>Key Strengths</h3><ul>';
+            foreach ($dynamics['strength_areas'] ?? [] as $strength) {
+                $html .= "<li>$strength</li>";
+            }
+            $html .= '</ul></div>';
+
+            $html .= '<div class="interpretation-box" style="border-left-color: #e53e3e;">';
+            $html .= '<h3>Challenges</h3><ul>';
+            foreach ($dynamics['conflict_areas'] ?? [] as $conflict) {
+                $html .= "<li>$conflict</li>";
+            }
+            $html .= '</ul></div>';
+        }
+
+        $html .= $this->buildFooter();
+        return $html;
+    }
