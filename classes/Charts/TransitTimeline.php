@@ -11,6 +11,8 @@ class TransitTimeline
 {
     private Chart $chart;
     private SwissEphemeris $swissEph;
+    
+    // Only track slow movers for meaningful timelines
     private array $activeTransits = ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
     
     private array $aspects = [
@@ -29,14 +31,12 @@ class TransitTimeline
     public function calculateSeries(DateTime $start, int $days): array
     {
         $natalPositions = $this->chart->getPlanetaryPositions();
-        // Fallback for different data structures
-        if (isset($natalPositions['sun'])) { 
-            // Normalize keyed array
-        } else {
-            // Re-key numeric array if necessary
-            $temp = [];
-            foreach($natalPositions as $p) $temp[strtolower($p['planet']??$p['name']??'')] = $p;
-            $natalPositions = $temp;
+        
+        // Normalize natal array to keyed format if needed
+        $natalKeyed = [];
+        foreach ($natalPositions as $k => $v) {
+            $key = strtolower($v['planet'] ?? $v['name'] ?? (string)$k);
+            $natalKeyed[$key] = $v;
         }
 
         $seriesData = [];
@@ -46,7 +46,8 @@ class TransitTimeline
 
         for ($i = 0; $i <= $days; $i++) {
             $dates[] = $current->format('M j');
-            // Noon calculations
+            
+            // Calculate noon positions for consistency
             $transits = $this->swissEph->calculatePlanetaryPositions(
                 $current->setTime(12, 0),
                 $this->chart->getBirthLatitude(),
@@ -56,18 +57,21 @@ class TransitTimeline
             foreach ($this->activeTransits as $tPlanet) {
                 if (!isset($transits[$tPlanet])) continue;
                 
-                foreach ($natalPositions as $nPlanet => $nPos) {
+                foreach ($natalKeyed as $nPlanet => $nPos) {
                     if (in_array($nPlanet, ['mean_node', 'true_node', 'lilith'])) continue;
 
                     $tLon = $transits[$tPlanet]['longitude'];
                     $nLon = $nPos['longitude'] ?? $nPos['lon'] ?? 0;
 
                     foreach ($this->aspects as $aspName => $asp) {
-                        $angle = $this->shortestAngle($tLon, $nLon);
+                        $angle = abs($tLon - $nLon);
+                        if ($angle > 180) $angle = 360 - $angle;
+                        
                         $deviation = abs($angle - $asp['angle']);
                         
+                        // We use 1.5x orb for visualization approach
                         if ($deviation <= ($asp['orb'] * 1.5)) {
-                            $key = "t.{$tPlanet}-{$aspName}-n.{$nPlanet}";
+                            $key = "t{$tPlanet}-{$aspName}-n{$nPlanet}";
                             if (!isset($seriesData[$key])) {
                                 $seriesData[$key] = [
                                     'label' => ucfirst($tPlanet) . " " . $this->getSymbol($aspName) . " " . ucfirst($nPlanet),
@@ -75,7 +79,7 @@ class TransitTimeline
                                     'points' => array_fill(0, $days + 1, null)
                                 ];
                             }
-                            // Store deviation: 0 is exact
+                            // Store deviation (0 is exact/intense)
                             $seriesData[$key]['points'][$i] = $deviation;
                         }
                     }
@@ -83,11 +87,6 @@ class TransitTimeline
             }
             $current->add($interval);
         }
-
-        // Filter out very short blips
-        $seriesData = array_filter($seriesData, function($s) {
-            return count(array_filter($s['points'], fn($p) => $p !== null)) > 2;
-        });
 
         return [
             'dates' => $dates,
@@ -98,13 +97,7 @@ class TransitTimeline
 
     private function getSymbol(string $aspect): string {
         return match($aspect) {
-            'Conjunction' => '☌', 'Opposition' => '☍',
-            'Square' => '□', 'Trine' => '△', default => '*'
+            'Conjunction' => '☌', 'Opposition' => '☍', 'Square' => '□', 'Trine' => '△', default => '*'
         };
-    }
-
-    private function shortestAngle(float $a, float $b): float {
-        $diff = abs($a - $b);
-        return $diff > 180 ? 360 - $diff : $diff;
     }
 }
