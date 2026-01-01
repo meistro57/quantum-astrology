@@ -35,14 +35,25 @@ try {
         throw new Exception("No Chart ID specified.");
     }
 
-    // 5. DATABASE CONNECTION
-    // (Assuming you have a global $pdo or a Database class from config)
-    // If you use a class, instantiate it here: $db = new Database();
-    global $pdo; 
-    
-    if (!$pdo) {
-        // Fallback if global $pdo isn't set
-        throw new Exception("Database connection not established.");
+// 5. DATABASE CONNECTION
+    // We will connect directly here to avoid issues with config.php scope
+    $host = '127.0.0.1';
+    $db   = 'q_astro'; // CHECK THIS: Is your DB name correct?
+    $user = 'astro';              // CHECK THIS: Your DB username
+    $pass = 'logical';                  // CHECK THIS: Your DB password (often empty on localhost)
+    $charset = 'utf8mb4';
+
+    $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    try {
+        $pdo = new PDO($dsn, $user, $pass, $options);
+    } catch (\PDOException $e) {
+        throw new Exception("DB Connect Failed: " . $e->getMessage());
     }
 
     // 6. FETCH CHART DATA
