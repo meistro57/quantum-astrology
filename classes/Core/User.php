@@ -16,6 +16,12 @@ class User
     private ?string $firstName = null;
     private ?string $lastName = null;
     private ?string $timezone = null;
+    private ?string $birthDate = null;
+    private ?string $birthTime = null;
+    private ?string $birthTimezone = null;
+    private ?float $birthLatitude = null;
+    private ?float $birthLongitude = null;
+    private ?string $birthLocationName = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -30,8 +36,8 @@ class User
         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
 
         try {
-            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, created_at, updated_at)
-                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, birth_date, birth_time, birth_timezone, birth_latitude, birth_longitude, birth_location_name, created_at, updated_at)
+                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, :birth_date, :birth_time, :birth_timezone, :birth_latitude, :birth_longitude, :birth_location_name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
             $params = [
                 'username' => $userData['username'],
@@ -39,7 +45,13 @@ class User
                 'password_hash' => $hashedPassword,
                 'first_name' => $userData['first_name'] ?? null,
                 'last_name' => $userData['last_name'] ?? null,
-                'timezone' => $userData['timezone'] ?? 'UTC'
+                'timezone' => $userData['timezone'] ?? 'UTC',
+                'birth_date' => $userData['birth_date'] ?? null,
+                'birth_time' => $userData['birth_time'] ?? null,
+                'birth_timezone' => $userData['birth_timezone'] ?? null,
+                'birth_latitude' => $userData['birth_latitude'] ?? null,
+                'birth_longitude' => $userData['birth_longitude'] ?? null,
+                'birth_location_name' => $userData['birth_location_name'] ?? null
             ];
 
             Connection::query($sql, $params);
@@ -135,12 +147,24 @@ class User
 
     public function update(array $data): bool
     {
-        $allowedFields = ['username', 'email', 'first_name', 'last_name', 'timezone'];
+        $allowedFields = [
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'timezone',
+            'birth_date',
+            'birth_time',
+            'birth_timezone',
+            'birth_latitude',
+            'birth_longitude',
+            'birth_location_name'
+        ];
         $updateFields = [];
         $params = ['id' => $this->id];
-        
+
         foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $updateFields[] = "{$field} = :{$field}";
                 $params[$field] = $data[$field];
             }
@@ -157,7 +181,7 @@ class User
             Connection::query($sql, $params);
             
             foreach ($allowedFields as $field) {
-                if (isset($data[$field])) {
+                if (array_key_exists($field, $data)) {
                     $property = str_replace('_', '', ucwords($field, '_'));
                     $property[0] = strtolower($property[0]);
                     $this->$property = $data[$field];
@@ -190,6 +214,12 @@ class User
         $user->firstName = $data['first_name'];
         $user->lastName = $data['last_name'];
         $user->timezone = $data['timezone'];
+        $user->birthDate = $data['birth_date'] ?? null;
+        $user->birthTime = $data['birth_time'] ?? null;
+        $user->birthTimezone = $data['birth_timezone'] ?? null;
+        $user->birthLatitude = isset($data['birth_latitude']) ? (float) $data['birth_latitude'] : null;
+        $user->birthLongitude = isset($data['birth_longitude']) ? (float) $data['birth_longitude'] : null;
+        $user->birthLocationName = $data['birth_location_name'] ?? null;
         $user->createdAt = $data['created_at'];
         $user->updatedAt = $data['updated_at'];
         
@@ -232,6 +262,36 @@ class User
         return $this->timezone;
     }
 
+    public function getBirthDate(): ?string
+    {
+        return $this->birthDate;
+    }
+
+    public function getBirthTime(): ?string
+    {
+        return $this->birthTime;
+    }
+
+    public function getBirthTimezone(): ?string
+    {
+        return $this->birthTimezone;
+    }
+
+    public function getBirthLatitude(): ?float
+    {
+        return $this->birthLatitude;
+    }
+
+    public function getBirthLongitude(): ?float
+    {
+        return $this->birthLongitude;
+    }
+
+    public function getBirthLocationName(): ?string
+    {
+        return $this->birthLocationName;
+    }
+
     public function getCreatedAt(): ?string
     {
         return $this->createdAt;
@@ -252,6 +312,12 @@ class User
             'last_name' => $this->lastName,
             'full_name' => $this->getFullName(),
             'timezone' => $this->timezone,
+            'birth_date' => $this->birthDate,
+            'birth_time' => $this->birthTime,
+            'birth_timezone' => $this->birthTimezone,
+            'birth_latitude' => $this->birthLatitude,
+            'birth_longitude' => $this->birthLongitude,
+            'birth_location_name' => $this->birthLocationName,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

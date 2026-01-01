@@ -187,6 +187,21 @@ $swissEph = new SwissEphemeris();
 $houseSystems = $swissEph->getSupportedHouseSystems();
 
 $pageTitle = 'Create New Chart - Quantum Astrology';
+$profileBirthData = [
+    'birth_date' => $user->getBirthDate(),
+    'birth_time' => $user->getBirthTime(),
+    'birth_timezone' => $user->getBirthTimezone(),
+    'birth_latitude' => $user->getBirthLatitude(),
+    'birth_longitude' => $user->getBirthLongitude(),
+    'birth_location_name' => $user->getBirthLocationName(),
+];
+$hasProfileBirthData = (
+    !empty($profileBirthData['birth_date']) &&
+    !empty($profileBirthData['birth_time']) &&
+    !empty($profileBirthData['birth_timezone']) &&
+    $profileBirthData['birth_latitude'] !== null &&
+    $profileBirthData['birth_longitude'] !== null
+);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -271,6 +286,22 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
             <!-- Birth Information Section -->
             <div class="form-section">
                 <h3 class="section-title">Birth Information</h3>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox"
+                               id="use_profile_birth"
+                               name="use_profile_birth"
+                               class="form-checkbox"
+                               <?= $hasProfileBirthData ? '' : 'disabled' ?>>
+                        <label for="use_profile_birth" class="form-label">Use my saved profile birth details</label>
+                    </div>
+                    <small style="color: rgba(255, 255, 255, 0.6);">
+                        <?= $hasProfileBirthData
+                            ? 'We will auto-fill your birth date, time, timezone, and coordinates from your profile when checked.'
+                            : 'Save birth details in your Profile settings to enable quick auto-fill.' ?>
+                    </small>
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -422,6 +453,55 @@ $pageTitle = 'Create New Chart - Quantum Astrology';
 
         // Form validation and enhancement
         document.addEventListener('DOMContentLoaded', function() {
+            const profileBirthData = <?= json_encode($profileBirthData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+            const hasProfileBirthData = <?= $hasProfileBirthData ? 'true' : 'false' ?>;
+            const useProfileCheckbox = document.getElementById('use_profile_birth');
+
+            const birthFields = {
+                date: document.getElementById('birth_date'),
+                time: document.getElementById('birth_time'),
+                timezone: document.getElementById('birth_timezone'),
+                locationName: document.getElementById('birth_location_name'),
+                latitude: document.getElementById('birth_latitude'),
+                longitude: document.getElementById('birth_longitude'),
+            };
+
+            const applyProfileBirthData = () => {
+                if (!hasProfileBirthData) {
+                    alert('Save your birth details in your profile to enable quick auto-fill.');
+                    useProfileCheckbox.checked = false;
+                    return;
+                }
+
+                if (profileBirthData.birth_date) {
+                    birthFields.date.value = profileBirthData.birth_date;
+                }
+                if (profileBirthData.birth_time) {
+                    birthFields.time.value = profileBirthData.birth_time.slice(0, 5);
+                }
+                if (profileBirthData.birth_timezone) {
+                    birthFields.timezone.value = profileBirthData.birth_timezone;
+                }
+                if (profileBirthData.birth_location_name) {
+                    birthFields.locationName.value = profileBirthData.birth_location_name;
+                }
+                if (typeof profileBirthData.birth_latitude !== 'undefined' && profileBirthData.birth_latitude !== null) {
+                    birthFields.latitude.value = profileBirthData.birth_latitude;
+                }
+                if (typeof profileBirthData.birth_longitude !== 'undefined' && profileBirthData.birth_longitude !== null) {
+                    birthFields.longitude.value = profileBirthData.birth_longitude;
+                }
+            };
+
+            if (useProfileCheckbox) {
+                useProfileCheckbox.addEventListener('change', () => {
+                    if (useProfileCheckbox.checked) {
+                        applyProfileBirthData();
+                        updateCoordinateLabels();
+                    }
+                });
+            }
+
             const latInput = document.getElementById('birth_latitude');
             const lngInput = document.getElementById('birth_longitude');
 

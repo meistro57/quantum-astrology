@@ -5,6 +5,7 @@ require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
+use QuantumAstrology\Support\InputValidator;
 
 Auth::requireLogin();
 
@@ -18,8 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'email' => trim($_POST['email'] ?? ''),
         'first_name' => trim($_POST['first_name'] ?? ''),
         'last_name' => trim($_POST['last_name'] ?? ''),
-        'timezone' => $_POST['timezone'] ?? 'UTC'
+        'timezone' => $_POST['timezone'] ?? 'UTC',
     ];
+
+    $birthDateRaw = trim($_POST['birth_date'] ?? '');
+    $birthTimeRaw = trim($_POST['birth_time'] ?? '');
+    $birthTimezoneRaw = trim($_POST['birth_timezone'] ?? '');
+    $birthLocationName = trim($_POST['birth_location_name'] ?? '');
+    $birthLatitudeRaw = $_POST['birth_latitude'] ?? null;
+    $birthLongitudeRaw = $_POST['birth_longitude'] ?? null;
     
     // Basic validation
     if (empty($updateData['username'])) {
@@ -41,6 +49,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Email is already in use';
     }
     
+    // Birth data validation (optional but validated when provided)
+    try {
+        if ($birthDateRaw !== '') {
+            $birthDate = DateTimeImmutable::createFromFormat('Y-m-d', $birthDateRaw);
+            if (!$birthDate) {
+                throw new InvalidArgumentException('Birth date must be in YYYY-MM-DD format.');
+            }
+            $updateData['birth_date'] = $birthDate->format('Y-m-d');
+        } else {
+            $updateData['birth_date'] = null;
+        }
+
+        if ($birthTimeRaw !== '') {
+            $time = DateTimeImmutable::createFromFormat('H:i', $birthTimeRaw)
+                ?: DateTimeImmutable::createFromFormat('H:i:s', $birthTimeRaw);
+
+            if (!$time) {
+                throw new InvalidArgumentException('Birth time must be in 24-hour HH:MM format.');
+            }
+
+            $updateData['birth_time'] = $time->format('H:i:s');
+        } else {
+            $updateData['birth_time'] = null;
+        }
+
+        $birthTimezone = InputValidator::normaliseTimezone($birthTimezoneRaw, false);
+        if (($updateData['birth_date'] || $updateData['birth_time']) && $birthTimezone === null) {
+            throw new InvalidArgumentException('Birth timezone is required when saving birth date or time.');
+        }
+        $updateData['birth_timezone'] = $birthTimezone;
+
+        $birthLatitude = InputValidator::parseLatitude($birthLatitudeRaw, false);
+        $birthLongitude = InputValidator::parseLongitude($birthLongitudeRaw, false);
+
+        if (($birthLatitude !== null && $birthLongitude === null) || ($birthLatitude === null && $birthLongitude !== null)) {
+            throw new InvalidArgumentException('Please provide both latitude and longitude for your birth location.');
+        }
+
+        $updateData['birth_latitude'] = $birthLatitude;
+        $updateData['birth_longitude'] = $birthLongitude;
+        $updateData['birth_location_name'] = $birthLocationName !== '' ? $birthLocationName : null;
+    } catch (InvalidArgumentException $e) {
+        $errors[] = $e->getMessage();
+    }
+
     if (empty($errors)) {
         if ($user->update($updateData)) {
             $success = 'Profile updated successfully!';
@@ -105,6 +158,25 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         .form-group {
             margin-bottom: 1.5rem;
             flex: 1;
+        }
+
+        .form-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--quantum-gold);
+            margin-bottom: 0.75rem;
+        }
+
+        .helper-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
@@ -310,6 +382,82 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                         <option value="Asia/Tokyo" <?= $user->getTimezone() === 'Asia/Tokyo' ? 'selected' : '' ?>>Tokyo</option>
                         <option value="Australia/Sydney" <?= $user->getTimezone() === 'Australia/Sydney' ? 'selected' : '' ?>>Sydney</option>
                     </select>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">Saved Birth Details (optional)</h3>
+                    <p class="helper-text">Store your personal birth information to quickly auto-fill the chart creator. Leave blank if you prefer to enter details manually each time.</p>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birth_date" class="form-label">Birth Date</label>
+                            <input type="date"
+                                   id="birth_date"
+                                   name="birth_date"
+                                   class="form-input"
+                                   value="<?= htmlspecialchars($_POST['birth_date'] ?? ($user->getBirthDate() ?? '')) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="birth_time" class="form-label">Birth Time</label>
+                            <input type="time"
+                                   id="birth_time"
+                                   name="birth_time"
+                                   class="form-input"
+                                   step="60"
+                                   value="<?= htmlspecialchars($_POST['birth_time'] ?? ($user->getBirthTime() ? substr($user->getBirthTime(), 0, 5) : '')) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="birth_timezone" class="form-label">Birth Timezone</label>
+                            <select id="birth_timezone" name="birth_timezone" class="form-select">
+                                <?php $savedBirthTz = $_POST['birth_timezone'] ?? ($user->getBirthTimezone() ?? ''); ?>
+                                <option value="" <?= $savedBirthTz === '' ? 'selected' : '' ?>>-- Select timezone --</option>
+                                <option value="UTC" <?= $savedBirthTz === 'UTC' ? 'selected' : '' ?>>UTC (Coordinated Universal Time)</option>
+                                <option value="America/New_York" <?= $savedBirthTz === 'America/New_York' ? 'selected' : '' ?>>Eastern Time (US & Canada)</option>
+                                <option value="America/Chicago" <?= $savedBirthTz === 'America/Chicago' ? 'selected' : '' ?>>Central Time (US & Canada)</option>
+                                <option value="America/Denver" <?= $savedBirthTz === 'America/Denver' ? 'selected' : '' ?>>Mountain Time (US & Canada)</option>
+                                <option value="America/Los_Angeles" <?= $savedBirthTz === 'America/Los_Angeles' ? 'selected' : '' ?>>Pacific Time (US & Canada)</option>
+                                <option value="Europe/London" <?= $savedBirthTz === 'Europe/London' ? 'selected' : '' ?>>London</option>
+                                <option value="Europe/Paris" <?= $savedBirthTz === 'Europe/Paris' ? 'selected' : '' ?>>Paris</option>
+                                <option value="Europe/Berlin" <?= $savedBirthTz === 'Europe/Berlin' ? 'selected' : '' ?>>Berlin</option>
+                                <option value="Asia/Tokyo" <?= $savedBirthTz === 'Asia/Tokyo' ? 'selected' : '' ?>>Tokyo</option>
+                                <option value="Australia/Sydney" <?= $savedBirthTz === 'Australia/Sydney' ? 'selected' : '' ?>>Sydney</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="birth_location_name" class="form-label">Birth Location Name</label>
+                        <input type="text"
+                               id="birth_location_name"
+                               name="birth_location_name"
+                               class="form-input"
+                               placeholder="e.g., London, UK"
+                               value="<?= htmlspecialchars($_POST['birth_location_name'] ?? ($user->getBirthLocationName() ?? '')) ?>">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birth_latitude" class="form-label">Birth Latitude</label>
+                            <input type="text"
+                                   id="birth_latitude"
+                                   name="birth_latitude"
+                                   class="form-input"
+                                   placeholder="51.5074 N"
+                                   value="<?= htmlspecialchars($_POST['birth_latitude'] ?? ($user->getBirthLatitude() ?? '')) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="birth_longitude" class="form-label">Birth Longitude</label>
+                            <input type="text"
+                                   id="birth_longitude"
+                                   name="birth_longitude"
+                                   class="form-input"
+                                   placeholder="0.1278 W"
+                                   value="<?= htmlspecialchars($_POST['birth_longitude'] ?? ($user->getBirthLongitude() ?? '')) ?>">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="button-group">
