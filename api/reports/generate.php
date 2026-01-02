@@ -1,11 +1,12 @@
 <?php
+# api/reports/generate.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../classes/autoload.php';
 
 use QuantumAstrology\Core\Auth;
-use QuantumAstrology\Core\Application;
 use QuantumAstrology\Reports\ReportGenerator;
+use QuantumAstrology\Core\Logger;
 
 header('Content-Type: application/json');
 
@@ -19,6 +20,12 @@ try {
     $reportType = $input['report_type'] ?? $_GET['report_type'] ?? 'natal';
     $format = $input['format'] ?? $_GET['format'] ?? 'pdf'; // pdf or download
 
+    if (!in_array($reportType, ['natal'], true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Report type not available yet.']);
+        exit;
+    }
+
     if ($chartId <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid chart ID']);
@@ -29,12 +36,7 @@ try {
     $generator = new ReportGenerator($reportType);
 
     // Generate PDF content
-    $pdfContent = match ($reportType) {
-        'natal' => $generator->generateNatalReport($chartId),
-        'transit' => throw new RuntimeException('Transit reports not yet implemented'),
-        'synastry' => throw new RuntimeException('Synastry reports not yet implemented'),
-        default => throw new RuntimeException('Unknown report type: ' . $reportType)
-    };
+    $pdfContent = $generator->generateNatalReport($chartId);
 
     if ($format === 'download') {
         // Download the PDF
@@ -59,6 +61,13 @@ try {
     ]);
 
 } catch (Throwable $e) {
+    Logger::error('Report generation failed', [
+        'chart_id' => $chartId ?? null,
+        'report_type' => $reportType ?? null,
+        'format' => $format ?? null,
+        'error' => $e->getMessage(),
+    ]);
+
     http_response_code(500);
     echo json_encode([
         'error' => 'Failed to generate report: ' . $e->getMessage(),

@@ -6,6 +6,7 @@ require __DIR__ . '/../config.php';
 
 use QuantumAstrology\Charts\ChartService;
 use QuantumAstrology\Support\InputValidator;
+use QuantumAstrology\Core\Logger;
 
 header('Content-Type: application/json');
 
@@ -70,6 +71,9 @@ if ($timezoneInput !== '') {
     }
 }
 
+$birthLatitude = null;
+$birthLongitude = null;
+
 try {
     $birthLatitude = InputValidator::parseLatitude($payload['birth_latitude'] ?? null);
 } catch (\InvalidArgumentException $e) {
@@ -104,5 +108,16 @@ try {
     http_response_code(201);
     echo json_encode(['ok' => true, 'chart' => $chart], JSON_PRETTY_PRINT);
 } catch (Throwable $e) {
+    Logger::error('Chart creation API failed', [
+        'name' => $name,
+        'birth_date' => $birthDate,
+        'birth_time' => $birthTime,
+        'birth_timezone' => $birthTimezone,
+        'birth_latitude' => $birthLatitude ?? null,
+        'birth_longitude' => $birthLongitude ?? null,
+        'house_system' => $houseSystem,
+        'error' => $e->getMessage(),
+    ]);
+
     respond_error(500, 'CHART_CREATE_FAILED', 'Unable to create chart at this time.');
 }
