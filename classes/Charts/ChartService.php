@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace QuantumAstrology\Charts;
 
 use QuantumAstrology\Core\DB;
+use QuantumAstrology\Core\Logger;
 
 final class ChartService
 {
@@ -18,55 +19,70 @@ final class ChartService
         float  $birthLon,
         string $houseSystem = 'P'
     ): array {
-        if ($name === '') { throw new \InvalidArgumentException('Name required'); }
+        try {
+            if ($name === '') { throw new \InvalidArgumentException('Name required'); }
 
-        $tz = @new \DateTimeZone($birthTimezone);
-        if (!$tz) throw new \InvalidArgumentException('Invalid timezone');
+            $tz = @new \DateTimeZone($birthTimezone);
+            if (!$tz) throw new \InvalidArgumentException('Invalid timezone');
 
-        $local = \DateTimeImmutable::createFromFormat(
-            'Y-m-d H:i:s',
-            sprintf('%s %s', $birthDate, preg_match('/^\d{2}:\d{2}:\d{2}$/', $birthTime) ? $birthTime : ($birthTime . ':00')),
-            $tz
-        );
-        if (!$local) throw new \InvalidArgumentException('Invalid date/time');
-        $utc = $local->setTimezone(new \DateTimeZone('UTC'));
+            $local = \DateTimeImmutable::createFromFormat(
+                'Y-m-d H:i:s',
+                sprintf('%s %s', $birthDate, preg_match('/^\d{2}:\d{2}:\d{2}$/', $birthTime) ? $birthTime : ($birthTime . ':00')),
+                $tz
+            );
+            if (!$local) throw new \InvalidArgumentException('Invalid date/time');
+            $utc = $local->setTimezone(new \DateTimeZone('UTC'));
 
-        // ---- cache lookup
-        $key = Cache::key($utc, $birthLat, $birthLon, $houseSystem);
-        $cached = Cache::get($key);
+            // ---- cache lookup
+            $key = Cache::key($utc, $birthLat, $birthLon, $houseSystem);
+            $cached = Cache::get($key);
 
-        if ($cached) {
-            $planets = $cached['planets'];
-            $houses  = $cached['houses'];
-        } else {
-            $planets = SwissEphemeris::positions($utc, $birthLat, $birthLon);
-            $houses  = SwissEphemeris::houses($utc, $birthLat, $birthLon, $houseSystem);
-            Cache::put($key, $planets, $houses);
+            if ($cached) {
+                $planets = $cached['planets'];
+                $houses  = $cached['houses'];
+            } else {
+                $planets = SwissEphemeris::positions($utc, $birthLat, $birthLon);
+                $houses  = SwissEphemeris::houses($utc, $birthLat, $birthLon, $houseSystem);
+                Cache::put($key, $planets, $houses);
+            }
+
+            $aspects = Aspects::compute($planets);
+
+            $pdo = DB::conn();
+            $stmt = $pdo->prepare("
+                INSERT INTO charts
+                  (user_id, name, birth_datetime, birth_timezone, birth_latitude, birth_longitude, house_system, is_public, planetary_positions, house_positions, aspects)
+                VALUES
+                  (NULL,    :name, :dt,             :tz,            :lat,           :lon,            :hsys,        0,        :planets,     :houses,     :aspects)
+            ");
+            $stmt->execute([
+                ':name'    => $name,
+                ':dt'      => $local->format('Y-m-d H:i:s'),
+                ':tz'      => $birthTimezone,
+                ':lat'     => $birthLat,
+                ':lon'     => $birthLon,
+                ':hsys'    => strtoupper($houseSystem),
+                ':planets' => json_encode($planets, JSON_UNESCAPED_SLASHES),
+                ':houses'  => json_encode($houses,  JSON_UNESCAPED_SLASHES),
+                ':aspects' => json_encode($aspects, JSON_UNESCAPED_SLASHES),
+            ]);
+            $id = (int)$pdo->lastInsertId();
+
+            return ['id' => $id, 'name' => $name, 'planets' => $planets, 'houses' => $houses, 'aspects' => $aspects];
+        } catch (\Throwable $e) {
+            Logger::error('Chart generation failed', [
+                'name' => $name,
+                'birth_date' => $birthDate,
+                'birth_time' => $birthTime,
+                'birth_timezone' => $birthTimezone,
+                'birth_latitude' => $birthLat,
+                'birth_longitude' => $birthLon,
+                'house_system' => $houseSystem,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
-
-        $aspects = Aspects::compute($planets);
-
-        $pdo = DB::conn();
-        $stmt = $pdo->prepare("
-            INSERT INTO charts
-              (user_id, name, birth_datetime, birth_timezone, birth_latitude, birth_longitude, house_system, is_public, planetary_positions, house_positions, aspects)
-            VALUES
-              (NULL,    :name, :dt,             :tz,            :lat,           :lon,            :hsys,        0,        :planets,     :houses,     :aspects)
-        ");
-        $stmt->execute([
-            ':name'    => $name,
-            ':dt'      => $local->format('Y-m-d H:i:s'),
-            ':tz'      => $birthTimezone,
-            ':lat'     => $birthLat,
-            ':lon'     => $birthLon,
-            ':hsys'    => strtoupper($houseSystem),
-            ':planets' => json_encode($planets, JSON_UNESCAPED_SLASHES),
-            ':houses'  => json_encode($houses,  JSON_UNESCAPED_SLASHES),
-            ':aspects' => json_encode($aspects, JSON_UNESCAPED_SLASHES),
-        ]);
-        $id = (int)$pdo->lastInsertId();
-
-        return ['id' => $id, 'name' => $name, 'planets' => $planets, 'houses' => $houses, 'aspects' => $aspects];
     }
 
     /** @return array|null */

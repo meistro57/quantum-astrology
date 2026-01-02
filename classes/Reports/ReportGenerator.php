@@ -1,11 +1,13 @@
 <?php
+# classes/Reports/ReportGenerator.php
 declare(strict_types=1);
 
 namespace QuantumAstrology\Reports;
 
 use Mpdf\Mpdf;
 use QuantumAstrology\Charts\Chart;
-use QuantumAstrology\Interpretations\ChartInterpreter;
+use QuantumAstrology\Interpretations\ChartInterpretation;
+use QuantumAstrology\Core\Logger;
 use RuntimeException;
 
 class ReportGenerator
@@ -39,30 +41,39 @@ class ReportGenerator
      */
     public function generateNatalReport(int $chartId, array $options = []): string
     {
-        $chart = Chart::find($chartId);
-        if (!$chart) {
-            throw new RuntimeException("Chart #$chartId not found");
+        try {
+            $chart = Chart::find($chartId);
+            if (!$chart) {
+                throw new RuntimeException("Chart #$chartId not found");
+            }
+
+            // Get chart data and interpretation
+            $chartData = $chart->toArray();
+            $interpretation = (new ChartInterpretation($chart))->generateFullInterpretation();
+
+            // Build HTML content
+            $html = $this->buildReportHTML($chart, $chartData, $interpretation, $options);
+
+            // Set document metadata
+            $this->mpdf->SetTitle('Natal Chart Report - ' . $chart->getName());
+            $this->mpdf->SetSubject('Professional Astrological Analysis');
+            $this->mpdf->SetKeywords('astrology, natal chart, horoscope, birth chart');
+
+            // Write HTML to PDF
+            $this->mpdf->WriteHTML($this->getStylesheet());
+            $this->mpdf->WriteHTML($html);
+
+            // Return as string (or use 'D' for download, 'F' for file)
+            return $this->mpdf->Output('', 'S');
+        } catch (\Throwable $e) {
+            Logger::error('Natal report generation failed', [
+                'chart_id' => $chartId,
+                'report_type' => $this->reportType,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
-
-        // Get chart data and interpretation
-        $chartData = $chart->toArray();
-        $interpreter = new ChartInterpreter();
-        $interpretation = $interpreter->interpret($chart);
-
-        // Build HTML content
-        $html = $this->buildReportHTML($chart, $chartData, $interpretation, $options);
-
-        // Set document metadata
-        $this->mpdf->SetTitle('Natal Chart Report - ' . $chart->getName());
-        $this->mpdf->SetSubject('Professional Astrological Analysis');
-        $this->mpdf->SetKeywords('astrology, natal chart, horoscope, birth chart');
-
-        // Write HTML to PDF
-        $this->mpdf->WriteHTML($this->getStylesheet());
-        $this->mpdf->WriteHTML($html);
-
-        // Return as string (or use 'D' for download, 'F' for file)
-        return $this->mpdf->Output('', 'S');
     }
 
     /**
@@ -514,37 +525,17 @@ class ReportGenerator
         return '<h1>Transit Report</h1><p>Transit report content goes here...</p>';
     }
 
-    private function buildSynastryReportHTML(Chart $chart1, Chart $chart2, array $synastryData, array $options): string
-    {
-        // Similar structure for synastry reports
-        return '<h1>Synastry Report</h1><p>Synastry report content goes here...</p>';
-    }
-
-    private function buildFooter(): string
-    {
-        return '
-        <div class="footer-text">
-            <p>
-                <strong>Quantum Minds United</strong><br>
-                Professional Astrological Software Suite<br>
-                This report is generated using Swiss Ephemeris calculations with professional-grade precision.<br>
-                © ' . date('Y') . ' Quantum Minds United. All rights reserved.
-            </p>
-        </div>
-        ';
-    }
-}
-/**
+    /**
      * Generate PDF for synastry/compatibility report
      */
     private function buildSynastryReportHTML(Chart $chart1, Chart $chart2, array $synastryData, array $options): string
     {
         $html = $this->buildCoverPage($chart1); // You might want a custom cover for couples
-        
+
         $html .= '<div class="page-break"></div>';
         $html .= '<h1>Synastry Analysis</h1>';
         $html .= '<h3>' . $chart1->getName() . ' & ' . $chart2->getName() . '</h3>';
-        
+
         // Compatibility Score (if available in your logic)
         $score = $synastryData['compatibility_scores']['overall'] ?? 0;
         $html .= '<div class="info-box">';
@@ -566,7 +557,7 @@ class ReportGenerator
             $p2 = ucfirst($aspect['person2_planet']);
             $type = ucfirst($aspect['aspect']);
             $orb = number_format($aspect['orb'], 2) . '°';
-            
+
             // Color code harsh vs soft aspects
             $class = in_array($type, ['Square', 'Opposition']) ? 'aspect-square' : 'aspect-trine';
 
@@ -583,9 +574,9 @@ class ReportGenerator
         if (isset($synastryData['relationship_dynamics'])) {
             $html .= '<div class="page-break"></div>';
             $html .= '<h2>Relationship Dynamics</h2>';
-            
+
             $dynamics = $synastryData['relationship_dynamics'];
-            
+
             $html .= '<div class="interpretation-box">';
             $html .= '<h3>Key Strengths</h3><ul>';
             foreach ($dynamics['strength_areas'] ?? [] as $strength) {
@@ -604,3 +595,18 @@ class ReportGenerator
         $html .= $this->buildFooter();
         return $html;
     }
+
+    private function buildFooter(): string
+    {
+        return '
+        <div class="footer-text">
+            <p>
+                <strong>Quantum Minds United</strong><br>
+                Professional Astrological Software Suite<br>
+                This report is generated using Swiss Ephemeris calculations with professional-grade precision.<br>
+                © ' . date('Y') . ' Quantum Minds United. All rights reserved.
+            </p>
+        </div>
+        ';
+    }
+}
