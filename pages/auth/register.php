@@ -1,4 +1,4 @@
-<?php
+<?php // pages/auth/register.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../_bootstrap.php';
@@ -188,9 +188,15 @@ $pageTitle = 'Create Account - Quantum Astrology';
 </head>
 <body>
     <div class="particles-container"></div>
-    
+
     <div class="auth-container">
         <div class="auth-card">
+            <div class="page-actions" style="margin-top: 0; margin-bottom: 1rem;">
+                <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'">
+                    <span class="icon" aria-hidden="true">←</span>
+                    <span>Back</span>
+                </button>
+            </div>
             <h1 class="auth-title">Create Account</h1>
             <p class="auth-subtitle">Join Quantum Astrology and explore the cosmos</p>
 

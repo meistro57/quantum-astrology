@@ -18,13 +18,15 @@ This guide documents the environment variables used by the Quantum Astrology sui
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `DB_HOST` | Yes | `localhost` | Hostname or IP address of the MySQL/MariaDB server. |
-| `DB_PORT` | No | `3306` | Database server port. |
-| `DB_NAME` | Yes | `quantum_astrology` | Schema name that stores application data. |
-| `DB_USER` | Yes | `root` | Database user with permissions to read/write the schema. |
-| `DB_PASS` | Yes | *(empty)* | Password for the database user. Leave blank only when using socket-based auth. |
-| `DB_CHARSET` | No | `utf8mb4` | Character set applied to PDO connections. |
-| `DB_SQLITE_PATH` | No | `storage/database.sqlite` | Path to a SQLite database file used in development or testing. Leave unset when using MySQL. |
+| `DB_DRIVER` | No | `sqlite` | Database driver. Use `mysql` to connect to an existing MySQL/MariaDB server or leave as `sqlite` for the bundled file database. |
+| `DB_HOST` | Yes (mysql) | `localhost` | Hostname or IP address of the MySQL/MariaDB server. |
+| `DB_PORT` | No (mysql) | `3306` | Database server port. |
+| `DB_NAME` | Yes (mysql) | `quantum_astrology` | Schema name that stores application data. |
+| `DB_USER` | Yes (mysql) | `root` | Database user with permissions to read/write the schema. |
+| `DB_PASS` | Yes (mysql) | *(empty)* | Password for the database user. Leave blank only when using socket-based auth. |
+| `DB_CHARSET` | No (mysql) | `utf8mb4` | Character set applied to PDO connections. |
+| `DB_COLLATION` | No (mysql) | `utf8mb4_unicode_ci` | Collation applied to string columns when using MySQL/MariaDB. |
+| `DB_SQLITE_PATH` | No (sqlite) | `storage/database.sqlite` | Path to a SQLite database file used in development or testing. Leave unset when using MySQL. |
 
 ### Suggested MySQL Permissions
 

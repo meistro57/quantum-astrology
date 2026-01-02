@@ -1,4 +1,4 @@
-<?php
+<?php // config.php
 declare(strict_types=1);
 
 use Dotenv\Dotenv;
@@ -38,7 +38,15 @@ define('ROOT_PATH', __DIR__);
 define('STORAGE_PATH', ROOT_PATH . '/storage');
 define('LOGS_PATH', STORAGE_PATH . '/logs');
 
-// Database configuration (SQLite)
+// Database configuration (supports SQLite and MySQL/MariaDB)
+define('DB_DRIVER', strtolower((string) env('DB_DRIVER', 'sqlite')));
+define('DB_HOST', (string) env('DB_HOST', '127.0.0.1'));
+define('DB_PORT', (int) env('DB_PORT', 3306));
+define('DB_NAME', (string) env('DB_NAME', 'quantum_astrology'));
+define('DB_USER', (string) env('DB_USER', 'root'));
+define('DB_PASS', (string) env('DB_PASS', ''));
+define('DB_CHARSET', (string) env('DB_CHARSET', 'utf8mb4'));
+define('DB_COLLATION', (string) env('DB_COLLATION', 'utf8mb4_unicode_ci'));
 define('DB_SQLITE_PATH', (string) env('DB_SQLITE_PATH', STORAGE_PATH . '/database.sqlite'));
 
 // Cache configuration

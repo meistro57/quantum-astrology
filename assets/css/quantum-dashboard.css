@@ -1,3 +1,5 @@
+/* assets/css/quantum-dashboard.css */
+
 * {
     margin: 0;
     padding: 0;
@@ -56,6 +58,38 @@ body {
     background: var(--quantum-blue);
     border-radius: 50%;
     animation: float 6s ease-in-out infinite;
+}
+
+.page-actions {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--quantum-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.back-button .icon {
+    font-size: 1.1rem;
+    line-height: 1;
 }
 
 @keyframes float {

@@ -1,3 +1,4 @@
+<!-- pages/dashboard/index.php -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +14,12 @@
     </header>
     
     <main>
+        <div class="page-actions">
+            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'">
+                <span class="icon" aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
         <div class="quantum-card">
             <h2>Welcome to Quantum Astrology</h2>
             <p>Your professional astrology software suite</p>
