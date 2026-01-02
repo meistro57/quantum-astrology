@@ -1,5 +1,4 @@
-<?php
-# create.php
+<?php // pages/charts/create.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../_bootstrap.php';
@@ -257,6 +256,12 @@ $hasProfileBirthData = (
     <div class="particles-container"></div>
 
     <div class="chart-creator">
+        <div class="page-actions">
+            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/charts'">
+                <span class="icon" aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
         <div class="creator-header">
             <h1 class="creator-title">Create New Chart</h1>
             <p class="creator-subtitle">Generate a precise natal chart using Swiss Ephemeris calculations</p>

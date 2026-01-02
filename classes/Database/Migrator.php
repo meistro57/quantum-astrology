@@ -1,9 +1,8 @@
-<?php
+<?php // classes/Database/Migrator.php
 declare(strict_types=1);
 
 namespace QuantumAstrology\Database;
 
-use QuantumAstrology\Database\Connection;
 use PDOException;
 
 class Migrator
@@ -22,13 +21,26 @@ class Migrator
 
     private static function createMigrationsTable(): void
     {
-        $sql = "
-            CREATE TABLE IF NOT EXISTS " . self::MIGRATIONS_TABLE . " (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                migration TEXT NOT NULL UNIQUE,
-                executed_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        ";
+        if (Connection::isMySql()) {
+            $sql = sprintf(
+                'CREATE TABLE IF NOT EXISTS %s (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    migration VARCHAR(255) NOT NULL UNIQUE,
+                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=%s COLLATE=%s',
+                self::MIGRATIONS_TABLE,
+                DB_CHARSET,
+                DB_COLLATION
+            );
+        } else {
+            $sql = "
+                CREATE TABLE IF NOT EXISTS " . self::MIGRATIONS_TABLE . " (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    migration TEXT NOT NULL UNIQUE,
+                    executed_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            ";
+        }
 
         Connection::query($sql);
     }
@@ -41,7 +53,7 @@ class Migrator
 
         foreach ($migrationFiles as $file) {
             $migrationName = basename($file, '.php');
-            if (!in_array($migrationName, $executedMigrations)) {
+            if (!in_array($migrationName, $executedMigrations, true)) {
                 $pending[] = $migrationName;
             }
         }
@@ -56,7 +68,7 @@ class Migrator
             $sql = "SELECT migration FROM " . self::MIGRATIONS_TABLE . " ORDER BY migration";
             $result = Connection::fetchAll($sql);
             return array_column($result, 'migration');
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             return [];
         }
     }

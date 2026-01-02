@@ -1,4 +1,4 @@
-<?php
+<?php // pages/charts/index.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../_bootstrap.php';
@@ -237,8 +237,14 @@ $pageTitle = 'My Charts - Quantum Astrology';
 </head>
 <body>
     <div class="particles-container"></div>
-    
+
     <div class="charts-container">
+        <div class="page-actions">
+            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/dashboard'">
+                <span class="icon" aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
         <div class="charts-header">
             <h1 class="charts-title">My Charts</h1>
             <a href="/charts/create" class="btn btn-primary">+ New Chart</a>

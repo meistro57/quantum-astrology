@@ -1,4 +1,4 @@
-<?php
+<?php // pages/forecasting/index.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../_bootstrap.php';
@@ -221,6 +221,12 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
     </header>
 
     <div class="forecasting-container">
+        <div class="page-actions">
+            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/dashboard'">
+                <span class="icon" aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
         <div class="page-header">
             <h1 class="page-title">Forecasting Tools</h1>
             <p class="page-description">

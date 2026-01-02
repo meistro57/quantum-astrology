@@ -1,4 +1,4 @@
-<?php
+<?php // pages/analytics/index.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../_bootstrap.php';
@@ -207,6 +207,12 @@ $pageTitle = 'API Analytics - Quantum Astrology';
     </header>
 
     <div class="analytics-container">
+        <div class="page-actions">
+            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/dashboard'">
+                <span class="icon" aria-hidden="true">←</span>
+                <span>Back</span>
+            </button>
+        </div>
         <div class="page-header">
             <h1 class="page-title">API Usage Analytics</h1>
             <p class="page-description">

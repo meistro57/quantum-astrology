@@ -1,4 +1,4 @@
-<?php
+<?php // classes/Database/Connection.php
 declare(strict_types=1);
 
 namespace QuantumAstrology\Database;
@@ -14,108 +14,64 @@ class Connection
     {
         if (self::$instance === null) {
             try {
-                // Ensure storage directory exists
-                $dbDir = dirname(DB_SQLITE_PATH);
-                if (!is_dir($dbDir)) {
-                    mkdir($dbDir, 0755, true);
-                }
-
-                $dsn = 'sqlite:' . DB_SQLITE_PATH;
-                self::$instance = new PDO($dsn, null, null, [
+                $driver = self::getDriver();
+                $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
-                ]);
+                ];
 
-                // Enable foreign keys for SQLite
-                self::$instance->exec('PRAGMA foreign_keys = ON');
+                if ($driver === 'mysql') {
+                    $dsn = sprintf(
+                        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                        DB_HOST,
+                        DB_PORT,
+                        DB_NAME,
+                        DB_CHARSET
+                    );
+                    self::$instance = new PDO($dsn, DB_USER, DB_PASS, $options);
+                    self::$instance->exec('SET NAMES ' . DB_CHARSET . ' COLLATE ' . DB_COLLATION);
+                } else {
+                    // Ensure storage directory exists for SQLite
+                    $dbDir = dirname(DB_SQLITE_PATH);
+                    if (!is_dir($dbDir)) {
+                        mkdir($dbDir, 0755, true);
+                    }
 
-                // Initialize tables if needed (for fresh installs)
-                self::initializeTables(self::$instance);
+                    $dsn = 'sqlite:' . DB_SQLITE_PATH;
+                    self::$instance = new PDO($dsn, null, null, $options);
+                    self::$instance->exec('PRAGMA foreign_keys = ON');
+                }
+
+                self::initializeTables();
             } catch (PDOException $e) {
-                error_log("SQLite connection failed: " . $e->getMessage());
-                throw new PDOException("Database connection failed: " . $e->getMessage());
+                error_log(self::getDriver() . " connection failed: " . $e->getMessage());
+                throw new PDOException('Database connection failed: ' . $e->getMessage());
             }
         }
 
         return self::$instance;
     }
 
-    private static function initializeTables(PDO $pdo): void
+    public static function getDriver(): string
     {
-        $pdo->exec('CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            email TEXT UNIQUE,
-            password_hash TEXT,
-            first_name TEXT,
-            last_name TEXT,
-            timezone TEXT DEFAULT "UTC",
-            email_verified_at TEXT NULL,
-            last_login_at TEXT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )');
+        return in_array(DB_DRIVER, ['mysql', 'sqlite'], true) ? DB_DRIVER : 'sqlite';
+    }
 
-        $pdo->exec('CREATE TABLE IF NOT EXISTS charts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            chart_type TEXT DEFAULT "natal",
-            birth_datetime TEXT NOT NULL,
-            birth_timezone TEXT NOT NULL DEFAULT "UTC",
-            birth_latitude REAL NOT NULL,
-            birth_longitude REAL NOT NULL,
-            birth_location_name TEXT,
-            house_system TEXT DEFAULT "P",
-            chart_data TEXT,
-            planetary_positions TEXT,
-            house_positions TEXT,
-            aspects TEXT,
-            calculation_metadata TEXT,
-            is_public INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )');
+    public static function isMySql(): bool
+    {
+        return self::getDriver() === 'mysql';
+    }
 
-        $pdo->exec('CREATE TABLE IF NOT EXISTS birth_profiles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            birth_datetime TEXT NOT NULL,
-            birth_timezone TEXT NOT NULL DEFAULT "UTC",
-            birth_latitude REAL NOT NULL,
-            birth_longitude REAL NOT NULL,
-            birth_location_name TEXT,
-            notes TEXT,
-            is_private INTEGER DEFAULT 1,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )');
+    public static function isSqlite(): bool
+    {
+        return self::getDriver() === 'sqlite';
+    }
 
-        $pdo->exec('CREATE TABLE IF NOT EXISTS chart_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            chart_id INTEGER NOT NULL,
-            session_data TEXT,
-            view_settings TEXT,
-            aspect_settings TEXT,
-            display_preferences TEXT,
-            last_accessed TEXT DEFAULT CURRENT_TIMESTAMP,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (chart_id) REFERENCES charts(id) ON DELETE CASCADE,
-            UNIQUE(user_id, chart_id)
-        )');
-
-        $pdo->exec('CREATE TABLE IF NOT EXISTS migrations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            migration TEXT NOT NULL,
-            batch INTEGER NOT NULL
-        )');
+    private static function initializeTables(): void
+    {
+        // Run migrations for both drivers to keep schemas aligned
+        Migrator::run();
     }
 
     public static function query(string $sql, array $params = []): \PDOStatement

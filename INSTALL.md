@@ -61,6 +61,37 @@ You should see the beautiful Quantum Astrology dashboard with:
 - 📈 Statistics display
 - 🎯 Quick action buttons
 
+### 5. (Optional) Use an Existing MySQL/MariaDB Server
+
+If you already run MySQL on the host and want Quantum Astrology to live alongside other databases without bundling a new server:
+
+1. Create an empty schema on your MySQL server:
+   ```bash
+   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS quantum_astrology CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   ```
+
+2. Import the provided schema:
+   ```bash
+   mysql -u root -p quantum_astrology < database/sql/mysql-schema.sql
+   ```
+
+3. Configure your `.env` file to use MySQL:
+   ```env
+   DB_DRIVER=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_NAME=quantum_astrology
+   DB_USER=your_mysql_user
+   DB_PASS=your_mysql_password
+   ```
+
+4. Run the migration tool to apply any pending updates:
+   ```bash
+   php tools/migrate.php
+   ```
+
+This approach keeps the application isolated to its own schema while sharing the existing MySQL server instance.
+
 ## Advanced Installation
 
 ### Using Apache Web Server
