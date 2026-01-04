@@ -207,7 +207,13 @@ class ChartWheel
             }
 
             $longitude = $position['longitude'];
-            $angle = $longitude - 90; // Adjust for coordinate system
+            // Normalize longitude to 0-360 range
+            $normalizedLongitude = fmod($longitude, 360);
+            if ($normalizedLongitude < 0) {
+                $normalizedLongitude += 360;
+            }
+
+            $angle = $normalizedLongitude - 90; // Adjust for coordinate system
             $radians = deg2rad($angle);
 
             $x = $this->centerX + $planetRadius * cos($radians);
@@ -220,8 +226,9 @@ class ChartWheel
                 $x, $y, $this->colors['planets'], $symbol
             );
 
-            // Planet degree
-            $degreeText = sprintf('%.0f°', fmod($longitude, 30));
+            // Planet degree within sign (0-30)
+            $degreeInSign = fmod($normalizedLongitude, 30);
+            $degreeText = sprintf('%.0f°', $degreeInSign);
             $svg .= sprintf(
                 '<text x="%f" y="%f" fill="%s" font-size="8" text-anchor="middle" dominant-baseline="central">%s</text>',
                 $x, $y + 12, $this->colors['planets'], $degreeText
@@ -251,7 +258,7 @@ class ChartWheel
         ];
 
         foreach ($aspects as $aspect) {
-            if (!isset($planetaryPositions[$aspect['planet1']]) || 
+            if (!isset($planetaryPositions[$aspect['planet1']]) ||
                 !isset($planetaryPositions[$aspect['planet2']])) {
                 continue;
             }
@@ -259,8 +266,18 @@ class ChartWheel
             $pos1 = $planetaryPositions[$aspect['planet1']]['longitude'];
             $pos2 = $planetaryPositions[$aspect['planet2']]['longitude'];
 
-            $angle1 = deg2rad($pos1 - 90);
-            $angle2 = deg2rad($pos2 - 90);
+            // Normalize longitudes to 0-360 range
+            $normalizedPos1 = fmod($pos1, 360);
+            if ($normalizedPos1 < 0) {
+                $normalizedPos1 += 360;
+            }
+            $normalizedPos2 = fmod($pos2, 360);
+            if ($normalizedPos2 < 0) {
+                $normalizedPos2 += 360;
+            }
+
+            $angle1 = deg2rad($normalizedPos1 - 90);
+            $angle2 = deg2rad($normalizedPos2 - 90);
 
             $x1 = $this->centerX + $aspectRadius * cos($angle1);
             $y1 = $this->centerY + $aspectRadius * sin($angle1);
