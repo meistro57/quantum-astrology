@@ -236,7 +236,7 @@ class SwissEphemeris
                 break;
             default:
                 // For other planets, provide approximations
-                $longitude = fmod(($planetCode * 30) + ($centuries * 360), 360);
+                $longitude = $this->normalizeLongitude(($planetCode * 30) + ($centuries * 360));
         }
 
         return [
@@ -255,28 +255,28 @@ class SwissEphemeris
         // Simplified sun position calculation
         $L0 = 280.46646 + $centuries * (36000.76983 + $centuries * 0.0003032);
         $M = 357.52911 + $centuries * (35999.05029 - 0.0001537 * $centuries);
-        $C = sin(deg2rad($M)) * (1.914602 - $centuries * (0.004817 + 0.000014 * $centuries)) + 
-             sin(deg2rad(2 * $M)) * (0.019993 - 0.000101 * $centuries) + 
+        $C = sin(deg2rad($M)) * (1.914602 - $centuries * (0.004817 + 0.000014 * $centuries)) +
+             sin(deg2rad(2 * $M)) * (0.019993 - 0.000101 * $centuries) +
              sin(deg2rad(3 * $M)) * 0.000289;
-        
-        return fmod($L0 + $C, 360);
+
+        return $this->normalizeLongitude($L0 + $C);
     }
 
     private function calculateMoonLongitude(float $centuries): float
     {
         // Simplified moon position calculation
         $L = 218.3164477 + $centuries * (481267.88123421 - $centuries * (0.0015786 + $centuries / 538841.0 - $centuries / 65194000.0));
-        return fmod($L, 360);
+        return $this->normalizeLongitude($L);
     }
 
     private function getAnalyticalHouses(float $latitude, float $longitude): array
     {
         // Simple equal house system as fallback
         $houses = [];
-        $ascendant = fmod($longitude + 180, 360); // Simplified ascendant calculation
-        
+        $ascendant = $this->normalizeLongitude($longitude + 180); // Simplified ascendant calculation
+
         for ($i = 1; $i <= 12; $i++) {
-            $cusp = fmod($ascendant + ($i - 1) * 30, 360);
+            $cusp = $this->normalizeLongitude($ascendant + ($i - 1) * 30);
             $houses[$i] = [
                 'cusp' => $cusp,
                 'sign' => $this->getZodiacSign($cusp)
@@ -286,14 +286,30 @@ class SwissEphemeris
         return $houses;
     }
 
+    /**
+     * Normalize longitude to the range 0-360 degrees.
+     *
+     * @param float $longitude The longitude value to normalize.
+     * @return float Normalized longitude in range [0, 360).
+     */
+    private function normalizeLongitude(float $longitude): float
+    {
+        $normalized = fmod($longitude, 360);
+        if ($normalized < 0) {
+            $normalized += 360;
+        }
+        return $normalized;
+    }
+
     private function getZodiacSign(float $longitude): string
     {
         $signs = [
             'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
             'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
         ];
-        
-        $signIndex = (int) floor($longitude / 30);
+
+        $normalizedLongitude = $this->normalizeLongitude($longitude);
+        $signIndex = (int) floor($normalizedLongitude / 30);
         return $signs[$signIndex] ?? 'Unknown';
     }
 
