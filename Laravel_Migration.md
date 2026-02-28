@@ -214,6 +214,22 @@ Schema::create('charts', function (Blueprint $table) {
 
 });
 
+
+## **3.3.1 Legacy Endpoint Inventory Automation**
+
+To accelerate migration planning against the current codebase, run:
+
+```bash
+php tools/laravel-migration-audit.php
+```
+
+This generates:
+
+- `storage/reports/laravel-migration-inventory.json`
+- `storage/reports/laravel-migration-inventory.md`
+
+Use this inventory to convert procedural scripts into Laravel controllers and route definitions incrementally.
+
 ## **3.4 Planet Positions Migration**
 
 Schema::create('planet\_positions', function (Blueprint $table) {
