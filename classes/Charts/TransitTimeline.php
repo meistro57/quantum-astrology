@@ -11,10 +11,10 @@ class TransitTimeline
 {
     private Chart $chart;
     private SwissEphemeris $swissEph;
-    
+
     // Only track slow movers for meaningful timelines
     private array $activeTransits = ['mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-    
+
     private array $aspects = [
         'Conjunction' => ['angle' => 0, 'orb' => 2.5],
         'Square'      => ['angle' => 90, 'orb' => 2.0],
@@ -31,7 +31,7 @@ class TransitTimeline
     public function calculateSeries(DateTime $start, int $days): array
     {
         $natalPositions = $this->chart->getPlanetaryPositions();
-        
+
         // Normalize natal array to keyed format if needed
         $natalKeyed = [];
         foreach ($natalPositions as $k => $v) {
@@ -46,7 +46,7 @@ class TransitTimeline
 
         for ($i = 0; $i <= $days; $i++) {
             $dates[] = $current->format('M j');
-            
+
             // Calculate noon positions for consistency
             $transits = $this->swissEph->calculatePlanetaryPositions(
                 $current->setTime(12, 0),
@@ -56,7 +56,7 @@ class TransitTimeline
 
             foreach ($this->activeTransits as $tPlanet) {
                 if (!isset($transits[$tPlanet])) continue;
-                
+
                 foreach ($natalKeyed as $nPlanet => $nPos) {
                     if (in_array($nPlanet, ['mean_node', 'true_node', 'lilith'])) continue;
 
@@ -66,9 +66,9 @@ class TransitTimeline
                     foreach ($this->aspects as $aspName => $asp) {
                         $angle = abs($tLon - $nLon);
                         if ($angle > 180) $angle = 360 - $angle;
-                        
+
                         $deviation = abs($angle - $asp['angle']);
-                        
+
                         // We use 1.5x orb for visualization approach
                         if ($deviation <= ($asp['orb'] * 1.5)) {
                             $key = "t{$tPlanet}-{$aspName}-n{$nPlanet}";

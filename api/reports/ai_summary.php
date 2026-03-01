@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../classes/autoload.php';
+require_once __DIR__ . '/../../config.php';
 
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Core\Auth;

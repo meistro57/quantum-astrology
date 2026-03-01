@@ -22,9 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'last_name' => trim($_POST['last_name'] ?? ''),
         'timezone' => $_POST['timezone'] ?? 'UTC'
     ];
-    
+
     $errors = Auth::getValidationErrors($formData);
-    
+
     if (empty($errors)) {
         $result = Auth::register($formData);
 

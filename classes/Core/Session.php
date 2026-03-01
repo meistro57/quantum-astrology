@@ -29,6 +29,19 @@ class Session
         }
 
         $_SESSION['LAST_ACTIVITY'] = time();
+
+        // Refresh cookie expiry for long-lived beta sessions.
+        if (session_id() !== '' && ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), session_id(), [
+                'expires' => time() + (defined('SESSION_COOKIE_LIFETIME') ? SESSION_COOKIE_LIFETIME : 2592000),
+                'path' => $params['path'] ?: '/',
+                'domain' => $params['domain'] ?? '',
+                'secure' => (bool)($params['secure'] ?? false),
+                'httponly' => (bool)($params['httponly'] ?? true),
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
+        }
     }
 
     /**

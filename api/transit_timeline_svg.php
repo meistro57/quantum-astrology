@@ -1,22 +1,22 @@
 <?php
 declare(strict_types=1);
 
+use QuantumAstrology\Charts\Chart;
+use QuantumAstrology\Charts\TransitTimeline;
+
 // Error Handling Wrapper
 ini_set('display_errors', '0');
 try {
     require __DIR__ . '/../config.php';
-    
+
     // Autoload fallback
     if (!class_exists('QuantumAstrology\Charts\Chart')) {
         $autoload = __DIR__ . '/../classes/autoload.php';
         if (file_exists($autoload)) require $autoload;
     }
 
-    use QuantumAstrology\Charts\Chart;
-    use QuantumAstrology\Charts\TransitTimeline;
-
     header('Content-Type: image/svg+xml');
-    
+
     $id = (int)($_GET['id'] ?? 0);
     $days = (int)($_GET['days'] ?? 30);
     $width = (int)($_GET['width'] ?? 1000);
@@ -26,10 +26,10 @@ try {
 
     $chart = Chart::findById($id);
     if (!$chart) throw new Exception("Chart not found");
-    
+
     $timeline = new TransitTimeline($chart);
     $data = $timeline->calculateSeries(new DateTime(), $days);
-    
+
     // -- Rendering --
     $padding = ['top' => 30, 'right' => 100, 'bottom' => 30, 'left' => 40];
     $graphW = $width - $padding['left'] - $padding['right'];
@@ -38,7 +38,7 @@ try {
 
     // Y-Scale: 0 dev (Exact) -> Bottom (High Intensity)
     $yScale = function($deg) use ($graphH, $orbMax) {
-        $norm = 1 - ($deg / $orbMax); 
+        $norm = 1 - ($deg / $orbMax);
         return $graphH - ($norm * $graphH);
     };
     $xScale = $graphW / max(1, count($data['dates']) - 1);

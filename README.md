@@ -30,6 +30,9 @@ Quantum Astrology provides professional-grade astrological calculations and char
 - **Report Scaffolding** — integrated PDF generation engine via mPDF
 - **AI Summary Reports** — generate pretty in-app AI summary previews and download Markdown (`.md`) summary files
 - **Profile Enhancements** — saved birth data, city/state coordinate auto-fill, and in-profile password change
+- **System Admin Panel (`/admin`)** — admin-only operational panel with system metrics, log tailing, cache maintenance actions, and user administration tools
+- **User Administration** — manually create users, reset passwords, and grant/revoke admin status from the admin panel
+- **Persistent Login Sessions** — beta-friendly long-lived login cookies (configurable via `.env`) so users stay signed in across browser restarts
 
 ---
 
@@ -89,8 +92,81 @@ bash startup.sh
 bash shutdown.sh
 ```
 
+### Production HTTPS
+
+Production Docker mode now runs behind an HTTPS reverse proxy (`nginx`) by default.
+
+- `startup.sh` checks `docker/certs/${TLS_CERT_FILE}` and `docker/certs/${TLS_KEY_FILE}`.
+- `TLS_MODE=self-signed` auto-generates a certificate if files are missing.
+- `TLS_MODE=real` requires your existing CA-issued cert/key files.
+- Port `80` redirects to `443`.
+
+Recommended `.env` production values:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.example
+SERVER_NAME=your-domain.example
+HTTP_PORT=80
+HTTPS_PORT=443
+TLS_CERT_FILE=server.crt
+TLS_KEY_FILE=server.key
+TLS_MODE=real
+```
+
+Option A (Self-signed, quick start):
+
+```env
+TLS_MODE=self-signed
+SERVER_NAME=localhost
+```
+
+Option B (Trusted public cert):
+
+```env
+TLS_MODE=real
+SERVER_NAME=your-domain.example
+TLS_CERT_FILE=server.crt
+TLS_KEY_FILE=server.key
+```
+
+Then place cert files in `docker/certs/`:
+
+```bash
+docker/certs/server.crt
+docker/certs/server.key
+```
+
+### Pre-Push Documentation Guard
+
+Enable the tracked pre-push hook so code changes require corresponding doc updates before push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook blocks pushes when source files change without updates to docs such as `README.md`, `INSTALL.md`,
+`CHANGELOG.md`, `ROADMAP.md`, `TODO.md`, `SYSTEM_STATUS.md`, `AGENTS.md`, or files under `docs/`.
+
+If you need a one-off bypass:
+
+```bash
+SKIP_DOCS_CHECK=1 git push
+```
+
 Production note: `docker-compose.prod.yml` is included and uses default MySQL credentials for first boot.
 Set at least `DB_PASS` and `MYSQL_ROOT_PASSWORD` in your `.env` before exposing the stack publicly.
+
+### Admin Panel Access
+
+`/admin` is restricted to admin users. A user is treated as admin when any of the following is true:
+
+- User ID is `1`
+- `users.is_admin = 1`
+- User email is listed in `ADMIN_EMAILS` (comma-separated) or `ADMIN_EMAIL`
+
+Once an admin is signed in, user administration (create/reset/grant/revoke) is available directly inside `/admin`.
 
 ### Environment Variables
 

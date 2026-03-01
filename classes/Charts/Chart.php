@@ -5,6 +5,7 @@ namespace QuantumAstrology\Charts;
 
 use QuantumAstrology\Core\DB;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Core\SwissEphemeris as CoreSwissEphemeris;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -35,7 +36,7 @@ class Chart
     {
         try {
             $pdo = DB::conn();
-            
+
             $sql = "INSERT INTO charts (
                 user_id, name, is_public, birth_datetime, birth_timezone, 
                 birth_latitude, birth_longitude, house_system,
@@ -50,7 +51,7 @@ class Chart
 
             // Prepare defaults
             $now = date('Y-m-d H:i:s');
-            
+
             $params = [
                 ':user_id' => $chartData['user_id'] ?? null,
                 ':name' => $chartData['name'],
@@ -60,14 +61,14 @@ class Chart
                 ':birth_latitude' => $chartData['birth_latitude'],
                 ':birth_longitude' => $chartData['birth_longitude'],
                 ':house_system' => $chartData['house_system'] ?? 'P',
-                ':planetary_positions' => is_array($chartData['planetary_positions']) 
-                    ? json_encode($chartData['planetary_positions'], JSON_UNESCAPED_SLASHES) 
+                ':planetary_positions' => is_array($chartData['planetary_positions'])
+                    ? json_encode($chartData['planetary_positions'], JSON_UNESCAPED_SLASHES)
                     : $chartData['planetary_positions'],
-                ':house_positions' => is_array($chartData['house_positions']) 
-                    ? json_encode($chartData['house_positions'], JSON_UNESCAPED_SLASHES) 
+                ':house_positions' => is_array($chartData['house_positions'])
+                    ? json_encode($chartData['house_positions'], JSON_UNESCAPED_SLASHES)
                     : $chartData['house_positions'],
-                ':aspects' => is_array($chartData['aspects']) 
-                    ? json_encode($chartData['aspects'], JSON_UNESCAPED_SLASHES) 
+                ':aspects' => is_array($chartData['aspects'])
+                    ? json_encode($chartData['aspects'], JSON_UNESCAPED_SLASHES)
                     : $chartData['aspects'],
                 ':created_at' => $now,
                 ':updated_at' => $now
@@ -75,10 +76,10 @@ class Chart
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
-            
+
             $chartId = $pdo->lastInsertId();
             return self::findById((int) $chartId);
-            
+
         } catch (\Throwable $e) {
             Logger::error("Chart creation failed", ['error' => $e->getMessage()]);
             return null;
@@ -91,11 +92,11 @@ class Chart
         $stmt = $pdo->prepare("SELECT * FROM charts WHERE id = :id LIMIT 1");
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($row) {
             return self::fromArray($row);
         }
-        
+
         return null;
     }
 
@@ -140,7 +141,7 @@ class Chart
 
         $sql = "SELECT * FROM charts WHERE " . implode(' AND ', $where) . " ORDER BY {$orderBy} LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($sql);
-        
+
         // PDO bindValue for integers is safer for LIMIT/OFFSET
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value, $key === ':user_id' ? PDO::PARAM_INT : PDO::PARAM_STR);
@@ -148,7 +149,7 @@ class Chart
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
-        
+
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map([self::class, 'fromArray'], $results);
@@ -197,10 +198,34 @@ class Chart
             $lon = (float)$birthData['birth_longitude'];
             $hsys = $birthData['house_system'] ?? 'P';
 
-            // 2. Call Swiss Ephemeris (Static Methods)
-            // Note: This matches the signature in your SwissEphemeris.php file
-            $planetaryPositions = SwissEphemeris::positions($utcDate, $lat, $lon);
-            $housePositions = SwissEphemeris::houses($utcDate, $lat, $lon, $hsys);
+            // 2. Call Swiss Ephemeris; fallback to analytical engine when swetest is unavailable.
+            try {
+                $planetaryPositions = SwissEphemeris::positions($utcDate, $lat, $lon);
+                $housePositions = SwissEphemeris::houses($utcDate, $lat, $lon, $hsys);
+            } catch (\Throwable $ephemerisError) {
+                $fallback = new CoreSwissEphemeris();
+                $fallbackDate = new DateTime($utcDate->format('Y-m-d H:i:s'));
+                $fallbackPlanets = $fallback->calculatePlanetaryPositions($fallbackDate, $lat, $lon);
+                $fallbackHouses = $fallback->calculateHouses($fallbackDate, $lat, $lon, $hsys);
+
+                $planetaryPositions = [];
+                foreach ($fallbackPlanets as $planetName => $position) {
+                    if (!is_array($position) || !isset($position['longitude'])) {
+                        continue;
+                    }
+                    $planetaryPositions[] = [
+                        'planet' => strtolower((string) $planetName),
+                        'lon' => (float) $position['longitude'],
+                        'lat' => isset($position['latitude']) ? (float) $position['latitude'] : 0.0,
+                        'dist' => isset($position['distance']) ? (float) $position['distance'] : 0.0,
+                    ];
+                }
+                $housePositions = $fallbackHouses;
+
+                Logger::warning('Falling back to analytical ephemeris', [
+                    'error' => $ephemerisError->getMessage(),
+                ]);
+            }
 
             // 3. Calculate Aspects
             $aspects = self::calculateAspects($planetaryPositions);
@@ -248,7 +273,7 @@ class Chart
         ];
 
         $count = count($planetaryPositions);
-        
+
         for ($i = 0; $i < $count; $i++) {
             for ($j = $i + 1; $j < $count; $j++) {
                 $p1 = $planetaryPositions[$i];
@@ -275,7 +300,7 @@ class Chart
                         ];
                         // Don't break here if you want to support multiple overlapping aspect definitions (rare),
                         // but usually one aspect per pair is enough.
-                        break; 
+                        break;
                     }
                 }
             }
@@ -304,7 +329,7 @@ class Chart
         $chart->id = (int) $data['id'];
         $chart->userId = isset($data['user_id']) ? (int) $data['user_id'] : null;
         $chart->name = $data['name'];
-        
+
         if (!empty($data['birth_datetime'])) {
             try {
                 $chart->birthDatetime = new DateTime($data['birth_datetime']);
@@ -312,23 +337,23 @@ class Chart
                 // Handle invalid date
             }
         }
-        
+
         $chart->chartType = $data['chart_type'] ?? 'natal';
         $chart->birthTimezone = $data['birth_timezone'] ?? 'UTC';
         $chart->birthLatitude = (float) ($data['birth_latitude'] ?? 0);
         $chart->birthLongitude = (float) ($data['birth_longitude'] ?? 0);
         $chart->birthLocationName = $data['birth_location_name'] ?? null;
         $chart->houseSystem = $data['house_system'] ?? 'P';
-        
+
         // Decode JSON columns
         $chart->planetaryPositions = !empty($data['planetary_positions']) ? json_decode($data['planetary_positions'], true) : [];
         $chart->housePositions = !empty($data['house_positions']) ? json_decode($data['house_positions'], true) : [];
         $chart->aspects = !empty($data['aspects']) ? json_decode($data['aspects'], true) : [];
-        
+
         $chart->isPublic = (bool) ($data['is_public'] ?? false);
         $chart->createdAt = $data['created_at'] ?? null;
         $chart->updatedAt = $data['updated_at'] ?? null;
-        
+
         return $chart;
     }
 
@@ -338,6 +363,7 @@ class Chart
     public function getName(): ?string { return $this->name; }
     public function getChartType(): string { return $this->chartType ?? 'natal'; }
     public function getBirthDatetime(): ?DateTime { return $this->birthDatetime; }
+    public function getBirthTimezone(): ?string { return $this->birthTimezone; }
     public function getBirthLocationName(): ?string { return $this->birthLocationName; }
     public function getBirthLatitude(): float { return $this->birthLatitude ?? 0.0; }
     public function getBirthLongitude(): float { return $this->birthLongitude ?? 0.0; }
@@ -348,7 +374,7 @@ class Chart
     public function isPublic(): bool { return $this->isPublic; }
     public function getCreatedAt(): ?string { return $this->createdAt; }
     public function getUpdatedAt(): ?string { return $this->updatedAt; }
-    
+
     // Helper to get positions as a keyed array if needed by other services
     public function getPlanetaryPositionsKeyed(): array {
         $keyed = [];

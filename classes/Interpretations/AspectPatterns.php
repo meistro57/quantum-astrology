@@ -10,13 +10,13 @@ class AspectPatterns
     private array $planetaryPositions;
     private array $aspects;
     private array $patterns = [];
-    
+
     public function __construct(array $planetaryPositions, array $aspects)
     {
         $this->planetaryPositions = $planetaryPositions;
         $this->aspects = $aspects;
     }
-    
+
     /**
      * Detect all major aspect patterns in the chart
      */
@@ -24,7 +24,7 @@ class AspectPatterns
     {
         try {
             $this->patterns = [];
-            
+
             // Major aspect patterns
             $this->detectGrandTrines();
             $this->detectTSquares();
@@ -34,7 +34,7 @@ class AspectPatterns
             $this->detectMysticRectangles();
             $this->detectCradles();
             $this->detectBoomerangs();
-            
+
             // Sort patterns by significance
             usort($this->patterns, function($a, $b) {
                 $significance = ['major' => 3, 'moderate' => 2, 'minor' => 1];
@@ -42,14 +42,14 @@ class AspectPatterns
                 $bSig = $significance[$b['significance']] ?? 0;
                 return $bSig <=> $aSig;
             });
-            
+
             return [
                 'patterns' => $this->patterns,
                 'pattern_count' => count($this->patterns),
                 'major_patterns' => array_filter($this->patterns, fn($p) => $p['significance'] === 'major'),
                 'interpretation_summary' => $this->generatePatternSummary()
             ];
-            
+
         } catch (\Exception $e) {
             Logger::error("Aspect pattern detection failed", [
                 'error' => $e->getMessage(),
@@ -59,26 +59,26 @@ class AspectPatterns
             return ['patterns' => [], 'pattern_count' => 0];
         }
     }
-    
+
     /**
      * Detect Grand Trines (3 planets in 120° aspects forming a triangle)
      */
     private function detectGrandTrines(): void
     {
         $trines = $this->getAspectsByType('trine');
-        
+
         foreach ($trines as $i => $trine1) {
             foreach ($trines as $j => $trine2) {
                 if ($i >= $j) continue;
-                
+
                 foreach ($trines as $k => $trine3) {
                     if ($k <= $j) continue;
-                    
+
                     // Check if three trines form a closed triangle
                     $planets = $this->getTrianglePlanets($trine1, $trine2, $trine3);
                     if ($planets && count($planets) === 3) {
                         $element = $this->getDominantElement($planets);
-                        
+
                         $this->patterns[] = [
                             'type' => 'grand_trine',
                             'name' => 'Grand Trine',
@@ -95,7 +95,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect T-Squares (three planets forming two squares and one opposition)
      */
@@ -103,18 +103,18 @@ class AspectPatterns
     {
         $squares = $this->getAspectsByType('square');
         $oppositions = $this->getAspectsByType('opposition');
-        
+
         foreach ($oppositions as $opposition) {
             foreach ($squares as $square1) {
                 foreach ($squares as $square2) {
                     if ($square1 === $square2) continue;
-                    
+
                     // Check if squares connect to the opposition to form a T
                     $tSquarePlanets = $this->getTSquarePlanets($opposition, $square1, $square2);
                     if ($tSquarePlanets && count($tSquarePlanets) === 3) {
                         $apexPlanet = $this->findTSquareApex($tSquarePlanets, $opposition);
                         $mode = $this->getDominantMode($tSquarePlanets);
-                        
+
                         $this->patterns[] = [
                             'type' => 't_square',
                             'name' => 'T-Square',
@@ -132,7 +132,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Yods (two quincunx aspects and one sextile forming a finger pattern)
      */
@@ -140,16 +140,16 @@ class AspectPatterns
     {
         $quincunxes = $this->getAspectsByType('quincunx');
         $sextiles = $this->getAspectsByType('sextile');
-        
+
         foreach ($sextiles as $sextile) {
             foreach ($quincunxes as $quincunx1) {
                 foreach ($quincunxes as $quincunx2) {
                     if ($quincunx1 === $quincunx2) continue;
-                    
+
                     $yodPlanets = $this->getYodPlanets($sextile, $quincunx1, $quincunx2);
                     if ($yodPlanets && count($yodPlanets) === 3) {
                         $apexPlanet = $this->findYodApex($yodPlanets, $quincunx1, $quincunx2);
-                        
+
                         $this->patterns[] = [
                             'type' => 'yod',
                             'name' => 'Yod (Finger of God)',
@@ -166,7 +166,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Grand Crosses (four planets forming two oppositions and four squares)
      */
@@ -174,17 +174,17 @@ class AspectPatterns
     {
         $oppositions = $this->getAspectsByType('opposition');
         $squares = $this->getAspectsByType('square');
-        
+
         foreach ($oppositions as $i => $opp1) {
             foreach ($oppositions as $j => $opp2) {
                 if ($i >= $j) continue;
-                
+
                 // Check if two oppositions form a cross with squares connecting them
                 $crossPlanets = $this->getGrandCrossPlanets($opp1, $opp2, $squares);
                 if ($crossPlanets && count($crossPlanets) === 4) {
                     $mode = $this->getDominantMode($crossPlanets);
                     $squareAspects = $this->getConnectingSquares($crossPlanets, $squares);
-                    
+
                     $this->patterns[] = [
                         'type' => 'grand_cross',
                         'name' => 'Grand Cross',
@@ -200,7 +200,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Kites (Grand Trine with a fourth planet opposing one point)
      */
@@ -210,13 +210,13 @@ class AspectPatterns
         $grandTrines = array_filter($this->patterns, fn($p) => $p['type'] === 'grand_trine');
         $oppositions = $this->getAspectsByType('opposition');
         $sextiles = $this->getAspectsByType('sextile');
-        
+
         foreach ($grandTrines as $grandTrine) {
             foreach ($oppositions as $opposition) {
                 $kitePlanets = $this->getKitePlanets($grandTrine, $opposition, $sextiles);
                 if ($kitePlanets && count($kitePlanets) === 4) {
                     $focusPlanet = $this->findKiteFocus($kitePlanets, $opposition);
-                    
+
                     $this->patterns[] = [
                         'type' => 'kite',
                         'name' => 'Kite',
@@ -233,7 +233,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Mystic Rectangles (two oppositions with two trines and two sextiles)
      */
@@ -242,15 +242,15 @@ class AspectPatterns
         $oppositions = $this->getAspectsByType('opposition');
         $trines = $this->getAspectsByType('trine');
         $sextiles = $this->getAspectsByType('sextile');
-        
+
         foreach ($oppositions as $i => $opp1) {
             foreach ($oppositions as $j => $opp2) {
                 if ($i >= $j) continue;
-                
+
                 $rectanglePlanets = $this->getMysticRectanglePlanets($opp1, $opp2, $trines, $sextiles);
                 if ($rectanglePlanets && count($rectanglePlanets) === 4) {
                     $connectingAspects = $this->getRectangleConnectingAspects($rectanglePlanets, $trines, $sextiles);
-                    
+
                     $this->patterns[] = [
                         'type' => 'mystic_rectangle',
                         'name' => 'Mystic Rectangle',
@@ -265,7 +265,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Cradles (three planets in sextiles with a fourth in trines)
      */
@@ -273,12 +273,12 @@ class AspectPatterns
     {
         $sextiles = $this->getAspectsByType('sextile');
         $trines = $this->getAspectsByType('trine');
-        
+
         foreach ($sextiles as $sextile) {
             foreach ($trines as $trine1) {
                 foreach ($trines as $trine2) {
                     if ($trine1 === $trine2) continue;
-                    
+
                     $cradlePlanets = $this->getCradlePlanets($sextile, $trine1, $trine2);
                     if ($cradlePlanets && count($cradlePlanets) === 4) {
                         $this->patterns[] = [
@@ -296,7 +296,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Detect Boomerangs (Yod with a fourth planet opposing the apex)
      */
@@ -305,13 +305,13 @@ class AspectPatterns
         // Find existing Yods
         $yods = array_filter($this->patterns, fn($p) => $p['type'] === 'yod');
         $oppositions = $this->getAspectsByType('opposition');
-        
+
         foreach ($yods as $yod) {
             foreach ($oppositions as $opposition) {
                 $boomerangPlanets = $this->getBoomerangPlanets($yod, $opposition);
                 if ($boomerangPlanets && count($boomerangPlanets) === 4) {
                     $releasePlanet = $this->findBoomerangRelease($yod, $opposition);
-                    
+
                     $this->patterns[] = [
                         'type' => 'boomerang',
                         'name' => 'Boomerang',
@@ -329,7 +329,7 @@ class AspectPatterns
             }
         }
     }
-    
+
     /**
      * Get aspects of a specific type
      */
@@ -337,7 +337,7 @@ class AspectPatterns
     {
         return array_filter($this->aspects, fn($aspect) => $aspect['aspect'] === $aspectType);
     }
-    
+
     /**
      * Check if three trines form a closed triangle
      */
@@ -346,9 +346,9 @@ class AspectPatterns
         $planets1 = [$trine1['planet1'], $trine1['planet2']];
         $planets2 = [$trine2['planet1'], $trine2['planet2']];
         $planets3 = [$trine3['planet1'], $trine3['planet2']];
-        
+
         $allPlanets = array_unique(array_merge($planets1, $planets2, $planets3));
-        
+
         // Must have exactly 3 planets, each connected to the other two
         if (count($allPlanets) === 3) {
             foreach ($allPlanets as $planet) {
@@ -356,15 +356,15 @@ class AspectPatterns
                 if (in_array($planet, $planets1)) $connections++;
                 if (in_array($planet, $planets2)) $connections++;
                 if (in_array($planet, $planets3)) $connections++;
-                
+
                 if ($connections !== 2) return null; // Each planet must be in exactly 2 trines
             }
             return $allPlanets;
         }
-        
+
         return null;
     }
-    
+
     /**
      * Get T-Square planets configuration
      */
@@ -373,39 +373,39 @@ class AspectPatterns
         $oppPlanets = [$opposition['planet1'], $opposition['planet2']];
         $sq1Planets = [$square1['planet1'], $square1['planet2']];
         $sq2Planets = [$square2['planet1'], $square2['planet2']];
-        
+
         // Find the apex planet (appears in both squares but not in opposition)
         foreach ($sq1Planets as $planet) {
             if (in_array($planet, $sq2Planets) && !in_array($planet, $oppPlanets)) {
                 $apex = $planet;
                 $basePlanets = $oppPlanets;
-                
+
                 // Verify the configuration
                 if ($this->verifyTSquareConfiguration($apex, $basePlanets)) {
                     return array_merge([$apex], $basePlanets);
                 }
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Find T-Square apex planet
      */
     private function findTSquareApex(array $planets, array $opposition): string
     {
         $oppPlanets = [$opposition['planet1'], $opposition['planet2']];
-        
+
         foreach ($planets as $planet) {
             if (!in_array($planet, $oppPlanets)) {
                 return $planet;
             }
         }
-        
+
         return $planets[0]; // Fallback
     }
-    
+
     /**
      * Verify T-Square configuration
      */
@@ -419,7 +419,7 @@ class AspectPatterns
         }
         return true;
     }
-    
+
     /**
      * Get Yod planets configuration
      */
@@ -428,17 +428,17 @@ class AspectPatterns
         $sextilePlanets = [$sextile['planet1'], $sextile['planet2']];
         $q1Planets = [$quincunx1['planet1'], $quincunx1['planet2']];
         $q2Planets = [$quincunx2['planet1'], $quincunx2['planet2']];
-        
+
         // Find apex planet (appears in both quincunxes but not in sextile)
         foreach ($q1Planets as $planet) {
             if (in_array($planet, $q2Planets) && !in_array($planet, $sextilePlanets)) {
                 return array_merge([$planet], $sextilePlanets);
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Find Yod apex planet
      */
@@ -446,16 +446,16 @@ class AspectPatterns
     {
         $q1Planets = [$quincunx1['planet1'], $quincunx1['planet2']];
         $q2Planets = [$quincunx2['planet1'], $quincunx2['planet2']];
-        
+
         foreach ($planets as $planet) {
             if (in_array($planet, $q1Planets) && in_array($planet, $q2Planets)) {
                 return $planet;
             }
         }
-        
+
         return $planets[0]; // Fallback
     }
-    
+
     /**
      * Calculate angle between two planets
      */
@@ -464,25 +464,25 @@ class AspectPatterns
         if (!isset($this->planetaryPositions[$planet1]) || !isset($this->planetaryPositions[$planet2])) {
             return 0;
         }
-        
+
         $lon1 = $this->planetaryPositions[$planet1]['longitude'];
         $lon2 = $this->planetaryPositions[$planet2]['longitude'];
-        
+
         $angle = abs($lon1 - $lon2);
         if ($angle > 180) {
             $angle = 360 - $angle;
         }
-        
+
         return $angle;
     }
-    
+
     /**
      * Get dominant element from planets
      */
     private function getDominantElement(array $planets): string
     {
         $elements = ['fire' => 0, 'earth' => 0, 'air' => 0, 'water' => 0];
-        
+
         foreach ($planets as $planet) {
             if (isset($this->planetaryPositions[$planet])) {
                 $longitude = $this->planetaryPositions[$planet]['longitude'];
@@ -491,18 +491,18 @@ class AspectPatterns
                 $elements[$element]++;
             }
         }
-        
+
         arsort($elements);
         return array_keys($elements)[0] ?? 'balanced';
     }
-    
+
     /**
      * Get dominant mode from planets
      */
     private function getDominantMode(array $planets): string
     {
         $modes = ['cardinal' => 0, 'fixed' => 0, 'mutable' => 0];
-        
+
         foreach ($planets as $planet) {
             if (isset($this->planetaryPositions[$planet])) {
                 $longitude = $this->planetaryPositions[$planet]['longitude'];
@@ -511,11 +511,11 @@ class AspectPatterns
                 $modes[$mode]++;
             }
         }
-        
+
         arsort($modes);
         return array_keys($modes)[0] ?? 'balanced';
     }
-    
+
     /**
      * Get zodiac sign from longitude
      */
@@ -523,11 +523,11 @@ class AspectPatterns
     {
         $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
                  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-        
+
         $signIndex = (int) floor($longitude / 30);
         return $signs[$signIndex] ?? 'Aries';
     }
-    
+
     /**
      * Get element of zodiac sign
      */
@@ -539,10 +539,10 @@ class AspectPatterns
             'Gemini' => 'air', 'Libra' => 'air', 'Aquarius' => 'air',
             'Cancer' => 'water', 'Scorpio' => 'water', 'Pisces' => 'water'
         ];
-        
+
         return $elements[$sign] ?? 'fire';
     }
-    
+
     /**
      * Get mode of zodiac sign
      */
@@ -553,21 +553,21 @@ class AspectPatterns
             'Taurus' => 'fixed', 'Leo' => 'fixed', 'Scorpio' => 'fixed', 'Aquarius' => 'fixed',
             'Gemini' => 'mutable', 'Virgo' => 'mutable', 'Sagittarius' => 'mutable', 'Pisces' => 'mutable'
         ];
-        
+
         return $modes[$sign] ?? 'cardinal';
     }
-    
+
     /**
      * Calculate average orb from aspects
      */
     private function calculateAverageOrb(array $aspects): float
     {
         if (empty($aspects)) return 0;
-        
+
         $totalOrb = array_sum(array_column($aspects, 'orb'));
         return $totalOrb / count($aspects);
     }
-    
+
     /**
      * Generate pattern summary for interpretation
      */
@@ -579,13 +579,13 @@ class AspectPatterns
             'dominant_themes' => [],
             'complexity_level' => 'moderate'
         ];
-        
+
         // Count pattern types
         foreach ($this->patterns as $pattern) {
-            $summary['pattern_types'][$pattern['type']] = 
+            $summary['pattern_types'][$pattern['type']] =
                 ($summary['pattern_types'][$pattern['type']] ?? 0) + 1;
         }
-        
+
         // Determine complexity
         $majorPatterns = array_filter($this->patterns, fn($p) => $p['significance'] === 'major');
         if (count($majorPatterns) >= 3) {
@@ -593,37 +593,37 @@ class AspectPatterns
         } elseif (count($majorPatterns) === 0) {
             $summary['complexity_level'] = 'low';
         }
-        
+
         // Extract dominant themes
         $allKeywords = [];
         foreach ($this->patterns as $pattern) {
             $allKeywords = array_merge($allKeywords, $pattern['keywords'] ?? []);
         }
-        
+
         $keywordCounts = array_count_values($allKeywords);
         arsort($keywordCounts);
         $summary['dominant_themes'] = array_slice(array_keys($keywordCounts), 0, 5);
-        
+
         return $summary;
     }
-    
+
     // Interpretation methods for each pattern type
-    
+
     private function interpretGrandTrine(string $element, array $planets): string
     {
         $elementMeanings = [
             'fire' => 'natural confidence and creative inspiration flow easily',
             'earth' => 'practical abilities and material success come naturally',
-            'air' => 'intellectual gifts and communication skills are pronounced', 
+            'air' => 'intellectual gifts and communication skills are pronounced',
             'water' => 'emotional sensitivity and intuitive abilities are strong'
         ];
-        
+
         $planetList = implode(', ', array_map('ucfirst', $planets));
         $meaning = $elementMeanings[$element] ?? 'harmonious energy flows naturally';
-        
+
         return "A Grand Trine in {$element} involving {$planetList} indicates that {$meaning}. This configuration suggests natural talent and ease in the areas represented by these planets.";
     }
-    
+
     private function interpretTSquare(string $apex, string $mode, array $planets): string
     {
         $modeMeanings = [
@@ -631,20 +631,20 @@ class AspectPatterns
             'fixed' => 'persistence and determination',
             'mutable' => 'adaptation and flexibility'
         ];
-        
+
         $planetList = implode(', ', array_map('ucfirst', $planets));
         $meaning = $modeMeanings[$mode] ?? 'focused energy';
-        
+
         return "A T-Square with {$apex} at the apex creates dynamic tension requiring {$meaning}. The planets {$planetList} generate creative pressure that, when harnessed, can lead to significant achievement.";
     }
-    
+
     private function interpretYod(string $apex, array $planets): string
     {
         $planetList = implode(', ', array_map('ucfirst', $planets));
-        
+
         return "A Yod pattern with {$apex} at the apex suggests a special destiny or karmic purpose. The tension between {$planetList} requires constant adjustment and points to a unique mission in life.";
     }
-    
+
     private function interpretGrandCross(string $mode, array $planets): string
     {
         $modeMeanings = [
@@ -652,37 +652,37 @@ class AspectPatterns
             'fixed' => 'resistance to change and stubbornness',
             'mutable' => 'scattered energy and confusion'
         ];
-        
+
         $planetList = implode(', ', array_map('ucfirst', $planets));
         $meaning = $modeMeanings[$mode] ?? 'intense challenge';
-        
+
         return "A Grand Cross involving {$planetList} creates {$meaning}. This powerful configuration demands mastery and integration of conflicting energies, potentially leading to great achievement.";
     }
-    
+
     private function interpretKite(string $focus, string $element): string
     {
         return "A Kite pattern with {$focus} as the focus planet channels the harmonious {$element} energy of the Grand Trine into directed achievement and success.";
     }
-    
+
     private function interpretMysticRectangle(array $planets): string
     {
         $planetList = implode(', ', array_map('ucfirst', $planets));
-        
+
         return "A Mystic Rectangle involving {$planetList} creates a balanced configuration that integrates opposing forces harmoniously, suggesting practical mysticism and steady progress.";
     }
-    
+
     private function interpretCradle(array $planets): string
     {
         $planetList = implode(', ', array_map('ucfirst', $planets));
-        
+
         return "A Cradle pattern with {$planetList} provides gentle support and protection, allowing for steady growth and development in a nurturing environment.";
     }
-    
+
     private function interpretBoomerang(string $yodApex, string $release): string
     {
         return "A Boomerang pattern transforms the Yod's tension at {$yodApex} by providing {$release} as a release point, offering a pathway for resolving karmic challenges.";
     }
-    
+
     // Placeholder methods for complex pattern detection (to be implemented)
     private function getGrandCrossPlanets(array $opp1, array $opp2, array $squares): ?array { return null; }
     private function getConnectingSquares(array $planets, array $squares): array { return []; }

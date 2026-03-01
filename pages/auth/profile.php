@@ -64,27 +64,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newPasswordRaw = (string) ($_POST['new_password'] ?? '');
     $confirmPasswordRaw = (string) ($_POST['confirm_password'] ?? '');
     $wantsPasswordChange = $currentPasswordRaw !== '' || $newPasswordRaw !== '' || $confirmPasswordRaw !== '';
-    
+
     // Basic validation
     if (empty($updateData['username'])) {
         $errors[] = 'Username is required';
     }
-    
+
     if (empty($updateData['email']) || !filter_var($updateData['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Valid email is required';
     }
-    
+
     // Check for existing username/email (excluding current user)
     $existingUserByUsername = \QuantumAstrology\Core\User::findByUsername($updateData['username']);
     if ($existingUserByUsername && $existingUserByUsername->getId() !== $user->getId()) {
         $errors[] = 'Username is already taken';
     }
-    
+
     $existingUserByEmail = \QuantumAstrology\Core\User::findByEmail($updateData['email']);
     if ($existingUserByEmail && $existingUserByEmail->getId() !== $user->getId()) {
         $errors[] = 'Email is already in use';
     }
-    
+
     // Birth data validation (optional but validated when provided)
     try {
         if ($birthDateRaw !== '') {

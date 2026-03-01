@@ -13,7 +13,7 @@ class Auth
     {
         if (!Session::isLoggedIn()) {
             $redirectTo = $redirectTo ?? '/login';
-            
+
             if (self::isApiRequest()) {
                 http_response_code(401);
                 header('Content-Type: application/json');
@@ -29,7 +29,7 @@ class Auth
             }
         }
     }
-    
+
     public static function requireGuest(?string $redirectTo = null): void
     {
         if (Session::isLoggedIn()) {
@@ -37,49 +37,49 @@ class Auth
             self::redirect($redirectTo);
         }
     }
-    
+
     public static function user(): ?User
     {
         return Session::getCurrentUser();
     }
-    
+
     public static function id(): ?int
     {
         return Session::getCurrentUserId();
     }
-    
+
     public static function check(): bool
     {
         return Session::isLoggedIn();
     }
-    
+
     public static function guest(): bool
     {
         return !Session::isLoggedIn();
     }
-    
+
     public static function login(User $user): void
     {
         Session::login($user);
     }
-    
+
     public static function logout(): void
     {
         Session::logout();
     }
-    
+
     public static function attempt(string $emailOrUsername, string $password): bool
     {
         $user = User::authenticate($emailOrUsername, $password);
-        
+
         if ($user) {
             self::login($user);
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Register a new user.
      *
@@ -101,7 +101,7 @@ class Auth
 
         return null;
     }
-    
+
     /**
      * Basic validation for registration data.
      *
@@ -127,7 +127,7 @@ class Auth
 
         return true;
     }
-    
+
     /**
      * Get validation errors for registration data.
      *
@@ -160,13 +160,13 @@ class Auth
 
         return $errors;
     }
-    
+
     private static function isApiRequest(): bool
     {
         return strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') === 0 ||
                strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
     }
-    
+
     private static function redirect(string $url): void
     {
         header("Location: {$url}");

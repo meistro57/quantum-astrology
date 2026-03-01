@@ -22,6 +22,7 @@ class User
     private ?float $birthLatitude = null;
     private ?float $birthLongitude = null;
     private ?string $birthLocationName = null;
+    private bool $isAdmin = false;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -36,8 +37,8 @@ class User
         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
 
         try {
-            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, birth_date, birth_time, birth_timezone, birth_latitude, birth_longitude, birth_location_name, created_at, updated_at)
-                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, :birth_date, :birth_time, :birth_timezone, :birth_latitude, :birth_longitude, :birth_location_name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+            $sql = "INSERT INTO users (username, email, password_hash, first_name, last_name, timezone, birth_date, birth_time, birth_timezone, birth_latitude, birth_longitude, birth_location_name, is_admin, created_at, updated_at)
+                    VALUES (:username, :email, :password_hash, :first_name, :last_name, :timezone, :birth_date, :birth_time, :birth_timezone, :birth_latitude, :birth_longitude, :birth_location_name, :is_admin, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
 
             $params = [
                 'username' => $userData['username'],
@@ -51,7 +52,8 @@ class User
                 'birth_timezone' => $userData['birth_timezone'] ?? null,
                 'birth_latitude' => $userData['birth_latitude'] ?? null,
                 'birth_longitude' => $userData['birth_longitude'] ?? null,
-                'birth_location_name' => $userData['birth_location_name'] ?? null
+                'birth_location_name' => $userData['birth_location_name'] ?? null,
+                'is_admin' => isset($userData['is_admin']) ? (int)(bool)$userData['is_admin'] : 0,
             ];
 
             Connection::query($sql, $params);
@@ -72,11 +74,11 @@ class User
     {
         $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
         $userData = Connection::fetchOne($sql, ['email' => $email]);
-        
+
         if ($userData) {
             return self::fromArray($userData);
         }
-        
+
         return null;
     }
 
@@ -84,11 +86,11 @@ class User
     {
         $sql = "SELECT * FROM users WHERE username = :username LIMIT 1";
         $userData = Connection::fetchOne($sql, ['username' => $username]);
-        
+
         if ($userData) {
             return self::fromArray($userData);
         }
-        
+
         return null;
     }
 
@@ -96,23 +98,23 @@ class User
     {
         $sql = "SELECT * FROM users WHERE id = :id LIMIT 1";
         $userData = Connection::fetchOne($sql, ['id' => $id]);
-        
+
         if ($userData) {
             return self::fromArray($userData);
         }
-        
+
         return null;
     }
 
     public static function authenticate(string $emailOrUsername, string $password): ?self
     {
         $user = self::findByEmail($emailOrUsername) ?? self::findByUsername($emailOrUsername);
-        
+
         if ($user && $user->verifyPassword($password)) {
             $user->updateLastLogin();
             return $user;
         }
-        
+
         return null;
     }
 
@@ -120,18 +122,18 @@ class User
     {
         $sql = "SELECT password_hash FROM users WHERE id = :id";
         $result = Connection::fetchOne($sql, ['id' => $this->id]);
-        
+
         if ($result && isset($result['password_hash'])) {
             return password_verify($password, $result['password_hash']);
         }
-        
+
         return false;
     }
 
     public function updatePassword(string $newPassword): bool
     {
         $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        
+
         try {
             $sql = "UPDATE users SET password_hash = :password_hash, updated_at = CURRENT_TIMESTAMP WHERE id = :id";
             Connection::query($sql, [
@@ -158,7 +160,8 @@ class User
             'birth_timezone',
             'birth_latitude',
             'birth_longitude',
-            'birth_location_name'
+            'birth_location_name',
+            'is_admin',
         ];
         $updateFields = [];
         $params = ['id' => $this->id];
@@ -169,17 +172,17 @@ class User
                 $params[$field] = $data[$field];
             }
         }
-        
+
         if (empty($updateFields)) {
             return true;
         }
-        
+
         $updateFields[] = "updated_at = CURRENT_TIMESTAMP";
         $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = :id";
-        
+
         try {
             Connection::query($sql, $params);
-            
+
             foreach ($allowedFields as $field) {
                 if (array_key_exists($field, $data)) {
                     $property = str_replace('_', '', ucwords($field, '_'));
@@ -187,7 +190,7 @@ class User
                     $this->$property = $data[$field];
                 }
             }
-            
+
             return true;
         } catch (PDOException $e) {
             error_log("User update failed: " . $e->getMessage());
@@ -220,9 +223,10 @@ class User
         $user->birthLatitude = isset($data['birth_latitude']) ? (float) $data['birth_latitude'] : null;
         $user->birthLongitude = isset($data['birth_longitude']) ? (float) $data['birth_longitude'] : null;
         $user->birthLocationName = $data['birth_location_name'] ?? null;
+        $user->isAdmin = isset($data['is_admin']) && (int)$data['is_admin'] === 1;
         $user->createdAt = $data['created_at'];
         $user->updatedAt = $data['updated_at'];
-        
+
         return $user;
     }
 
@@ -302,6 +306,11 @@ class User
         return $this->updatedAt;
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->isAdmin;
+    }
+
     public function toArray(): array
     {
         return [
@@ -318,6 +327,7 @@ class User
             'birth_latitude' => $this->birthLatitude,
             'birth_longitude' => $this->birthLongitude,
             'birth_location_name' => $this->birthLocationName,
+            'is_admin' => $this->isAdmin,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt
         ];

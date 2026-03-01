@@ -13,7 +13,7 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $emailOrUsername = trim($_POST['email_or_username'] ?? '');
     $password = $_POST['password'] ?? '';
-    
+
     if (empty($emailOrUsername) || empty($password)) {
         $error = 'Please enter both email/username and password.';
     } else {

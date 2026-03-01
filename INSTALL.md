@@ -70,6 +70,31 @@ bash startup.sh
 ```
 
 Before public deployment, set strong `DB_PASS` and `MYSQL_ROOT_PASSWORD` values in `.env`.
+Production mode now includes HTTPS termination via Nginx with automatic HTTP->HTTPS redirect.
+
+Configure these `.env` values for production:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.example
+SERVER_NAME=your-domain.example
+HTTP_PORT=80
+HTTPS_PORT=443
+TLS_CERT_FILE=server.crt
+TLS_KEY_FILE=server.key
+TLS_MODE=real
+```
+
+Choose one TLS mode:
+
+1. Self-signed (testing/first boot):
+   - Set `TLS_MODE=self-signed`
+   - If cert files are missing, `startup.sh` auto-generates them.
+2. Real certificate (production/public):
+   - Set `TLS_MODE=real`
+   - Place your CA-issued certificate and key under `docker/certs/` using `TLS_CERT_FILE` and `TLS_KEY_FILE`.
+   - Startup fails fast if files are missing, so you cannot accidentally run production without real certs.
 
 Stop production containers with:
 

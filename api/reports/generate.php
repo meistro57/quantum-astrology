@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../classes/autoload.php';
+require_once __DIR__ . '/../../config.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Reports\ReportGenerator;
 use QuantumAstrology\Core\Logger;
 
@@ -14,7 +16,19 @@ header('Content-Type: application/json');
 Auth::requireLogin();
 
 try {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $raw = file_get_contents('php://input');
+    $input = null;
+    if ($raw !== false && trim($raw) !== '') {
+        $input = json_decode($raw, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid JSON request body.']);
+            exit;
+        }
+    }
+    if (!is_array($input)) {
+        $input = $_POST ?: [];
+    }
 
     $chartId = (int) ($input['chart_id'] ?? $_GET['chart_id'] ?? 0);
     $reportType = $input['report_type'] ?? $_GET['report_type'] ?? 'natal';
@@ -29,6 +43,20 @@ try {
     if ($chartId <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid chart ID']);
+        exit;
+    }
+
+    $chart = Chart::findById($chartId);
+    if (!$chart) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Chart not found.']);
+        exit;
+    }
+
+    $currentUser = Auth::user();
+    if (!$currentUser || $chart->getUserId() !== $currentUser->getId()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Access denied.']);
         exit;
     }
 

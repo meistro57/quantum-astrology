@@ -68,6 +68,7 @@ Follow the **Quantum Minds United** aesthetic:
 3. **Paths**: Use absolute paths derived from `ROOT_PATH` or `__DIR__` to avoid issues with different entry points (root vs `api/`).
 4. **SVG Generation**: `ChartWheel.php` generates SVG directly. Always test changes across different screen sizes as the chart is intended to be responsive.
 5. **CSRF**: The application uses `$_SESSION['csrf_token']`. Verify it's present in AJAX requests to API endpoints like `chart_delete.php`.
+6. **Admin Panel**: `/admin` is access-controlled via `AdminGate` (`is_admin`, user id `1`, or `ADMIN_EMAIL(S)` allowlist). Keep admin actions CSRF-protected and ownership-aware.
 
 ## 🧪 Testing Patterns
 

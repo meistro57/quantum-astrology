@@ -44,6 +44,7 @@ $baseQuery = http_build_query([
 $baseQuery = $baseQuery !== '' ? $baseQuery . '&' : '';
 
 $pageTitle = 'My Charts - Quantum Astrology';
+$csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 ?>
 
 <!DOCTYPE html>
@@ -233,6 +234,14 @@ $pageTitle = 'My Charts - Quantum Astrology';
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.2);
         }
+        .btn-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ffb3bf;
+            border: 1px solid rgba(220, 53, 69, 0.45);
+        }
+        .btn-danger:hover {
+            background: rgba(220, 53, 69, 0.32);
+        }
 
         .create-chart-card {
             background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(139, 92, 246, 0.1));
@@ -308,6 +317,26 @@ $pageTitle = 'My Charts - Quantum Astrology';
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
+        }
+        .toast-notice {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            z-index: 1200;
+            background: rgba(34, 197, 94, 0.18);
+            border: 1px solid rgba(34, 197, 94, 0.42);
+            color: #86efac;
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+        .toast-notice.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         @media (max-width: 768px) {
@@ -401,7 +430,7 @@ $pageTitle = 'My Charts - Quantum Astrology';
 
                 <!-- Existing Charts -->
                 <?php foreach ($charts as $chart): ?>
-                    <div class="chart-card" onclick="location.href='/charts/view?id=<?= $chart->getId() ?>'">
+                    <div class="chart-card" id="chart-card-<?= $chart->getId() ?>" onclick="location.href='/charts/view?id=<?= $chart->getId() ?>'">
                         <div class="chart-card-header">
                             <div>
                                 <div class="chart-name"><?= htmlspecialchars($chart->getName()) ?></div>
@@ -441,6 +470,11 @@ $pageTitle = 'My Charts - Quantum Astrology';
                         <div class="chart-actions" onclick="event.stopPropagation()">
                             <a href="/charts/view?id=<?= $chart->getId() ?>" class="btn btn-primary">View</a>
                             <a href="/charts/edit?id=<?= $chart->getId() ?>" class="btn btn-secondary">Edit</a>
+                            <button type="button"
+                                    class="btn btn-danger"
+                                    onclick="deleteChartFromList(<?= $chart->getId() ?>, <?= json_encode((string)$chart->getName(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)">
+                                Delete
+                            </button>
                         </div>
                     </div>
                 <?php endforeach ?>
@@ -466,8 +500,61 @@ $pageTitle = 'My Charts - Quantum Astrology';
             <?php endif; ?>
         <?php endif ?>
     </div>
+    <div id="delete-toast" class="toast-notice" role="status" aria-live="polite"></div>
 
     <script>
+        const csrfToken = <?= json_encode($csrfToken, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const deleteToast = document.getElementById('delete-toast');
+
+        function showDeleteToast(message) {
+            if (!deleteToast) return;
+            deleteToast.textContent = message;
+            deleteToast.classList.add('visible');
+            window.setTimeout(() => deleteToast.classList.remove('visible'), 2600);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const queuedToast = sessionStorage.getItem('qa_toast');
+            if (queuedToast) {
+                showDeleteToast(queuedToast);
+                sessionStorage.removeItem('qa_toast');
+            }
+        });
+
+        async function deleteChartFromList(chartId, chartName) {
+            const confirmed = window.confirm(`Delete chart "${chartName}"? This cannot be undone.`);
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch('/api/chart_delete.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: Number(chartId),
+                        csrf: csrfToken
+                    })
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload?.error?.message || 'Failed to delete chart');
+                }
+
+                const card = document.getElementById(`chart-card-${chartId}`);
+                if (card) {
+                    card.remove();
+                }
+                showDeleteToast(`Chart "${chartName}" deleted.`);
+
+                const remainingCards = document.querySelectorAll('.chart-card[id^="chart-card-"]').length;
+                if (remainingCards === 0) {
+                    sessionStorage.setItem('qa_toast', `Chart "${chartName}" deleted.`);
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert(error.message || 'Failed to delete chart');
+            }
+        }
+
         // Add particle animation
         const particlesContainer = document.querySelector('.particles-container');
         

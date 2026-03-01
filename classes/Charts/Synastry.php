@@ -10,13 +10,13 @@ class Synastry
 {
     private Chart $chart1;
     private Chart $chart2;
-    
+
     public function __construct(Chart $chart1, Chart $chart2)
     {
         $this->chart1 = $chart1;
         $this->chart2 = $chart2;
     }
-    
+
     /**
      * Calculate complete synastry analysis between two charts
      */
@@ -25,24 +25,24 @@ class Synastry
         try {
             $positions1 = $this->chart1->getPlanetaryPositions();
             $positions2 = $this->chart2->getPlanetaryPositions();
-            
+
             if (!$positions1 || !$positions2) {
                 throw new \Exception('Both charts must have planetary positions calculated');
             }
-            
+
             // Calculate cross-aspects between the two charts
             $synastryAspects = $this->calculateSynastryAspects($positions1, $positions2);
-            
+
             // Calculate house overlays (where person 2's planets fall in person 1's houses)
             $houseOverlays1 = $this->calculateHouseOverlays($positions2, $this->chart1->getHousePositions());
             $houseOverlays2 = $this->calculateHouseOverlays($positions1, $this->chart2->getHousePositions());
-            
+
             // Calculate compatibility scores
             $compatibilityScores = $this->calculateCompatibilityScores($synastryAspects);
-            
+
             // Analyze relationship dynamics
             $relationshipDynamics = $this->analyzeRelationshipDynamics($synastryAspects, $houseOverlays1, $houseOverlays2);
-            
+
             return [
                 'synastry_type' => 'relationship_comparison',
                 'chart1_id' => $this->chart1->getId(),
@@ -62,7 +62,7 @@ class Synastry
                     'total_aspects' => count($synastryAspects)
                 ]
             ];
-            
+
         } catch (\Exception $e) {
             Logger::error("Synastry calculation failed", [
                 'error' => $e->getMessage(),
@@ -72,7 +72,7 @@ class Synastry
             throw $e;
         }
     }
-    
+
     /**
      * Calculate aspects between planets in two different charts
      */
@@ -89,20 +89,20 @@ class Synastry
             'semisextile' => ['angle' => 30, 'orb' => 2, 'nature' => 'minor_harmonious'],
             'sesquiquadrate' => ['angle' => 135, 'orb' => 2, 'nature' => 'minor_challenging']
         ];
-        
+
         foreach ($positions1 as $planet1 => $data1) {
             foreach ($positions2 as $planet2 => $data2) {
                 $lon1 = $data1['longitude'];
                 $lon2 = $data2['longitude'];
-                
+
                 $angle = abs($lon1 - $lon2);
                 if ($angle > 180) {
                     $angle = 360 - $angle;
                 }
-                
+
                 foreach ($aspectDefinitions as $aspectName => $aspectData) {
                     $difference = abs($angle - $aspectData['angle']);
-                    
+
                     if ($difference <= $aspectData['orb']) {
                         $aspects[] = [
                             'person1_planet' => $planet1,
@@ -122,23 +122,23 @@ class Synastry
                 }
             }
         }
-        
+
         // Sort by relationship significance and strength
         usort($aspects, function($a, $b) {
             $sigOrder = ['high' => 3, 'medium' => 2, 'low' => 1];
             $aSig = $sigOrder[$a['relationship_significance']] ?? 0;
             $bSig = $sigOrder[$b['relationship_significance']] ?? 0;
-            
+
             if ($aSig !== $bSig) {
                 return $bSig <=> $aSig; // Higher significance first
             }
-            
+
             return $a['orb'] <=> $b['orb']; // Then by exactness
         });
-        
+
         return $aspects;
     }
-    
+
     /**
      * Calculate where one person's planets fall in another person's houses
      */
@@ -147,30 +147,30 @@ class Synastry
         if (!$housePositions) {
             return [];
         }
-        
+
         $overlays = [];
-        
+
         foreach ($planetPositions as $planet => $data) {
             $planetLon = $data['longitude'];
-            
+
             // Find which house this planet falls into
             for ($house = 1; $house <= 12; $house++) {
                 if (!isset($housePositions[$house]['cusp'])) continue;
-                
+
                 $houseCusp = $housePositions[$house]['cusp'];
                 $nextHouse = ($house % 12) + 1;
                 $nextCusp = $housePositions[$nextHouse]['cusp'] ?? ($houseCusp + 30);
-                
+
                 // Handle zodiac wraparound
                 if ($nextCusp < $houseCusp) {
                     $nextCusp += 360;
                 }
-                
+
                 $testLon = $planetLon;
                 if ($testLon < $houseCusp) {
                     $testLon += 360;
                 }
-                
+
                 if ($testLon >= $houseCusp && $testLon < $nextCusp) {
                     $overlays[] = [
                         'planet' => $planet,
@@ -184,10 +184,10 @@ class Synastry
                 }
             }
         }
-        
+
         return $overlays;
     }
-    
+
     /**
      * Calculate compatibility scores based on synastry aspects
      */
@@ -203,7 +203,7 @@ class Synastry
             'challenging_factors' => 0,
             'harmonious_factors' => 0
         ];
-        
+
         $aspectCounts = [
             'harmonious' => 0,
             'challenging' => 0,
@@ -211,14 +211,14 @@ class Synastry
             'minor_harmonious' => 0,
             'minor_challenging' => 0
         ];
-        
+
         foreach ($synastryAspects as $aspect) {
             $strength = $aspect['strength'] / 100; // Convert to 0-1 scale
             $nature = $aspect['nature'];
             $planet1 = $aspect['person1_planet'];
             $planet2 = $aspect['person2_planet'];
             $significance = $aspect['relationship_significance'];
-            
+
             // Weight by significance
             $significanceMultiplier = match($significance) {
                 'high' => 1.5,
@@ -226,46 +226,46 @@ class Synastry
                 'low' => 0.5,
                 default => 0.7
             };
-            
+
             $weightedStrength = $strength * $significanceMultiplier;
-            
+
             // Count aspect types
             $aspectCounts[$nature] = ($aspectCounts[$nature] ?? 0) + 1;
-            
+
             // Add to category scores
             if (in_array($nature, ['harmonious', 'minor_harmonious'])) {
                 $scores['harmonious_factors'] += $weightedStrength;
             } else {
                 $scores['challenging_factors'] += $weightedStrength;
             }
-            
+
             // Specific relationship area scores
             $this->addCategoryScores($scores, $planet1, $planet2, $weightedStrength, $nature);
         }
-        
+
         // Calculate overall score (0-100 scale)
         $totalAspects = count($synastryAspects);
         if ($totalAspects > 0) {
             $harmoniousRatio = $scores['harmonious_factors'] / max(1, $totalAspects);
             $challengingRatio = $scores['challenging_factors'] / max(1, $totalAspects);
-            
+
             // Overall compatibility score
-            $scores['overall'] = max(0, min(100, 
+            $scores['overall'] = max(0, min(100,
                 ($harmoniousRatio * 80) - ($challengingRatio * 30) + 20
             ));
-            
+
             // Normalize individual scores to 0-100 scale
             foreach (['romantic', 'emotional', 'intellectual', 'sexual', 'spiritual'] as $category) {
                 $scores[$category] = max(0, min(100, $scores[$category] * 10));
             }
         }
-        
+
         $scores['aspect_distribution'] = $aspectCounts;
         $scores['total_aspects'] = $totalAspects;
-        
+
         return $scores;
     }
-    
+
     /**
      * Add scores to specific relationship categories
      */
@@ -277,9 +277,9 @@ class Synastry
             'adjusting' => 0.2,
             default => 0.5
         };
-        
+
         $adjustedStrength = $strength * $multiplier;
-        
+
         // Romantic connections
         if (in_array($planet1, ['sun', 'moon', 'venus']) && in_array($planet2, ['sun', 'moon', 'venus'])) {
             $scores['romantic'] += $adjustedStrength * 1.5;
@@ -288,28 +288,28 @@ class Synastry
             $scores['romantic'] += $adjustedStrength * 2;
             $scores['sexual'] += $adjustedStrength * 1.5;
         }
-        
+
         // Emotional connections
         if (in_array($planet1, ['moon', 'venus', 'neptune']) || in_array($planet2, ['moon', 'venus', 'neptune'])) {
             $scores['emotional'] += $adjustedStrength;
         }
-        
+
         // Intellectual connections
         if (in_array($planet1, ['mercury', 'jupiter', 'uranus']) || in_array($planet2, ['mercury', 'jupiter', 'uranus'])) {
             $scores['intellectual'] += $adjustedStrength;
         }
-        
+
         // Sexual/passionate connections
         if (in_array($planet1, ['mars', 'pluto']) || in_array($planet2, ['mars', 'pluto'])) {
             $scores['sexual'] += $adjustedStrength * 0.8;
         }
-        
+
         // Spiritual connections
         if (in_array($planet1, ['jupiter', 'neptune', 'pluto']) || in_array($planet2, ['jupiter', 'neptune', 'pluto'])) {
             $scores['spiritual'] += $adjustedStrength * 0.7;
         }
     }
-    
+
     /**
      * Analyze relationship dynamics and patterns
      */
@@ -324,21 +324,21 @@ class Synastry
             'karmic_connections' => [],
             'dominant_themes' => []
         ];
-        
+
         $planetCounts = [
             'chart1_aspects' => 0,
             'chart2_aspects' => 0
         ];
-        
+
         $conflictIndicators = 0;
         $harmoniousIndicators = 0;
-        
+
         foreach ($synastryAspects as $aspect) {
             $planet1 = $aspect['person1_planet'];
             $planet2 = $aspect['person2_planet'];
             $aspectType = $aspect['aspect'];
             $nature = $aspect['nature'];
-            
+
             // Track aspect distribution
             if (in_array($planet1, ['sun', 'mars', 'jupiter', 'saturn'])) {
                 $planetCounts['chart1_aspects']++;
@@ -346,7 +346,7 @@ class Synastry
             if (in_array($planet2, ['sun', 'mars', 'jupiter', 'saturn'])) {
                 $planetCounts['chart2_aspects']++;
             }
-            
+
             // Identify key dynamics
             if ($nature === 'challenging') {
                 $conflictIndicators++;
@@ -365,9 +365,9 @@ class Synastry
                     $dynamics['strength_areas'][] = 'Love and affection flow';
                 }
             }
-            
+
             // Karmic indicators
-            if (in_array($planet1, ['saturn', 'north_node', 'south_node', 'pluto']) || 
+            if (in_array($planet1, ['saturn', 'north_node', 'south_node', 'pluto']) ||
                 in_array($planet2, ['saturn', 'north_node', 'south_node', 'pluto'])) {
                 $dynamics['karmic_connections'][] = [
                     'planets' => [$planet1, $planet2],
@@ -376,13 +376,13 @@ class Synastry
                 ];
             }
         }
-        
+
         // Determine power balance
         if (abs($planetCounts['chart1_aspects'] - $planetCounts['chart2_aspects']) > 3) {
-            $dynamics['power_balance'] = $planetCounts['chart1_aspects'] > $planetCounts['chart2_aspects'] 
+            $dynamics['power_balance'] = $planetCounts['chart1_aspects'] > $planetCounts['chart2_aspects']
                 ? 'person1_dominant' : 'person2_dominant';
         }
-        
+
         // Communication and emotional patterns
         if ($conflictIndicators > $harmoniousIndicators * 1.5) {
             $dynamics['communication_style'] = 'challenging';
@@ -391,24 +391,24 @@ class Synastry
             $dynamics['communication_style'] = 'easy_flowing';
             $dynamics['emotional_connection'] = 'naturally_supportive';
         }
-        
+
         // Dominant themes based on most common planets
         $planetFrequency = [];
         foreach ($synastryAspects as $aspect) {
             $planetFrequency[$aspect['person1_planet']] = ($planetFrequency[$aspect['person1_planet']] ?? 0) + 1;
             $planetFrequency[$aspect['person2_planet']] = ($planetFrequency[$aspect['person2_planet']] ?? 0) + 1;
         }
-        
+
         arsort($planetFrequency);
         $topPlanets = array_slice(array_keys($planetFrequency), 0, 3);
-        
+
         foreach ($topPlanets as $planet) {
             $dynamics['dominant_themes'][] = $this->getPlanetaryTheme($planet);
         }
-        
+
         return $dynamics;
     }
-    
+
     /**
      * Get relationship significance for planet combinations
      */
@@ -420,30 +420,30 @@ class Synastry
             ['moon', 'venus'], ['moon', 'mars'], ['venus', 'mars'],
             ['sun', 'sun'], ['moon', 'moon'], ['venus', 'venus']
         ];
-        
+
         // Moderately significant
         $mediumSignificance = [
             ['mercury', 'mercury'], ['mars', 'mars'], ['jupiter', 'jupiter'],
             ['sun', 'mercury'], ['moon', 'mercury'], ['venus', 'mercury'],
             ['sun', 'saturn'], ['moon', 'saturn']
         ];
-        
+
         $pair = [$planet1, $planet2];
         sort($pair);
-        
+
         foreach ($highSignificance as $sigPair) {
             sort($sigPair);
             if ($pair === $sigPair) return 'high';
         }
-        
+
         foreach ($mediumSignificance as $sigPair) {
             sort($sigPair);
             if ($pair === $sigPair) return 'medium';
         }
-        
+
         return 'low';
     }
-    
+
     /**
      * Get house overlay significance
      */
@@ -457,14 +457,14 @@ class Synastry
             'jupiter' => [1, 5, 9, 10, 11],
             'saturn' => [1, 7, 8, 10]
         ];
-        
+
         if (isset($significantOverlays[$planet]) && in_array($house, $significantOverlays[$planet])) {
             return 'high';
         }
-        
+
         return in_array($house, [1, 5, 7, 8]) ? 'medium' : 'low';
     }
-    
+
     /**
      * Get house meanings for overlays
      */
@@ -484,10 +484,10 @@ class Synastry
             11 => 'Friendship and group activities',
             12 => 'Spirituality and hidden matters'
         ];
-        
+
         return $houseMeanings[$house] ?? 'Unknown house';
     }
-    
+
     /**
      * Get planetary themes for relationship dynamics
      */
@@ -505,10 +505,10 @@ class Synastry
             'neptune' => 'Spirituality, dreams, and idealization',
             'pluto' => 'Transformation, power, and intensity'
         ];
-        
+
         return $themes[$planet] ?? 'Unknown planetary influence';
     }
-    
+
     /**
      * Calculate aspect strength (0-100 scale)
      */
@@ -517,14 +517,14 @@ class Synastry
         $strength = (1 - ($orb / $maxOrb)) * 100;
         return max(0, min(100, (int) round($strength)));
     }
-    
+
     /**
      * Generate complete synastry chart data for visualization
      */
     public function generateSynastryChart(): array
     {
         $synastry = $this->calculateSynastry();
-        
+
         return [
             'chart_type' => 'synastry',
             'chart1_id' => $this->chart1->getId(),
@@ -544,7 +544,7 @@ class Synastry
             'metadata' => $synastry['calculation_metadata']
         ];
     }
-    
+
     /**
      * Get synastry insights and interpretation
      */
@@ -553,7 +553,7 @@ class Synastry
         $synastry = $this->calculateSynastry();
         $scores = $synastry['compatibility_scores'];
         $dynamics = $synastry['relationship_dynamics'];
-        
+
         $insights = [
             'compatibility_level' => $this->getCompatibilityLevel($scores['overall']),
             'relationship_type' => $this->determineRelationshipType($synastry['synastry_aspects'], $dynamics),
@@ -562,10 +562,10 @@ class Synastry
             'advice' => $this->generateRelationshipAdvice($scores, $dynamics),
             'long_term_potential' => $this->assessLongTermPotential($synastry['synastry_aspects'])
         ];
-        
+
         return $insights;
     }
-    
+
     /**
      * Determine compatibility level from overall score
      */
@@ -578,7 +578,7 @@ class Synastry
         if ($score >= 20) return 'Challenging';
         return 'Difficult';
     }
-    
+
     /**
      * Determine most likely relationship type
      */
@@ -587,24 +587,24 @@ class Synastry
         $romanticScore = 0;
         $friendshipScore = 0;
         $businessScore = 0;
-        
+
         foreach ($aspects as $aspect) {
             if ($aspect['relationship_significance'] === 'high') {
-                if (in_array($aspect['person1_planet'], ['venus', 'mars']) || 
+                if (in_array($aspect['person1_planet'], ['venus', 'mars']) ||
                     in_array($aspect['person2_planet'], ['venus', 'mars'])) {
                     $romanticScore += $aspect['nature'] === 'harmonious' ? 2 : -1;
                 }
-                if (in_array($aspect['person1_planet'], ['mercury', 'jupiter']) || 
+                if (in_array($aspect['person1_planet'], ['mercury', 'jupiter']) ||
                     in_array($aspect['person2_planet'], ['mercury', 'jupiter'])) {
                     $friendshipScore += 1;
                 }
-                if (in_array($aspect['person1_planet'], ['saturn', 'mars']) || 
+                if (in_array($aspect['person1_planet'], ['saturn', 'mars']) ||
                     in_array($aspect['person2_planet'], ['saturn', 'mars'])) {
                     $businessScore += 1;
                 }
             }
         }
-        
+
         if ($romanticScore > $friendshipScore && $romanticScore > $businessScore) {
             return 'Romantic Partnership';
         } elseif ($businessScore > $friendshipScore) {
@@ -613,37 +613,37 @@ class Synastry
             return 'Friendship/Platonic';
         }
     }
-    
+
     /**
      * Generate relationship advice based on analysis
      */
     private function generateRelationshipAdvice(array $scores, array $dynamics): array
     {
         $advice = [];
-        
+
         if ($scores['overall'] < 40) {
             $advice[] = 'This relationship may require significant effort and understanding from both parties.';
         }
-        
+
         if ($dynamics['communication_style'] === 'challenging') {
             $advice[] = 'Focus on improving communication patterns and finding common ground.';
         }
-        
+
         if (count($dynamics['conflict_areas']) > 3) {
             $advice[] = 'Work together to address the main areas of tension constructively.';
         }
-        
+
         if (count($dynamics['strength_areas']) > 0) {
             $advice[] = 'Build on your natural strengths: ' . implode(', ', array_slice($dynamics['strength_areas'], 0, 2));
         }
-        
+
         if (empty($advice)) {
             $advice[] = 'This appears to be a well-balanced relationship with good potential.';
         }
-        
+
         return $advice;
     }
-    
+
     /**
      * Assess long-term relationship potential
      */
@@ -651,9 +651,9 @@ class Synastry
     {
         $stabilityScore = 0;
         $growthScore = 0;
-        
+
         foreach ($aspects as $aspect) {
-            if (in_array($aspect['person1_planet'], ['saturn', 'jupiter']) || 
+            if (in_array($aspect['person1_planet'], ['saturn', 'jupiter']) ||
                 in_array($aspect['person2_planet'], ['saturn', 'jupiter'])) {
                 if ($aspect['nature'] === 'harmonious') {
                     $stabilityScore += 2;
@@ -662,12 +662,12 @@ class Synastry
                     $stabilityScore -= 1;
                 }
             }
-            
+
             if ($aspect['person1_planet'] === 'north_node' || $aspect['person2_planet'] === 'north_node') {
                 $growthScore += 2;
             }
         }
-        
+
         if ($stabilityScore >= 4 && $growthScore >= 2) {
             return 'Excellent long-term potential';
         } elseif ($stabilityScore >= 2 || $growthScore >= 2) {

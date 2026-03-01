@@ -14,7 +14,7 @@ class SmokeTest extends TestCase
 
     public function testTransitTimelineInstantiatable()
     {
-        // We can't easily test the full logic without a DB, 
+        // We can't easily test the full logic without a DB,
         // but we can check if the Class exists and has the method.
         $this->assertTrue(class_exists(TransitTimeline::class));
         $this->assertTrue(method_exists(TransitTimeline::class, 'calculateSeries'));
@@ -23,7 +23,7 @@ class SmokeTest extends TestCase
     public function testChartClassStructure()
     {
         $this->assertTrue(class_exists(Chart::class));
-        
+
         // Ensure our static methods are callable
         $this->assertTrue(method_exists(Chart::class, 'create'));
         $this->assertTrue(method_exists(Chart::class, 'findById'));

@@ -27,10 +27,9 @@ jobs:
         with:
           composer-options: --no-interaction --no-progress --prefer-dist
 
-      - name: PHP syntax lint
-        run: |
-          set -e
-          find . -type f -name "*.php" -print0 | xargs -0 -n1 -P4 php -l
+      - name: Composer lint
+        if: hashFiles('composer.json') != ''
+        run: composer lint
 
       - name: PHPUnit (if phpunit.xml exists)
         if: hashFiles('phpunit.xml') != ''

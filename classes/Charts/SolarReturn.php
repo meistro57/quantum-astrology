@@ -13,13 +13,13 @@ class SolarReturn
 {
     private SwissEphemeris $swissEph;
     private Chart $natalChart;
-    
+
     public function __construct(Chart $natalChart)
     {
         $this->natalChart = $natalChart;
         $this->swissEph = new SwissEphemeris();
     }
-    
+
     /**
      * Calculate Solar Return chart for a specific year
      * Solar Return is cast when the Sun returns to its exact natal position
@@ -31,24 +31,24 @@ class SolarReturn
             if (!$natalPositions || !isset($natalPositions['sun'])) {
                 throw new \Exception('Natal chart Sun position not available');
             }
-            
+
             $natalSunLongitude = $natalPositions['sun']['longitude'];
-            
+
             // Use return location or default to natal location
             $latitude = $returnLatitude ?? $this->natalChart->getBirthLatitude();
             $longitude = $returnLongitude ?? $this->natalChart->getBirthLongitude();
             $locationName = $returnLocationName ?? $this->natalChart->getBirthLocationName();
-            
+
             // Find the exact moment when Sun returns to natal position
             $solarReturnDate = $this->findSolarReturnDate($returnYear, $natalSunLongitude);
-            
+
             // Calculate planetary positions for Solar Return
             $solarReturnPositions = $this->swissEph->calculatePlanetaryPositions(
                 $solarReturnDate,
                 $latitude,
                 $longitude
             );
-            
+
             // Calculate houses for Solar Return location
             $solarReturnHouses = $this->swissEph->calculateHouses(
                 $solarReturnDate,
@@ -56,13 +56,13 @@ class SolarReturn
                 $longitude,
                 $this->natalChart->getHouseSystem() ?? 'P'
             );
-            
+
             // Calculate aspects within Solar Return chart
             $solarReturnAspects = $this->calculateSolarReturnAspects($solarReturnPositions);
-            
+
             // Calculate aspects between Solar Return and Natal positions
             $solarReturnToNatalAspects = $this->calculateSolarReturnToNatalAspects($solarReturnPositions, $natalPositions);
-            
+
             return [
                 'chart_type' => 'solar_return',
                 'return_year' => $returnYear,
@@ -88,7 +88,7 @@ class SolarReturn
                     'sun_return_precision' => abs($solarReturnPositions['sun']['longitude'] - $natalSunLongitude)
                 ]
             ];
-            
+
         } catch (\Exception $e) {
             Logger::error("Solar Return calculation failed", [
                 'error' => $e->getMessage(),
@@ -98,14 +98,14 @@ class SolarReturn
             throw $e;
         }
     }
-    
+
     /**
      * Calculate Solar Returns for multiple years
      */
     public function calculateMultipleSolarReturns(int $startYear, int $endYear, ?float $returnLatitude = null, ?float $returnLongitude = null): array
     {
         $solarReturns = [];
-        
+
         for ($year = $startYear; $year <= $endYear; $year++) {
             try {
                 $solarReturn = $this->calculateSolarReturn($year, $returnLatitude, $returnLongitude);
@@ -121,10 +121,10 @@ class SolarReturn
                 ];
             }
         }
-        
+
         return $solarReturns;
     }
-    
+
     /**
      * Find the exact date and time when the Sun returns to its natal position
      */
@@ -134,21 +134,21 @@ class SolarReturn
         if (!$birthDate) {
             throw new \Exception('Natal birth date not available');
         }
-        
+
         // Start with birthday in the return year
         $searchDate = new DateTime($returnYear . '-' . $birthDate->format('m-d H:i:s'));
         $searchDate->setTimezone($birthDate->getTimezone());
-        
+
         // Search range: 5 days before to 5 days after birthday
         $startSearch = clone $searchDate;
         $startSearch->sub(new DateInterval('P5D'));
-        
+
         $endSearch = clone $searchDate;
         $endSearch->add(new DateInterval('P5D'));
-        
+
         $bestDate = null;
         $bestDifference = 360; // Maximum possible difference
-        
+
         // Search with 6-hour intervals initially
         $current = clone $startSearch;
         while ($current <= $endSearch) {
@@ -158,40 +158,40 @@ class SolarReturn
                     $this->natalChart->getBirthLatitude(),
                     $this->natalChart->getBirthLongitude()
                 );
-                
+
                 if (isset($positions['sun'])) {
                     $currentSunLon = $positions['sun']['longitude'];
                     $difference = abs($currentSunLon - $natalSunLongitude);
-                    
+
                     // Handle zodiac wraparound
                     if ($difference > 180) {
                         $difference = 360 - $difference;
                     }
-                    
+
                     if ($difference < $bestDifference) {
                         $bestDifference = $difference;
                         $bestDate = clone $current;
                     }
                 }
-                
+
                 $current->add(new DateInterval('PT6H'));
-                
+
             } catch (\Exception $e) {
                 $current->add(new DateInterval('PT6H'));
             }
         }
-        
+
         if (!$bestDate) {
             throw new \Exception('Could not find Solar Return date for year ' . $returnYear);
         }
-        
+
         // Refine the search around the best date found (1-hour intervals)
         $refineStart = clone $bestDate;
         $refineStart->sub(new DateInterval('PT12H'));
-        
+
         $refineEnd = clone $bestDate;
         $refineEnd->add(new DateInterval('PT12H'));
-        
+
         $current = clone $refineStart;
         while ($current <= $refineEnd) {
             try {
@@ -200,31 +200,31 @@ class SolarReturn
                     $this->natalChart->getBirthLatitude(),
                     $this->natalChart->getBirthLongitude()
                 );
-                
+
                 if (isset($positions['sun'])) {
                     $currentSunLon = $positions['sun']['longitude'];
                     $difference = abs($currentSunLon - $natalSunLongitude);
-                    
+
                     if ($difference > 180) {
                         $difference = 360 - $difference;
                     }
-                    
+
                     if ($difference < $bestDifference) {
                         $bestDifference = $difference;
                         $bestDate = clone $current;
                     }
                 }
-                
+
                 $current->add(new DateInterval('PT1H'));
-                
+
             } catch (\Exception $e) {
                 $current->add(new DateInterval('PT1H'));
             }
         }
-        
+
         return $bestDate;
     }
-    
+
     /**
      * Calculate aspects within the Solar Return chart
      */
@@ -239,26 +239,26 @@ class SolarReturn
             'opposition' => ['angle' => 180, 'orb' => 8],
             'quincunx' => ['angle' => 150, 'orb' => 3]
         ];
-        
+
         $planets = array_keys($solarReturnPositions);
-        
+
         for ($i = 0; $i < count($planets); $i++) {
             for ($j = $i + 1; $j < count($planets); $j++) {
                 $planet1 = $planets[$i];
                 $planet2 = $planets[$j];
-                
+
                 if (!isset($solarReturnPositions[$planet1]) || !isset($solarReturnPositions[$planet2])) {
                     continue;
                 }
-                
+
                 $pos1 = $solarReturnPositions[$planet1]['longitude'];
                 $pos2 = $solarReturnPositions[$planet2]['longitude'];
-                
+
                 $angle = abs($pos1 - $pos2);
                 if ($angle > 180) {
                     $angle = 360 - $angle;
                 }
-                
+
                 foreach ($aspectDefinitions as $aspectName => $aspectData) {
                     $difference = abs($angle - $aspectData['angle']);
                     if ($difference <= $aspectData['orb']) {
@@ -277,10 +277,10 @@ class SolarReturn
                 }
             }
         }
-        
+
         return $aspects;
     }
-    
+
     /**
      * Calculate aspects between Solar Return and Natal positions
      */
@@ -295,20 +295,20 @@ class SolarReturn
             'opposition' => ['angle' => 180, 'orb' => 6],
             'quincunx' => ['angle' => 150, 'orb' => 3]
         ];
-        
+
         foreach ($solarReturnPositions as $srPlanet => $srData) {
             foreach ($natalPositions as $natalPlanet => $natalData) {
                 $srLon = $srData['longitude'];
                 $natalLon = $natalData['longitude'];
-                
+
                 $angle = abs($srLon - $natalLon);
                 if ($angle > 180) {
                     $angle = 360 - $angle;
                 }
-                
+
                 foreach ($aspectDefinitions as $aspectName => $aspectData) {
                     $difference = abs($angle - $aspectData['angle']);
-                    
+
                     if ($difference <= $aspectData['orb']) {
                         $aspects[] = [
                             'solar_return_planet' => $srPlanet,
@@ -327,22 +327,22 @@ class SolarReturn
                 }
             }
         }
-        
+
         // Sort by strength
         usort($aspects, function($a, $b) {
             return $a['orb'] <=> $b['orb'];
         });
-        
+
         return $aspects;
     }
-    
+
     /**
      * Generate complete Solar Return chart data for visualization
      */
     public function generateSolarReturnChart(int $returnYear, ?float $returnLatitude = null, ?float $returnLongitude = null, ?string $returnLocationName = null): array
     {
         $solarReturn = $this->calculateSolarReturn($returnYear, $returnLatitude, $returnLongitude, $returnLocationName);
-        
+
         return [
             'chart_type' => 'solar_return',
             'natal_chart_id' => $this->natalChart->getId(),
@@ -357,7 +357,7 @@ class SolarReturn
             'metadata' => $solarReturn['calculation_metadata']
         ];
     }
-    
+
     /**
      * Calculate Solar Return profections (annual planetary rulers)
      */
@@ -367,13 +367,13 @@ class SolarReturn
         if (!$birthDate) {
             throw new \Exception('Natal birth date not available');
         }
-        
+
         $currentAge = $returnYear - (int) $birthDate->format('Y');
-        
+
         // Traditional planet rulers
         $houseRulers = [
             1 => 'mars',      // Aries
-            2 => 'venus',     // Taurus  
+            2 => 'venus',     // Taurus
             3 => 'mercury',   // Gemini
             4 => 'moon',      // Cancer
             5 => 'sun',       // Leo
@@ -385,11 +385,11 @@ class SolarReturn
             11 => 'saturn',   // Aquarius
             12 => 'jupiter'   // Pisces
         ];
-        
+
         // Annual profection: each year activates the next house
         $profectedHouse = (($currentAge - 1) % 12) + 1;
         $lordOfTheYear = $houseRulers[$profectedHouse];
-        
+
         return [
             'return_year' => $returnYear,
             'current_age' => $currentAge,
@@ -398,7 +398,7 @@ class SolarReturn
             'house_themes' => $this->getHouseThemes($profectedHouse)
         ];
     }
-    
+
     /**
      * Get thematic meanings for profected houses
      */
@@ -418,10 +418,10 @@ class SolarReturn
             11 => ['Friends', 'Groups', 'Hopes', 'Social networks'],
             12 => ['Spirituality', 'Hidden enemies', 'Subconscious', 'Sacrifice']
         ];
-        
+
         return $themes[$house] ?? [];
     }
-    
+
     /**
      * Calculate aspect strength (0-100 scale)
      */
@@ -430,19 +430,19 @@ class SolarReturn
         $strength = (1 - ($orb / $maxOrb)) * 100;
         return max(0, min(100, (int) round($strength)));
     }
-    
+
     /**
      * Calculate Solar Return relocated charts for different cities
      */
     public function calculateRelocatedSolarReturns(int $returnYear, array $locations): array
     {
         $relocatedReturns = [];
-        
+
         foreach ($locations as $location) {
             if (!isset($location['latitude'], $location['longitude'])) {
                 continue;
             }
-            
+
             try {
                 $solarReturn = $this->calculateSolarReturn(
                     $returnYear,
@@ -450,14 +450,14 @@ class SolarReturn
                     $location['longitude'],
                     $location['name'] ?? 'Unknown Location'
                 );
-                
+
                 $relocatedReturns[] = [
                     'location' => $location,
                     'solar_return' => $solarReturn,
                     'rising_sign' => $this->getSignFromLongitude($solarReturn['solar_return_houses'][1]['cusp'] ?? 0),
                     'midheaven_sign' => $this->getSignFromLongitude($solarReturn['solar_return_houses'][10]['cusp'] ?? 0)
                 ];
-                
+
             } catch (\Exception $e) {
                 Logger::error("Relocated Solar Return calculation failed", [
                     'location' => $location,
@@ -465,18 +465,18 @@ class SolarReturn
                 ]);
             }
         }
-        
+
         return $relocatedReturns;
     }
-    
+
     /**
      * Get zodiac sign from longitude
      */
     private function getSignFromLongitude(float $longitude): string
     {
-        $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
+        $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
                  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-        
+
         $signIndex = (int) floor($longitude / 30);
         return $signs[$signIndex] ?? 'Unknown';
     }

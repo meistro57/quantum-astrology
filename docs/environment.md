@@ -60,9 +60,12 @@ The database user should have the following privileges on the target schema: `SE
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `SESSION_LIFETIME` | No | `3600` | Session lifetime in seconds. Increase for long-running admin workflows; decrease for heightened security. |
+| `SESSION_LIFETIME` | No | `2592000` | Inactivity timeout in seconds (current default: 30 days for beta workflows). |
+| `SESSION_COOKIE_LIFETIME` | No | `2592000` | Session cookie expiration in seconds (persists login across browser restarts). |
+| `ADMIN_EMAIL` | No | *(empty)* | Optional single email to treat as admin in addition to DB flags. |
+| `ADMIN_EMAILS` | No | *(empty)* | Optional comma-separated admin email allowlist (takes precedence over `ADMIN_EMAIL`). |
 
-In addition to environment variables, PHP session cookies inherit secure defaults (`HttpOnly`, optional `Secure`, `SameSite=Strict`). Ensure the application is served via HTTPS to take full advantage of these protections.
+In addition to environment variables, PHP session cookies inherit secure defaults (`HttpOnly`, optional `Secure`, `SameSite=Lax`) and are refreshed on activity. Ensure the application is served via HTTPS to take full advantage of these protections.
 
 ## Example `.env`
 
@@ -97,7 +100,11 @@ AI_API_ENDPOINT=""
 AI_CACHE_TTL=21600
 
 # Sessions
-SESSION_LIFETIME=7200
+SESSION_LIFETIME=2592000
+SESSION_COOKIE_LIFETIME=2592000
+
+# Optional admin allowlist
+ADMIN_EMAILS="admin@example.com,ops@example.com"
 ```
 
 Store this file alongside `config.php` when developing locally. Production deployments should inject the values using the hosting platform's secret management features.

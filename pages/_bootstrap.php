@@ -10,4 +10,8 @@ if (!defined('QUANTUM_ASTROLOGY_BOOTSTRAPPED')) {
     require_once $rootPath . '/classes/autoload.php';
 
     \QuantumAstrology\Core\Session::start();
+
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
 }

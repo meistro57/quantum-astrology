@@ -26,6 +26,8 @@ $app->run();
 \QuantumAstrology\Core\Session::start();
 
 use QuantumAstrology\Core\DB;
+use QuantumAstrology\Core\User;
+use QuantumAstrology\Core\AdminGate;
 
 // Require login
 if (!isset($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
@@ -34,6 +36,8 @@ if (!isset($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
 }
 $uid   = (int)$_SESSION['user_id'];
 $uname = isset($_SESSION['username']) ? (string)$_SESSION['username'] : 'meistro';
+$portalUser = User::findById($uid);
+$isAdminUser = AdminGate::canAccess($portalUser);
 
 // CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -118,6 +122,7 @@ try {
     <a class="active" href="/">Portal</a>
     <a href="/viewer.php">Charts</a>
     <a href="/reports">Reports</a>
+    <?php if ($isAdminUser): ?><a href="/admin">Admin</a><?php endif; ?>
     <a href="/profile">Profile</a>
     <a href="/logout">Logout</a>
   </nav>

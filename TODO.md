@@ -8,6 +8,9 @@
 - [ ] Add end-to-end regression tests for chart create/list/delete/export flows.
 - [x] Add validation tests for profile password change and location auto-fill paths.
 - [x] Add integration tests for AI summary report generation and markdown download flows.
+- [x] Add `/admin` system panel with operational controls and guard it behind admin-only access.
+- [x] Add admin user management actions (create user, reset password, grant/revoke admin).
+- [x] Make login sessions persistent for beta users with configurable cookie/session lifetimes.
 
 ## Medium Priority
 - [x] Expand REST API to support chart deletion/pagination endpoints and synchronize UI flows.

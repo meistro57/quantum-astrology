@@ -18,14 +18,14 @@ try {
     $datetime = new DateTime('1990-01-01 12:00:00');
     $latitude = 40.7128;
     $longitude = -74.0060;
-    
+
     echo "   - Calculating planetary positions for test date...\n";
     $positions = $swissEph->calculatePlanetaryPositions($datetime, $latitude, $longitude);
-    
+
     if (!empty($positions)) {
         echo "   ✅ Swiss Ephemeris integration working\n";
         echo "   - Found " . count($positions) . " planetary positions\n";
-        
+
         foreach (['sun', 'moon', 'mercury'] as $planet) {
             if (isset($positions[$planet])) {
                 echo "   - {$planet}: " . number_format($positions[$planet]['longitude'], 2) . "°\n";
@@ -42,7 +42,7 @@ try {
 echo "\n2. Testing House Calculations...\n";
 try {
     $houses = $swissEph->calculateHouses($datetime, $latitude, $longitude, 'P');
-    
+
     if (!empty($houses)) {
         echo "   ✅ House calculations working\n";
         echo "   - House 1 (Ascendant): " . number_format($houses[1]['cusp'] ?? 0, 2) . "° " . ($houses[1]['sign'] ?? '') . "\n";
@@ -58,14 +58,14 @@ try {
 echo "\n3. Testing Chart Wheel Generation...\n";
 try {
     $chartWheel = new ChartWheel(400);
-    
+
     if (!empty($positions)) {
         $svg = $chartWheel->generateWheel($positions, $houses ?? [], []);
-        
+
         if (strlen($svg) > 100) {
             echo "   ✅ Chart wheel generation working\n";
             echo "   - SVG length: " . strlen($svg) . " characters\n";
-            
+
             // Save test chart wheel
             $testFile = __DIR__ . '/../storage/charts/test_wheel.svg';
             @mkdir(dirname($testFile), 0755, true);
@@ -94,13 +94,13 @@ try {
         $stmt = $pdo->query("SHOW TABLES");
     }
     $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
+
     $expectedTables = ['users', 'charts', 'birth_profiles', 'chart_sessions', 'migrations'];
     $foundTables = array_intersect($expectedTables, $tables);
-    
+
     echo "   ✅ Database connection working\n";
     echo "   - Found tables: " . implode(', ', $foundTables) . "\n";
-    
+
     if (count($foundTables) === count($expectedTables)) {
         echo "   ✅ All required tables present\n";
     } else {
@@ -108,7 +108,7 @@ try {
         echo "   ⚠️ Missing tables: " . implode(', ', $missing) . "\n";
         echo "   - Run: php tools/migrate.php\n";
     }
-    
+
 } catch (Exception $e) {
     echo "   ❌ Database error: " . $e->getMessage() . "\n";
     echo "   - Check your database configuration in .env\n";

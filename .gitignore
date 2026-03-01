@@ -9,6 +9,8 @@ composer.lock
 *.log
 .DS_Store
 /data/ephemeris/sweph_data/*
+/docker/certs/*
+!/docker/certs/.gitkeep
 
 # local artefacts
 index.php.bak*

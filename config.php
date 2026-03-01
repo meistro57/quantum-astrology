@@ -65,12 +65,24 @@ define('HTTPS', (
 ));
 
 // Session configuration (must be set before session_start)
+define('SESSION_LIFETIME', (int) env('SESSION_LIFETIME', 2592000)); // 30 days
+define('SESSION_COOKIE_LIFETIME', (int) env('SESSION_COOKIE_LIFETIME', SESSION_LIFETIME));
+
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', '1');
     ini_set('session.cookie_secure', HTTPS ? '1' : '0');
-    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.cookie_samesite', 'Lax');
+    ini_set('session.gc_maxlifetime', (string) SESSION_LIFETIME);
+
+    session_set_cookie_params([
+        'lifetime' => SESSION_COOKIE_LIFETIME,
+        'path' => '/',
+        'domain' => '',
+        'secure' => HTTPS,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
-define('SESSION_LIFETIME', (int) env('SESSION_LIFETIME', 3600));
 
 // Set default timezone
 if (function_exists('date_default_timezone_set')) {

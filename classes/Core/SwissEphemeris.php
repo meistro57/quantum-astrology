@@ -40,7 +40,7 @@ class SwissEphemeris
     {
         $this->swetestPath = defined('SWEPH_PATH') ? SWEPH_PATH : '/usr/local/bin/swetest';
         $this->dataPath = defined('SWEPH_DATA_PATH') ? SWEPH_DATA_PATH : ROOT_PATH . '/data/ephemeris';
-        
+
         if (!$this->isSwetestAvailable()) {
             Logger::warning("Swiss Ephemeris swetest not found at: " . $this->swetestPath);
         }
@@ -158,7 +158,7 @@ class SwissEphemeris
         }
 
         $output = shell_exec($command . ' 2>&1');
-        
+
         if ($output === null) {
             throw new \Exception("Failed to execute swetest house command");
         }
@@ -169,7 +169,7 @@ class SwissEphemeris
     private function parseSwetestOutput(string $output): ?array
     {
         $lines = explode("\n", trim($output));
-        
+
         foreach ($lines as $line) {
             if (empty($line) || strpos($line, 'ET') === false) {
                 continue;
@@ -195,9 +195,9 @@ class SwissEphemeris
     {
         $houses = [];
         $cusps = [];
-        
+
         $lines = explode("\n", trim($output));
-        
+
         foreach ($lines as $line) {
             if (strpos($line, 'house') !== false) {
                 $parts = preg_split('/\s+/', trim($line));
@@ -224,9 +224,9 @@ class SwissEphemeris
     {
         // Simplified analytical calculations for basic positions
         // This is a fallback when Swiss Ephemeris is not available
-        
+
         $centuries = ($julianDay - 2451545.0) / 36525.0;
-        
+
         switch ($planetCode) {
             case 0: // Sun
                 $longitude = $this->calculateSunLongitude($centuries);
@@ -317,28 +317,28 @@ class SwissEphemeris
     {
         $utcDateTime = clone $datetime;
         $utcDateTime->setTimezone(new \DateTimeZone('UTC'));
-        
+
         $year = (int) $utcDateTime->format('Y');
         $month = (int) $utcDateTime->format('m');
         $day = (int) $utcDateTime->format('d');
         $hour = (int) $utcDateTime->format('H');
         $minute = (int) $utcDateTime->format('i');
         $second = (int) $utcDateTime->format('s');
-        
+
         if ($month <= 2) {
             $year--;
             $month += 12;
         }
-        
+
         $a = (int) ($year / 100);
         $b = 2 - $a + (int) ($a / 4);
-        
-        $jd = (int) (365.25 * ($year + 4716)) + 
-              (int) (30.6001 * ($month + 1)) + 
+
+        $jd = (int) (365.25 * ($year + 4716)) +
+              (int) (30.6001 * ($month + 1)) +
               $day + $b - 1524.5;
-        
+
         $jd += ($hour + $minute / 60.0 + $second / 3600.0) / 24.0;
-        
+
         return $jd;
     }
 

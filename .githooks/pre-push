@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Set SKIP_DOCS_CHECK=1 to bypass this guard intentionally.
+if [[ "${SKIP_DOCS_CHECK:-0}" == "1" ]]; then
+  exit 0
+fi
+
+remote_name="${1:-origin}"
+remote_url="${2:-}"
+
+all_changed=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Deleted ref.
+  if [[ "$local_sha" =~ ^0+$ ]]; then
+    continue
+  fi
+
+  if [[ "$remote_sha" =~ ^0+$ ]]; then
+    # New branch push; inspect files reachable from local SHA.
+    changed="$(git diff-tree --no-commit-id --name-only -r "$local_sha" || true)"
+  else
+    changed="$(git diff --name-only "$remote_sha" "$local_sha" || true)"
+  fi
+
+  if [[ -n "$changed" ]]; then
+    all_changed+=$'\n'"$changed"
+  fi
+done
+
+changed_files="$(printf '%s\n' "$all_changed" | sed '/^$/d' | sort -u)"
+if [[ -z "$changed_files" ]]; then
+  exit 0
+fi
+
+code_changed="0"
+docs_changed="0"
+
+while IFS= read -r file; do
+  case "$file" in
+    api/*|classes/*|pages/*|tools/*|tests/*|assets/*|config.php|index.php|*.php|*.js|*.ts|*.css)
+      code_changed="1"
+      ;;
+  esac
+
+  case "$file" in
+    README.md|INSTALL.md|CHANGELOG.md|ROADMAP.md|TODO.md|SYSTEM_STATUS.md|AGENTS.md|docs/*)
+      docs_changed="1"
+      ;;
+  esac
+done <<< "$changed_files"
+
+if [[ "$code_changed" == "1" && "$docs_changed" != "1" ]]; then
+  cat >&2 <<EOF
+Push blocked: code changes detected, but no documentation files were updated.
+
+Changed files:
+$(printf '%s\n' "$changed_files" | sed 's/^/  - /')
+
+Update at least one relevant doc before pushing:
+  - README.md
+  - INSTALL.md
+  - CHANGELOG.md
+  - ROADMAP.md
+  - TODO.md
+  - SYSTEM_STATUS.md
+  - AGENTS.md
+  - docs/*
+
+If this is an intentional exception, run:
+  SKIP_DOCS_CHECK=1 git push ${remote_name} <branch>
+EOF
+  exit 1
+fi
+
+exit 0

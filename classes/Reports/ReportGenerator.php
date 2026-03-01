@@ -42,14 +42,22 @@ class ReportGenerator
     public function generateNatalReport(int $chartId, array $options = []): string
     {
         try {
-            $chart = Chart::find($chartId);
+            $chart = Chart::findById($chartId);
             if (!$chart) {
                 throw new RuntimeException("Chart #$chartId not found");
             }
 
             // Get chart data and interpretation
-            $chartData = $chart->toArray();
-            $interpretation = (new ChartInterpretation($chart))->generateFullInterpretation();
+            $chartData = $this->buildChartData($chart);
+            try {
+                $interpretation = (new ChartInterpretation($chart))->generateFullInterpretation();
+            } catch (\Throwable $interpretationError) {
+                Logger::warning('Falling back to basic interpretation in report generation', [
+                    'chart_id' => $chartId,
+                    'error' => $interpretationError->getMessage(),
+                ]);
+                $interpretation = [];
+            }
 
             // Build HTML content
             $html = $this->buildReportHTML($chart, $chartData, $interpretation, $options);
@@ -81,7 +89,7 @@ class ReportGenerator
      */
     public function generateTransitReport(int $chartId, array $transitData, array $options = []): string
     {
-        $chart = Chart::find($chartId);
+        $chart = Chart::findById($chartId);
         if (!$chart) {
             throw new RuntimeException("Chart #$chartId not found");
         }
@@ -100,8 +108,8 @@ class ReportGenerator
      */
     public function generateSynastryReport(int $chart1Id, int $chart2Id, array $synastryData, array $options = []): string
     {
-        $chart1 = Chart::find($chart1Id);
-        $chart2 = Chart::find($chart2Id);
+        $chart1 = Chart::findById($chart1Id);
+        $chart2 = Chart::findById($chart2Id);
 
         if (!$chart1 || !$chart2) {
             throw new RuntimeException("One or both charts not found");
@@ -327,7 +335,8 @@ class ReportGenerator
     {
         $name = htmlspecialchars($chart->getName());
         $date = $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('F j, Y - g:i A') : 'Unknown';
-        $location = $chart->getBirthLocation() ? htmlspecialchars($chart->getBirthLocation()) : 'Unknown';
+        $locationName = $chart->getBirthLocationName();
+        $location = $locationName ? htmlspecialchars($locationName) : 'Unknown';
 
         return '
         <div class="cover-page">
@@ -359,7 +368,8 @@ class ReportGenerator
     {
         $name = htmlspecialchars($chart->getName());
         $datetime = $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('F j, Y - g:i A T') : 'Unknown';
-        $location = $chart->getBirthLocation() ? htmlspecialchars($chart->getBirthLocation()) : 'Unknown';
+        $locationName = $chart->getBirthLocationName();
+        $location = $locationName ? htmlspecialchars($locationName) : 'Unknown';
         $lat = $chart->getBirthLatitude() ?? 0;
         $lon = $chart->getBirthLongitude() ?? 0;
         $houseSystem = ucfirst($chartData['house_system'] ?? 'placidus');
@@ -390,7 +400,10 @@ class ReportGenerator
     {
         $html = '<h1>Planetary Positions</h1>';
 
-        $planets = json_decode($chartData['planetary_positions'] ?? '{}', true);
+        $planets = $chartData['planetary_positions'] ?? [];
+        if (is_string($planets)) {
+            $planets = json_decode($planets, true) ?: [];
+        }
 
         if (empty($planets)) {
             return $html . '<p>No planetary position data available.</p>';
@@ -400,8 +413,11 @@ class ReportGenerator
         $html .= '<tr><th>Planet</th><th>Sign</th><th>Degree</th><th>House</th><th>Retrograde</th></tr>';
 
         foreach ($planets as $planetName => $data) {
-            $sign = $data['sign'] ?? '--';
-            $degree = isset($data['degree']) ? number_format($data['degree'], 2) . '°' : '--';
+            $longitude = isset($data['longitude']) && is_numeric($data['longitude']) ? (float)$data['longitude'] : null;
+            $sign = $data['sign'] ?? ($longitude !== null ? $this->getSignFromLongitude($longitude) : '--');
+            $degree = isset($data['degree'])
+                ? number_format((float)$data['degree'], 2) . '°'
+                : ($longitude !== null ? number_format(fmod(($longitude + 360.0), 30.0), 2) . '°' : '--');
             $house = $data['house'] ?? '--';
             $retrograde = ($data['retrograde'] ?? false) ? 'Yes ℞' : 'No';
 
@@ -423,7 +439,10 @@ class ReportGenerator
     {
         $html = '<h2>House Cusps</h2>';
 
-        $houses = json_decode($chartData['house_cusps'] ?? '[]', true);
+        $houses = $chartData['house_cusps'] ?? ($chartData['house_positions'] ?? []);
+        if (is_string($houses)) {
+            $houses = json_decode($houses, true) ?: [];
+        }
 
         if (empty($houses)) {
             return $html . '<p>No house cusp data available.</p>';
@@ -432,10 +451,23 @@ class ReportGenerator
         $html .= '<table class="planet-table">';
         $html .= '<tr><th>House</th><th>Sign</th><th>Degree</th></tr>';
 
+        $autoHouseNum = 1;
         foreach ($houses as $index => $cusp) {
-            $houseNum = $index + 1;
-            $sign = $cusp['sign'] ?? '--';
-            $degree = isset($cusp['degree']) ? number_format($cusp['degree'], 2) . '°' : '--';
+            $houseNum = is_numeric($index) ? (int)$index : $autoHouseNum;
+            $autoHouseNum++;
+            $longitude = null;
+            if (is_array($cusp) && isset($cusp['cusp']) && is_numeric($cusp['cusp'])) {
+                $longitude = (float)$cusp['cusp'];
+            } elseif (is_numeric($cusp)) {
+                $longitude = (float)$cusp;
+            }
+
+            $sign = is_array($cusp) && isset($cusp['sign'])
+                ? (string)$cusp['sign']
+                : ($longitude !== null ? $this->getSignFromLongitude($longitude) : '--');
+            $degree = is_array($cusp) && isset($cusp['degree'])
+                ? number_format((float)$cusp['degree'], 2) . '°'
+                : ($longitude !== null ? number_format(fmod(($longitude + 360.0), 30.0), 2) . '°' : '--');
 
             $html .= '<tr>';
             $html .= '<td><strong>' . $houseNum . '</strong></td>';
@@ -453,7 +485,10 @@ class ReportGenerator
     {
         $html = '<h1>Major Aspects</h1>';
 
-        $aspects = json_decode($chartData['aspects'] ?? '[]', true);
+        $aspects = $chartData['aspects'] ?? [];
+        if (is_string($aspects)) {
+            $aspects = json_decode($aspects, true) ?: [];
+        }
 
         if (empty($aspects)) {
             return $html . '<p>No aspect data available.</p>';
@@ -483,6 +518,24 @@ class ReportGenerator
         $html .= '</table>';
 
         return $html;
+    }
+
+    private function buildChartData(Chart $chart): array
+    {
+        return [
+            'house_system' => $chart->getHouseSystem(),
+            'planetary_positions' => $chart->getPlanetaryPositions(),
+            'house_positions' => $chart->getHousePositions(),
+            'aspects' => $chart->getAspects(),
+        ];
+    }
+
+    private function getSignFromLongitude(float $longitude): string
+    {
+        $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+        $normalized = fmod(($longitude + 360.0), 360.0);
+        $index = (int) floor($normalized / 30.0);
+        return $signs[$index] ?? '--';
     }
 
     private function buildInterpretation(array $interpretation): string

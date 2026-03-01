@@ -40,6 +40,7 @@ if (!isset($aiProviders[$defaultAiProvider])) {
     $defaultAiProvider = 'ollama';
 }
 $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiProvider]['default_model'] ?? '')));
+$csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 ?>
 
 <!DOCTYPE html>
@@ -51,7 +52,7 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
         .chart-viewer {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -88,9 +89,10 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
 
         .chart-content {
             display: grid;
-            grid-template-columns: 1fr 400px;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
             gap: 2rem;
             margin-bottom: 2rem;
+            align-items: start;
         }
 
         .chart-wheel-container {
@@ -98,20 +100,80 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 2rem;
+            padding: 1.5rem;
             display: flex;
-            align-items: center;
+            align-items: stretch;
             justify-content: center;
-            min-height: 500px;
+            min-height: 680px;
         }
 
         .chart-wheel {
-            width: 400px;
-            height: 400px;
-            border: 2px solid var(--quantum-primary);
-            border-radius: 50%;
-            position: relative;
-            background: radial-gradient(circle, rgba(74, 144, 226, 0.1) 0%, transparent 70%);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chart-zoom-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        .zoom-btn {
+            min-width: 44px;
+            min-height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--quantum-text);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+
+        .zoom-indicator {
+            min-width: 80px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .chart-zoom-stage {
+            flex: 1;
+            min-height: 560px;
+            overflow: auto;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: radial-gradient(circle at center, rgba(74, 144, 226, 0.1) 0%, rgba(10, 14, 20, 0.65) 65%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            cursor: zoom-in;
+        }
+
+        .chart-zoom-inner {
+            transform-origin: center center;
+            transition: transform 0.12s ease-out;
+            will-change: transform;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-wheel-image {
+            width: min(100%, 980px);
+            max-width: 100%;
+            height: auto;
+            display: block;
         }
 
         .chart-sidebar {
@@ -171,7 +233,11 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
         }
 
         .chart-actions {
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             margin-top: 2rem;
         }
 
@@ -186,7 +252,7 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
             text-decoration: none;
             display: inline-block;
             text-align: center;
-            margin: 0 0.5rem;
+            margin: 0;
         }
 
         .btn-primary {
@@ -197,6 +263,14 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+        }
+        .btn-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ffb3bf;
+            border: 1px solid rgba(220, 53, 69, 0.45);
+        }
+        .btn-danger:hover {
+            background: rgba(220, 53, 69, 0.32);
         }
 
         .btn-secondary {
@@ -253,15 +327,25 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
             margin-bottom: 1rem;
         }
 
+        @media (max-width: 1280px) {
+            .chart-content { grid-template-columns: 1fr 340px; }
+            .chart-wheel-container { min-height: 620px; }
+            .chart-zoom-stage { min-height: 520px; }
+            .chart-wheel-image { width: min(100%, 900px); }
+        }
+
         @media (max-width: 968px) {
-            .chart-content {
-                grid-template-columns: 1fr;
-            }
+            .chart-content { grid-template-columns: 1fr; }
             
             .chart-meta {
                 flex-direction: column;
                 gap: 0.5rem;
             }
+
+            .chart-viewer { padding: 1rem; }
+            .chart-wheel-container { min-height: 500px; padding: 1rem; }
+            .chart-zoom-stage { min-height: 420px; padding: 0.75rem; }
+            .chart-wheel-image { width: min(100vw - 6rem, 700px); }
         }
     </style>
 </head>
@@ -301,9 +385,21 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
             <div class="chart-wheel-container">
                 <?php if ($planetaryPositions): ?>
                     <div class="chart-wheel">
-                        <img src="/api/charts/<?= $chart->getId() ?>/wheel" 
-                             alt="<?= htmlspecialchars($chart->getName()) ?> Chart Wheel"
-                             style="width: 100%; max-width: 400px; height: auto;">
+                        <div class="chart-zoom-toolbar">
+                            <button type="button" class="zoom-btn" id="zoom-out" title="Zoom out">−</button>
+                            <span class="zoom-indicator" id="zoom-label">100%</span>
+                            <button type="button" class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+                            <button type="button" class="zoom-btn" id="zoom-reset" title="Reset zoom">Reset</button>
+                        </div>
+                        <div class="chart-zoom-stage" id="chart-zoom-stage" title="Use mouse wheel to zoom">
+                            <div class="chart-zoom-inner" id="chart-zoom-inner">
+                                <img
+                                    class="chart-wheel-image"
+                                    src="/api/charts/<?= $chart->getId() ?>/wheel?size=1200"
+                                    alt="<?= htmlspecialchars($chart->getName()) ?> Chart Wheel"
+                                >
+                            </div>
+                        </div>
                     </div>
                 <?php else: ?>
                     <div class="no-data">
@@ -367,7 +463,7 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
                     <h3 class="info-card-title">Major Aspects</h3>
                     <?php if ($aspects && is_array($aspects) && count($aspects) > 0): ?>
                         <ul class="aspect-list">
-                            <?php 
+                            <?php
                             // Show only first 10 aspects to avoid clutter
                             $displayAspects = array_slice($aspects, 0, 10);
                             foreach ($displayAspects as $aspect): ?>
@@ -484,6 +580,7 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
             <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
             <?php if ($chart->getUserId() === $user->getId()): ?>
                 <a href="/charts/edit?id=<?= $chart->getId() ?>" class="btn btn-primary">Edit Chart</a>
+                <button type="button" class="btn btn-danger" onclick="deleteCurrentChart()">Delete Chart</button>
             <?php endif ?>
             <a href="/api/charts/<?= $chart->getId() ?>/export" class="btn btn-primary">Export Data</a>
         </div>
@@ -491,9 +588,15 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
 
     <script>
         const chartId = <?= $chart->getId() ?>;
+        const chartName = <?= json_encode((string)$chart->getName(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const csrfToken = <?= json_encode($csrfToken, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         const aiProviders = <?= json_encode($aiProviders, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         const defaultAiProvider = <?= json_encode($defaultAiProvider, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         const defaultAiModel = <?= json_encode($defaultAiModel, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        let chartZoom = 1;
+        const chartZoomMin = 0.6;
+        const chartZoomMax = 3.2;
+        const chartZoomStep = 0.1;
         
         // Add particle animation
         const particlesContainer = document.querySelector('.particles-container');
@@ -518,6 +621,77 @@ $defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiPro
         setInterval(() => {
             createParticle();
         }, 1000);
+
+        async function deleteCurrentChart() {
+            const confirmed = window.confirm(`Delete chart "${chartName}"? This cannot be undone.`);
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch('/api/chart_delete.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: Number(chartId),
+                        csrf: csrfToken
+                    })
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload?.error?.message || 'Failed to delete chart');
+                }
+
+                sessionStorage.setItem('qa_toast', `Chart "${chartName}" deleted.`);
+                window.location.href = '/charts';
+            } catch (error) {
+                alert(error.message || 'Failed to delete chart');
+            }
+        }
+
+        function clampZoom(nextZoom) {
+            return Math.max(chartZoomMin, Math.min(chartZoomMax, nextZoom));
+        }
+
+        function applyChartZoom() {
+            const zoomInner = document.getElementById('chart-zoom-inner');
+            const zoomLabel = document.getElementById('zoom-label');
+            if (!zoomInner || !zoomLabel) return;
+            zoomInner.style.transform = `scale(${chartZoom})`;
+            zoomLabel.textContent = `${Math.round(chartZoom * 100)}%`;
+        }
+
+        function setupChartZoomControls() {
+            const zoomStage = document.getElementById('chart-zoom-stage');
+            const zoomIn = document.getElementById('zoom-in');
+            const zoomOut = document.getElementById('zoom-out');
+            const zoomReset = document.getElementById('zoom-reset');
+            if (!zoomStage || !zoomIn || !zoomOut || !zoomReset) return;
+
+            zoomIn.addEventListener('click', () => {
+                chartZoom = clampZoom(chartZoom + chartZoomStep);
+                applyChartZoom();
+            });
+
+            zoomOut.addEventListener('click', () => {
+                chartZoom = clampZoom(chartZoom - chartZoomStep);
+                applyChartZoom();
+            });
+
+            zoomReset.addEventListener('click', () => {
+                chartZoom = 1;
+                applyChartZoom();
+            });
+
+            zoomStage.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                const delta = event.deltaY > 0 ? -chartZoomStep : chartZoomStep;
+                chartZoom = clampZoom(chartZoom + delta);
+                applyChartZoom();
+            }, { passive: false });
+
+            applyChartZoom();
+        }
+
+        document.addEventListener('DOMContentLoaded', setupChartZoomControls);
 
         // Transit functionality
         async function loadTransits() {
