@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace QuantumAstrology\Charts;
 
 use QuantumAstrology\Core\DB;
+use QuantumAstrology\Database\Connection;
 
 final class Cache
 {
@@ -36,11 +37,25 @@ final class Cache
     public static function put(string $hash, array $planets, array $houses): void
     {
         $pdo = DB::conn();
-        $stmt = $pdo->prepare("
-            INSERT INTO calc_cache (calc_hash, planets_json, houses_json)
-            VALUES (:h, :p, :h2)
-            ON DUPLICATE KEY UPDATE planets_json = VALUES(planets_json), houses_json = VALUES(houses_json)
-        ");
+        if (Connection::isMySql()) {
+            $sql = "
+                INSERT INTO calc_cache (calc_hash, planets_json, houses_json)
+                VALUES (:h, :p, :h2)
+                ON DUPLICATE KEY UPDATE
+                    planets_json = VALUES(planets_json),
+                    houses_json = VALUES(houses_json)
+            ";
+        } else {
+            $sql = "
+                INSERT INTO calc_cache (calc_hash, planets_json, houses_json)
+                VALUES (:h, :p, :h2)
+                ON CONFLICT(calc_hash) DO UPDATE SET
+                    planets_json = excluded.planets_json,
+                    houses_json = excluded.houses_json
+            ";
+        }
+
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':h'  => $hash,
             ':p'  => json_encode($planets, JSON_UNESCAPED_SLASHES),

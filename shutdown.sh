@@ -2,27 +2,12 @@
 set -euo pipefail
 
 echo "================================================"
-echo "  Quantum Astrology - Production Launcher"
+echo "  Quantum Astrology - Production Shutdown"
 echo "================================================"
 echo ""
 
-# Ensure environment file exists
-echo "[1/4] Checking environment configuration..."
-if [ ! -f .env ]; then
-    if [ -f .env.example ]; then
-        echo "      Creating .env file from .env.example..."
-        cp .env.example .env
-        echo "      NOTE: Please review .env and update database credentials if needed"
-    else
-        echo "      WARNING: No .env or .env.example found"
-    fi
-else
-    echo "      .env file exists"
-fi
-echo ""
-
 # Resolve compose command
-echo "[2/4] Detecting Docker Compose..."
+echo "[1/3] Detecting Docker Compose..."
 if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
@@ -35,7 +20,7 @@ echo "      Using: $COMPOSE_CMD"
 echo ""
 
 # Pick compose file (production first)
-echo "[3/4] Locating compose configuration..."
+echo "[2/3] Locating compose configuration..."
 if [ -f docker-compose.prod.yml ]; then
     COMPOSE_FILE="docker-compose.prod.yml"
 elif [ -f docker-compose.prod.yaml ]; then
@@ -56,18 +41,12 @@ fi
 echo "      Found: $COMPOSE_FILE"
 echo ""
 
-# Start production containers
-echo "[4/4] Starting production containers..."
-echo "      Command: $COMPOSE_CMD -f $COMPOSE_FILE up -d --build"
-$COMPOSE_CMD -f "$COMPOSE_FILE" up -d --build
+# Stop production containers
+echo "[3/3] Stopping production containers..."
+echo "      Command: $COMPOSE_CMD -f $COMPOSE_FILE down"
+$COMPOSE_CMD -f "$COMPOSE_FILE" down
 
 echo ""
 echo "================================================"
-echo "  Production containers are running"
+echo "  Production containers stopped"
 echo "================================================"
-echo ""
-echo "Use this to inspect status:"
-echo "  $COMPOSE_CMD -f $COMPOSE_FILE ps"
-echo ""
-echo "Use this to stop services:"
-echo "  $COMPOSE_CMD -f $COMPOSE_FILE down"

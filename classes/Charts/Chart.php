@@ -101,15 +101,50 @@ class Chart
 
     public static function findByUserId(int $userId, int $limit = 20, int $offset = 0): array
     {
+        return self::findByUserIdFiltered($userId, $limit, $offset);
+    }
+
+    public static function findByUserIdFiltered(
+        int $userId,
+        int $limit = 20,
+        int $offset = 0,
+        ?string $search = null,
+        string $visibility = 'all',
+        string $sort = 'newest'
+    ): array {
         $pdo = DB::conn();
         // Ensure standard pagination
         $limit = max(1, min(100, $limit));
         $offset = max(0, $offset);
+        $where = ['user_id = :user_id'];
+        $params = [':user_id' => $userId];
 
-        $stmt = $pdo->prepare("SELECT * FROM charts WHERE user_id = :user_id ORDER BY id DESC LIMIT :lim OFFSET :off");
+        $search = trim((string) ($search ?? ''));
+        if ($search !== '') {
+            $where[] = "(LOWER(name) LIKE :search OR LOWER(COALESCE(birth_location_name, '')) LIKE :search)";
+            $params[':search'] = '%' . strtolower($search) . '%';
+        }
+
+        if ($visibility === 'public') {
+            $where[] = "is_public = 1";
+        } elseif ($visibility === 'private') {
+            $where[] = "is_public = 0";
+        }
+
+        $orderBy = match ($sort) {
+            'oldest' => 'id ASC',
+            'name_asc' => 'name ASC, id DESC',
+            'name_desc' => 'name DESC, id DESC',
+            default => 'id DESC',
+        };
+
+        $sql = "SELECT * FROM charts WHERE " . implode(' AND ', $where) . " ORDER BY {$orderBy} LIMIT :lim OFFSET :off";
+        $stmt = $pdo->prepare($sql);
         
         // PDO bindValue for integers is safer for LIMIT/OFFSET
-        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, $key === ':user_id' ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -117,6 +152,34 @@ class Chart
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map([self::class, 'fromArray'], $results);
+    }
+
+    public static function countByUserIdFiltered(int $userId, ?string $search = null, string $visibility = 'all'): int
+    {
+        $pdo = DB::conn();
+        $where = ['user_id = :user_id'];
+        $params = [':user_id' => $userId];
+
+        $search = trim((string) ($search ?? ''));
+        if ($search !== '') {
+            $where[] = "(LOWER(name) LIKE :search OR LOWER(COALESCE(birth_location_name, '')) LIKE :search)";
+            $params[':search'] = '%' . strtolower($search) . '%';
+        }
+
+        if ($visibility === 'public') {
+            $where[] = "is_public = 1";
+        } elseif ($visibility === 'private') {
+            $where[] = "is_public = 0";
+        }
+
+        $sql = "SELECT COUNT(*) FROM charts WHERE " . implode(' AND ', $where);
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, $key === ':user_id' ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -250,9 +313,11 @@ class Chart
             }
         }
         
+        $chart->chartType = $data['chart_type'] ?? 'natal';
         $chart->birthTimezone = $data['birth_timezone'] ?? 'UTC';
         $chart->birthLatitude = (float) ($data['birth_latitude'] ?? 0);
         $chart->birthLongitude = (float) ($data['birth_longitude'] ?? 0);
+        $chart->birthLocationName = $data['birth_location_name'] ?? null;
         $chart->houseSystem = $data['house_system'] ?? 'P';
         
         // Decode JSON columns
@@ -271,13 +336,18 @@ class Chart
     public function getId(): ?int { return $this->id; }
     public function getUserId(): ?int { return $this->userId; }
     public function getName(): ?string { return $this->name; }
+    public function getChartType(): string { return $this->chartType ?? 'natal'; }
     public function getBirthDatetime(): ?DateTime { return $this->birthDatetime; }
+    public function getBirthLocationName(): ?string { return $this->birthLocationName; }
     public function getBirthLatitude(): float { return $this->birthLatitude ?? 0.0; }
     public function getBirthLongitude(): float { return $this->birthLongitude ?? 0.0; }
     public function getPlanetaryPositions(): array { return $this->planetaryPositions ?? []; }
     public function getHousePositions(): array { return $this->housePositions ?? []; }
     public function getHouseSystem(): string { return $this->houseSystem ?? 'P'; }
     public function getAspects(): array { return $this->aspects ?? []; }
+    public function isPublic(): bool { return $this->isPublic; }
+    public function getCreatedAt(): ?string { return $this->createdAt; }
+    public function getUpdatedAt(): ?string { return $this->updatedAt; }
     
     // Helper to get positions as a keyed array if needed by other services
     public function getPlanetaryPositionsKeyed(): array {

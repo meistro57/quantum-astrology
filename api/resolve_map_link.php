@@ -23,6 +23,11 @@ function respond(int $status, array $payload): void
  */
 function resolveFinalUrl(string $url): string
 {
+    $mockFinalUrl = env('QA_MOCK_RESOLVE_MAP_LINK_FINAL_URL', '');
+    if (is_string($mockFinalUrl) && trim($mockFinalUrl) !== '') {
+        return trim($mockFinalUrl);
+    }
+
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_NOBODY         => true,

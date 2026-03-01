@@ -45,7 +45,7 @@ This will verify:
 ### 3. Start Development Server
 
 ```bash
-php -S localhost:8080 index.php
+bash start_server.sh
 ```
 
 ### 4. Access the Application
@@ -60,6 +60,22 @@ You should see the beautiful Quantum Astrology dashboard with:
 - 📊 Interactive dashboard cards
 - 📈 Statistics display
 - 🎯 Quick action buttons
+
+### Production Startup (Docker Compose)
+
+Use the production launcher to start containers (prefers `docker-compose.prod.yml` when present):
+
+```bash
+bash startup.sh
+```
+
+Before public deployment, set strong `DB_PASS` and `MYSQL_ROOT_PASSWORD` values in `.env`.
+
+Stop production containers with:
+
+```bash
+bash shutdown.sh
+```
 
 ### 5. (Optional) Use an Existing MySQL/MariaDB Server
 

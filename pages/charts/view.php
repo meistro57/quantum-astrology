@@ -5,6 +5,7 @@ require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Charts\Chart;
+use QuantumAstrology\Interpretations\AIInterpreter;
 
 Auth::requireLogin();
 
@@ -33,6 +34,12 @@ $pageTitle = htmlspecialchars($chart->getName()) . ' - Quantum Astrology';
 $planetaryPositions = $chart->getPlanetaryPositions();
 $housePositions = $chart->getHousePositions();
 $aspects = $chart->getAspects();
+$aiProviders = AIInterpreter::getSupportedProviders();
+$defaultAiProvider = strtolower((string)($_ENV['AI_PROVIDER'] ?? 'ollama'));
+if (!isset($aiProviders[$defaultAiProvider])) {
+    $defaultAiProvider = 'ollama';
+}
+$defaultAiModel = trim((string)($_ENV['AI_MODEL'] ?? ($aiProviders[$defaultAiProvider]['default_model'] ?? '')));
 ?>
 
 <!DOCTYPE html>
@@ -447,6 +454,24 @@ $aspects = $chart->getAspects();
                     Loading interpretation...
                 </div>
                 <div id="interpretation-content" style="display: none;"></div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center;">
+                    <select id="ai-provider" class="btn btn-secondary" style="margin: 0; min-width: 170px;">
+                        <?php foreach ($aiProviders as $providerKey => $provider): ?>
+                            <option value="<?= htmlspecialchars($providerKey) ?>" <?= $providerKey === $defaultAiProvider ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($provider['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select id="ai-model" class="btn btn-secondary" style="margin: 0; min-width: 220px;"></select>
+                    <input id="ai-focus"
+                           type="text"
+                           class="btn btn-secondary"
+                           style="margin: 0; min-width: 260px; text-align: left;"
+                           placeholder="Focus (e.g., career, relationships, 2026 themes)">
+                    <label style="display: inline-flex; align-items: center; gap: 0.35rem; color: rgba(255,255,255,0.75); font-size: 0.9rem;">
+                        <input id="ai-fresh" type="checkbox"> Fresh run
+                    </label>
+                </div>
                 <div style="text-align: center; margin-top: 1rem;">
                     <button id="load-interpretation" class="btn btn-primary" onclick="loadStructuredInterpretation()">Structured Analysis</button>
                     <button id="load-ai-interpretation" class="btn btn-secondary" onclick="loadAIInterpretation()" style="margin-left: 0.5rem;">AI Reading</button>
@@ -466,6 +491,9 @@ $aspects = $chart->getAspects();
 
     <script>
         const chartId = <?= $chart->getId() ?>;
+        const aiProviders = <?= json_encode($aiProviders, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const defaultAiProvider = <?= json_encode($defaultAiProvider, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const defaultAiModel = <?= json_encode($defaultAiModel, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         
         // Add particle animation
         const particlesContainer = document.querySelector('.particles-container');
@@ -934,6 +962,10 @@ $aspects = $chart->getAspects();
             const loading = document.getElementById('interpretation-loading');
             const content = document.getElementById('interpretation-content');
             const button = document.getElementById('load-ai-interpretation');
+            const providerEl = document.getElementById('ai-provider');
+            const modelEl = document.getElementById('ai-model');
+            const focusEl = document.getElementById('ai-focus');
+            const freshEl = document.getElementById('ai-fresh');
             
             loading.style.display = 'block';
             content.style.display = 'none';
@@ -941,7 +973,12 @@ $aspects = $chart->getAspects();
             button.textContent = 'Loading...';
             
             try {
-                const response = await fetch(`/api/charts/${chartId}/interpretation/ai`);
+                const params = new URLSearchParams();
+                if (providerEl?.value) params.set('provider', providerEl.value);
+                if (modelEl?.value) params.set('model', modelEl.value);
+                if (focusEl?.value?.trim()) params.set('focus', focusEl.value.trim());
+                if (freshEl?.checked) params.set('fresh', '1');
+                const response = await fetch(`/api/charts/${chartId}/interpretation/ai?${params.toString()}`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -1089,7 +1126,10 @@ $aspects = $chart->getAspects();
             let html = `
                 <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>AI-Generated Natural Language Reading</strong><br>
-                    <span style="color: rgba(255, 255, 255, 0.7);">Confidence Score: ${data.confidence_score || 0}% | Words: ${data.interpretation_metadata?.word_count || 0}</span>
+                    <span style="color: rgba(255, 255, 255, 0.7);">
+                        Confidence: ${data.confidence_score || 0}% | Words: ${data.interpretation_metadata?.word_count || 0}
+                        ${data.cache?.hit ? ' | Cache: hit' : ' | Cache: fresh'}
+                    </span>
                 </div>
             `;
             
@@ -1157,10 +1197,42 @@ $aspects = $chart->getAspects();
             if (data.interpretation_metadata) {
                 html += `<div style="margin-top: 1rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 5px; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);">
                     Generated by ${data.interpretation_metadata.ai_model} on ${new Date(data.interpretation_metadata.generated_at).toLocaleString()}
+                    ${data.request?.processing_ms ? ` | ${data.request.processing_ms}ms` : ''}
                 </div>`;
             }
             
             content.innerHTML = html;
+        }
+
+        function syncAiModels() {
+            const providerEl = document.getElementById('ai-provider');
+            const modelEl = document.getElementById('ai-model');
+            if (!providerEl || !modelEl) return;
+
+            const provider = providerEl.value;
+            const providerConfig = aiProviders[provider] || null;
+            const models = providerConfig?.models || [];
+            const defaultModel = providerConfig?.default_model || '';
+            const requestedModel = provider === defaultAiProvider && defaultAiModel ? defaultAiModel : defaultModel;
+
+            modelEl.innerHTML = '';
+            if (models.length === 0) {
+                const option = document.createElement('option');
+                option.value = requestedModel || 'default';
+                option.textContent = requestedModel || 'Default model';
+                modelEl.appendChild(option);
+                return;
+            }
+
+            models.forEach((modelName) => {
+                const option = document.createElement('option');
+                option.value = modelName;
+                option.textContent = modelName;
+                if (modelName === requestedModel) {
+                    option.selected = true;
+                }
+                modelEl.appendChild(option);
+            });
         }
 
         function displayAspectPatterns(data) {
@@ -1275,6 +1347,12 @@ $aspects = $chart->getAspects();
             document.getElementById('interpretation-loading').style.display = 'none';
             document.getElementById('interpretation-content').innerHTML = '<div class="no-data">Click "Structured Analysis", "AI Reading", or "Aspect Patterns" to load interpretations</div>';
             document.getElementById('interpretation-content').style.display = 'block';
+
+            const providerEl = document.getElementById('ai-provider');
+            if (providerEl) {
+                providerEl.addEventListener('change', syncAiModels);
+            }
+            syncAiModels();
         });
     </script>
 </body>

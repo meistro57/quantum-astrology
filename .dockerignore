@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+vendor
+storage/logs/*
+storage/cache/*
+storage/charts/*
+storage/reports/*
+storage/backups/*
+storage/audio/*
+storage/uploads/*
+.env
+.env.*
+tests
+docs
+roadmaps

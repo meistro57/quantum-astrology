@@ -5,13 +5,42 @@ require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Session;
+use QuantumAstrology\Database\Connection;
 use QuantumAstrology\Support\InputValidator;
 
 Auth::requireLogin();
 
 $user = Auth::user();
-$success = '';
+$success = Session::getFlash('success') ?? '';
 $errors = [];
+
+/**
+ * Best-effort parse of "City, ST, ..." or "City, State, ..." into [city, state].
+ *
+ * @return array{0:string,1:string}
+ */
+function parseCityStateFromLocation(?string $locationName): array
+{
+    if ($locationName === null) {
+        return ['', ''];
+    }
+
+    $parts = array_values(array_filter(array_map('trim', explode(',', $locationName)), static fn ($p) => $p !== ''));
+    if (count($parts) < 2) {
+        return ['', ''];
+    }
+
+    $city = $parts[0];
+    $state = $parts[1];
+
+    // Drop country-like values from state slot if string is like "City, USA".
+    $stateUpper = strtoupper($state);
+    if (in_array($stateUpper, ['US', 'USA', 'UNITED STATES', 'UNITED STATES OF AMERICA'], true)) {
+        return [$city, ''];
+    }
+
+    return [$city, $state];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updateData = [
@@ -28,6 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $birthLocationName = trim($_POST['birth_location_name'] ?? '');
     $birthLatitudeRaw = $_POST['birth_latitude'] ?? null;
     $birthLongitudeRaw = $_POST['birth_longitude'] ?? null;
+    $birthCityRaw = trim($_POST['birth_city'] ?? '');
+    $birthStateRaw = trim($_POST['birth_state'] ?? '');
+
+    $currentPasswordRaw = (string) ($_POST['current_password'] ?? '');
+    $newPasswordRaw = (string) ($_POST['new_password'] ?? '');
+    $confirmPasswordRaw = (string) ($_POST['confirm_password'] ?? '');
+    $wantsPasswordChange = $currentPasswordRaw !== '' || $newPasswordRaw !== '' || $confirmPasswordRaw !== '';
     
     // Basic validation
     if (empty($updateData['username'])) {
@@ -89,22 +125,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $updateData['birth_latitude'] = $birthLatitude;
         $updateData['birth_longitude'] = $birthLongitude;
+        if ($birthLocationName === '' && ($birthCityRaw !== '' || $birthStateRaw !== '')) {
+            $birthLocationName = trim($birthCityRaw . ($birthCityRaw !== '' && $birthStateRaw !== '' ? ', ' : '') . $birthStateRaw);
+        }
         $updateData['birth_location_name'] = $birthLocationName !== '' ? $birthLocationName : null;
     } catch (InvalidArgumentException $e) {
         $errors[] = $e->getMessage();
     }
 
+    if ($wantsPasswordChange) {
+        if ($currentPasswordRaw === '' || $newPasswordRaw === '' || $confirmPasswordRaw === '') {
+            $errors[] = 'To change your password, provide current password, new password, and confirmation.';
+        } elseif (!$user->verifyPassword($currentPasswordRaw)) {
+            $errors[] = 'Current password is incorrect.';
+        } elseif (strlen($newPasswordRaw) < 8) {
+            $errors[] = 'New password must be at least 8 characters long.';
+        } elseif ($newPasswordRaw !== $confirmPasswordRaw) {
+            $errors[] = 'New password confirmation does not match.';
+        }
+    }
+
     if (empty($errors)) {
-        if ($user->update($updateData)) {
-            $success = 'Profile updated successfully!';
-            $user = Auth::user(); // Refresh user data
-        } else {
-            $errors[] = 'Failed to update profile. Please try again.';
+        $pdo = Connection::getInstance();
+        $useTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($useTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            if (!$user->update($updateData)) {
+                throw new RuntimeException('Failed to update profile. Please try again.');
+            }
+
+            if ($wantsPasswordChange && !$user->updatePassword($newPasswordRaw)) {
+                throw new RuntimeException('Failed to update password. Please try again.');
+            }
+
+            if ($useTransaction) {
+                $pdo->commit();
+            }
+
+            $flashMessage = $wantsPasswordChange
+                ? 'Profile and password updated successfully!'
+                : 'Profile updated successfully!';
+            Session::flash('success', $flashMessage);
+            header('Location: /profile');
+            exit;
+        } catch (Throwable $e) {
+            if ($useTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $errors[] = $e->getMessage();
         }
     }
 }
 
 $pageTitle = 'Profile Settings - Quantum Astrology';
+[$parsedBirthCity, $parsedBirthState] = parseCityStateFromLocation($user->getBirthLocationName());
 ?>
 
 <!DOCTYPE html>
@@ -177,6 +255,20 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.95rem;
             margin-bottom: 1rem;
+        }
+        .location-status {
+            margin-top: 0.35rem;
+            margin-bottom: 0;
+        }
+        .location-status.success { color: #7dd87d; }
+        .location-status.error { color: #ff6b6b; }
+        .city-state-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .city-state-row .form-input {
+            flex: 1;
         }
 
         .form-label {
@@ -292,6 +384,11 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             .button-group {
                 flex-direction: column;
             }
+
+            .city-state-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
             
             .user-meta {
                 flex-direction: column;
@@ -306,7 +403,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
 
     <div class="profile-container">
         <div class="page-actions">
-            <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/dashboard'">
+            <button type="button" class="back-button" onclick="(function(){const ref=document.referrer||''; if(ref.startsWith(window.location.origin) && !ref.includes('/profile')){ window.location.href=ref; } else { window.location.href='/dashboard'; } })();">
                 <span class="icon" aria-hidden="true">←</span>
                 <span>Back</span>
             </button>
@@ -340,7 +437,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                            id="username" 
                            name="username" 
                            class="form-input"
-                           value="<?= htmlspecialchars($user->getUsername()) ?>"
+                           value="<?= htmlspecialchars($_POST['username'] ?? $user->getUsername()) ?>"
                            required>
                 </div>
 
@@ -350,7 +447,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                            id="email" 
                            name="email" 
                            class="form-input"
-                           value="<?= htmlspecialchars($user->getEmail()) ?>"
+                           value="<?= htmlspecialchars($_POST['email'] ?? $user->getEmail()) ?>"
                            required>
                 </div>
 
@@ -361,7 +458,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                id="first_name" 
                                name="first_name" 
                                class="form-input"
-                               value="<?= htmlspecialchars($user->getFirstName() ?? '') ?>">
+                               value="<?= htmlspecialchars($_POST['first_name'] ?? ($user->getFirstName() ?? '')) ?>">
                     </div>
 
                     <div class="form-group">
@@ -370,23 +467,24 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                id="last_name" 
                                name="last_name" 
                                class="form-input"
-                               value="<?= htmlspecialchars($user->getLastName() ?? '') ?>">
+                               value="<?= htmlspecialchars($_POST['last_name'] ?? ($user->getLastName() ?? '')) ?>">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="timezone" class="form-label">Timezone</label>
                     <select id="timezone" name="timezone" class="form-select">
-                        <option value="UTC" <?= $user->getTimezone() === 'UTC' ? 'selected' : '' ?>>UTC (Coordinated Universal Time)</option>
-                        <option value="America/New_York" <?= $user->getTimezone() === 'America/New_York' ? 'selected' : '' ?>>Eastern Time (US & Canada)</option>
-                        <option value="America/Chicago" <?= $user->getTimezone() === 'America/Chicago' ? 'selected' : '' ?>>Central Time (US & Canada)</option>
-                        <option value="America/Denver" <?= $user->getTimezone() === 'America/Denver' ? 'selected' : '' ?>>Mountain Time (US & Canada)</option>
-                        <option value="America/Los_Angeles" <?= $user->getTimezone() === 'America/Los_Angeles' ? 'selected' : '' ?>>Pacific Time (US & Canada)</option>
-                        <option value="Europe/London" <?= $user->getTimezone() === 'Europe/London' ? 'selected' : '' ?>>London</option>
-                        <option value="Europe/Paris" <?= $user->getTimezone() === 'Europe/Paris' ? 'selected' : '' ?>>Paris</option>
-                        <option value="Europe/Berlin" <?= $user->getTimezone() === 'Europe/Berlin' ? 'selected' : '' ?>>Berlin</option>
-                        <option value="Asia/Tokyo" <?= $user->getTimezone() === 'Asia/Tokyo' ? 'selected' : '' ?>>Tokyo</option>
-                        <option value="Australia/Sydney" <?= $user->getTimezone() === 'Australia/Sydney' ? 'selected' : '' ?>>Sydney</option>
+                        <?php $savedTimezone = $_POST['timezone'] ?? $user->getTimezone(); ?>
+                        <option value="UTC" <?= $savedTimezone === 'UTC' ? 'selected' : '' ?>>UTC (Coordinated Universal Time)</option>
+                        <option value="America/New_York" <?= $savedTimezone === 'America/New_York' ? 'selected' : '' ?>>Eastern Time (US & Canada)</option>
+                        <option value="America/Chicago" <?= $savedTimezone === 'America/Chicago' ? 'selected' : '' ?>>Central Time (US & Canada)</option>
+                        <option value="America/Denver" <?= $savedTimezone === 'America/Denver' ? 'selected' : '' ?>>Mountain Time (US & Canada)</option>
+                        <option value="America/Los_Angeles" <?= $savedTimezone === 'America/Los_Angeles' ? 'selected' : '' ?>>Pacific Time (US & Canada)</option>
+                        <option value="Europe/London" <?= $savedTimezone === 'Europe/London' ? 'selected' : '' ?>>London</option>
+                        <option value="Europe/Paris" <?= $savedTimezone === 'Europe/Paris' ? 'selected' : '' ?>>Paris</option>
+                        <option value="Europe/Berlin" <?= $savedTimezone === 'Europe/Berlin' ? 'selected' : '' ?>>Berlin</option>
+                        <option value="Asia/Tokyo" <?= $savedTimezone === 'Asia/Tokyo' ? 'selected' : '' ?>>Tokyo</option>
+                        <option value="Australia/Sydney" <?= $savedTimezone === 'Australia/Sydney' ? 'selected' : '' ?>>Sydney</option>
                     </select>
                 </div>
 
@@ -443,6 +541,28 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                value="<?= htmlspecialchars($_POST['birth_location_name'] ?? ($user->getBirthLocationName() ?? '')) ?>">
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label">City and State</label>
+                        <div class="city-state-row">
+                            <input type="text"
+                                   id="birth_city"
+                                   name="birth_city"
+                                   class="form-input"
+                                   placeholder="City (e.g., New York)"
+                                   autocomplete="address-level2"
+                                   value="<?= htmlspecialchars($_POST['birth_city'] ?? $parsedBirthCity) ?>">
+                            <input type="text"
+                                   id="birth_state"
+                                   name="birth_state"
+                                   class="form-input"
+                                   placeholder="State (e.g., NY)"
+                                   autocomplete="address-level1"
+                                   value="<?= htmlspecialchars($_POST['birth_state'] ?? $parsedBirthState) ?>">
+                            <button type="button" id="city_state_button" class="btn btn-secondary">Find Coordinates</button>
+                        </div>
+                        <p id="city_state_status" class="helper-text location-status">Enter city and state to auto-fill birth latitude and longitude.</p>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="birth_latitude" class="form-label">Birth Latitude</label>
@@ -462,6 +582,42 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    class="form-input"
                                    placeholder="0.1278 W"
                                    value="<?= htmlspecialchars($_POST['birth_longitude'] ?? ($user->getBirthLongitude() ?? '')) ?>">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">Change Password (optional)</h3>
+                    <p class="helper-text">Leave blank to keep your current password unchanged.</p>
+
+                    <div class="form-group">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        <input type="password"
+                               id="current_password"
+                               name="current_password"
+                               class="form-input"
+                               autocomplete="current-password">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password"
+                                   id="new_password"
+                                   name="new_password"
+                                   class="form-input"
+                                   minlength="8"
+                                   autocomplete="new-password">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password" class="form-label">Confirm New Password</label>
+                            <input type="password"
+                                   id="confirm_password"
+                                   name="confirm_password"
+                                   class="form-input"
+                                   minlength="8"
+                                   autocomplete="new-password">
                         </div>
                     </div>
                 </div>
@@ -503,6 +659,115 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         setInterval(() => {
             createParticle();
         }, 1000);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const cityInput = document.getElementById('birth_city');
+            const stateInput = document.getElementById('birth_state');
+            const latInput = document.getElementById('birth_latitude');
+            const lonInput = document.getElementById('birth_longitude');
+            const locationInput = document.getElementById('birth_location_name');
+            const cityStateButton = document.getElementById('city_state_button');
+            const cityStateStatus = document.getElementById('city_state_status');
+
+            if (!cityInput || !stateInput || !latInput || !lonInput || !cityStateButton || !cityStateStatus) {
+                return;
+            }
+
+            const setCityStateStatus = (message, variant = 'info') => {
+                cityStateStatus.textContent = message;
+                cityStateStatus.classList.remove('success', 'error');
+                if (variant === 'success' || variant === 'error') {
+                    cityStateStatus.classList.add(variant);
+                }
+            };
+
+            const setLocationNameFromCityState = (city, state) => {
+                if (!locationInput || locationInput.value.trim() !== '') {
+                    return;
+                }
+                if (city && state) {
+                    locationInput.value = `${city}, ${state}, USA`;
+                }
+            };
+
+            let lastLookupKey = '';
+            let lookupTimer = null;
+
+            const resolveCityState = async (manual = false) => {
+                const city = cityInput.value.trim();
+                const state = stateInput.value.trim();
+                if (!city || !state) {
+                    if (manual) {
+                        setCityStateStatus('Please enter both city and state.', 'error');
+                    }
+                    return;
+                }
+
+                const lookupKey = `${city.toLowerCase()}|${state.toLowerCase()}`;
+                if (!manual && lookupKey === lastLookupKey) {
+                    return;
+                }
+                lastLookupKey = lookupKey;
+
+                setCityStateStatus('Finding coordinates...');
+                cityStateButton.disabled = true;
+                cityStateButton.textContent = 'Finding...';
+
+                try {
+                    const response = await fetch('/api/resolve_location.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ city, state }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload?.ok) {
+                        const message = payload?.error?.message ?? 'Could not resolve the location.';
+                        throw new Error(message);
+                    }
+
+                    latInput.value = payload.latitude;
+                    lonInput.value = payload.longitude;
+                    setLocationNameFromCityState(city, state);
+                    setCityStateStatus('Coordinates found and filled in.', 'success');
+                } catch (error) {
+                    if (manual) {
+                        const message = error instanceof Error ? error.message : 'Could not resolve the location.';
+                        setCityStateStatus(message, 'error');
+                    } else {
+                        setCityStateStatus('Could not auto-resolve this city/state. You can click Find Coordinates and try again.');
+                    }
+                } finally {
+                    cityStateButton.disabled = false;
+                    cityStateButton.textContent = 'Find Coordinates';
+                }
+            };
+
+            const scheduleLookup = () => {
+                if (lookupTimer) {
+                    clearTimeout(lookupTimer);
+                }
+                lookupTimer = setTimeout(() => {
+                    const hasCoords = latInput.value.trim() !== '' && lonInput.value.trim() !== '';
+                    if (!hasCoords) {
+                        resolveCityState(false);
+                    }
+                }, 600);
+            };
+
+            cityInput.addEventListener('input', scheduleLookup);
+            cityInput.addEventListener('blur', () => resolveCityState(false));
+
+            stateInput.addEventListener('input', scheduleLookup);
+            stateInput.addEventListener('blur', () => resolveCityState(false));
+            stateInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    resolveCityState(true);
+                }
+            });
+
+            cityStateButton.addEventListener('click', () => resolveCityState(true));
+        });
     </script>
 </body>
 </html>

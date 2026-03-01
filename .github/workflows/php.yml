@@ -16,7 +16,7 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-          extensions: pdo_mysql
+          extensions: pdo_mysql, pdo_sqlite, curl
 
       - name: Validate composer.json
         run: php -r "file_exists('composer.json') || exit(0);"
@@ -36,3 +36,29 @@ jobs:
         if: hashFiles('phpunit.xml') != ''
         run: |
           if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit --no-coverage; else echo "PHPUnit not installed"; fi
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          extensions: pdo_mysql, pdo_sqlite, curl
+
+      - name: Install Composer deps (if composer.json exists)
+        if: hashFiles('composer.json') != ''
+        uses: ramsey/composer-install@v3
+        with:
+          composer-options: --no-interaction --no-progress --prefer-dist
+
+      - name: PHPUnit Integration Tests
+        run: |
+          if [ -d tests/Integration ] && [ -f vendor/bin/phpunit ]; then
+            vendor/bin/phpunit --no-coverage tests/Integration
+          else
+            echo "No integration tests directory or phpunit binary found"
+          fi

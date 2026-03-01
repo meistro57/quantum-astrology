@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 require __DIR__ . '/../config.php';
 
-use PDO;
 use QuantumAstrology\Database\Connection;
 use QuantumAstrology\Database\Migrator;
 

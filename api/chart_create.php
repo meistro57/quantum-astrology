@@ -7,8 +7,10 @@ require __DIR__ . '/../config.php';
 use QuantumAstrology\Charts\ChartService;
 use QuantumAstrology\Support\InputValidator;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Core\Session;
 
 header('Content-Type: application/json');
+Session::start();
 
 /**
  * Send a JSON error response with a consistent payload structure.
@@ -41,6 +43,12 @@ if ($rawBody !== false && trim($rawBody) !== '') {
 if (!is_array($payload)) {
     $payload = $_POST ?: [];
 }
+
+if (!isset($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
+    respond_error(401, 'UNAUTHENTICATED', 'Login required.');
+}
+
+$userId = (int) $_SESSION['user_id'];
 
 $name       = trim((string) ($payload['name'] ?? ''));
 $birthDate  = trim((string) ($payload['birth_date'] ?? ''));
@@ -98,7 +106,8 @@ try {
         $birthTimezone,
         $birthLatitude,
         $birthLongitude,
-        $houseSystem
+        $houseSystem,
+        $userId
     );
 
     if (!$chart) {

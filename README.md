@@ -81,8 +81,16 @@ composer install
 cp .env.example .env
 # edit .env with your database + swetest path
 php tools/migrate.php
-php -S localhost:8080 index.php
+bash start_server.sh
+
+# production (docker compose)
+bash startup.sh
+# stop production containers
+bash shutdown.sh
 ```
+
+Production note: `docker-compose.prod.yml` is included and uses default MySQL credentials for first boot.
+Set at least `DB_PASS` and `MYSQL_ROOT_PASSWORD` in your `.env` before exposing the stack publicly.
 
 ### Environment Variables
 

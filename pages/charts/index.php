@@ -9,7 +9,39 @@ use QuantumAstrology\Charts\Chart;
 Auth::requireLogin();
 
 $user = Auth::user();
-$charts = Chart::findByUserId($user->getId(), 20);
+$perPage = 20;
+
+$searchQuery = trim((string)($_GET['q'] ?? ''));
+$visibility = strtolower(trim((string)($_GET['visibility'] ?? 'all')));
+if (!in_array($visibility, ['all', 'public', 'private'], true)) {
+    $visibility = 'all';
+}
+$sort = strtolower(trim((string)($_GET['sort'] ?? 'newest')));
+if (!in_array($sort, ['newest', 'oldest', 'name_asc', 'name_desc'], true)) {
+    $sort = 'newest';
+}
+
+$page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
+if ($page === null || $page === false) {
+    $page = isset($_GET['page']) ? filter_var($_GET['page'], FILTER_VALIDATE_INT) : 1;
+}
+$page = is_int($page) ? max(1, $page) : 1;
+
+$totalCharts = Chart::countByUserIdFiltered((int) $user->getId(), $searchQuery, $visibility);
+$totalPages = max(1, (int) ceil($totalCharts / $perPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $perPage;
+
+$charts = Chart::findByUserIdFiltered((int) $user->getId(), $perPage, $offset, $searchQuery, $visibility, $sort);
+$hasPrev = $page > 1;
+$hasNext = $page < $totalPages;
+$hasActiveFilters = ($searchQuery !== '' || $visibility !== 'all' || $sort !== 'newest');
+$baseQuery = http_build_query([
+    'q' => $searchQuery,
+    'visibility' => $visibility,
+    'sort' => $sort,
+]);
+$baseQuery = $baseQuery !== '' ? $baseQuery . '&' : '';
 
 $pageTitle = 'My Charts - Quantum Astrology';
 ?>
@@ -33,6 +65,44 @@ $pageTitle = 'My Charts - Quantum Astrology';
             justify-content: space-between;
             align-items: center;
             margin-bottom: 3rem;
+        }
+        .charts-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .control-group {
+            min-width: 180px;
+            flex: 1;
+        }
+        .control-label {
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 0.35rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .control-input, .control-select {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--quantum-text);
+        }
+        .control-select option {
+            background: var(--quantum-dark);
+            color: var(--quantum-text);
+        }
+        .controls-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
         }
 
         .charts-title {
@@ -221,6 +291,24 @@ $pageTitle = 'My Charts - Quantum Astrology';
             font-size: 1rem;
             margin-bottom: 2rem;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .pagination .btn[aria-disabled="true"] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .pagination-summary {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
 
         @media (max-width: 768px) {
             .charts-header {
@@ -231,6 +319,14 @@ $pageTitle = 'My Charts - Quantum Astrology';
             
             .charts-grid {
                 grid-template-columns: 1fr;
+            }
+            .charts-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls-actions {
+                width: 100%;
+                justify-content: flex-end;
             }
         }
     </style>
@@ -250,14 +346,49 @@ $pageTitle = 'My Charts - Quantum Astrology';
             <a href="/charts/create" class="btn btn-primary">+ New Chart</a>
         </div>
 
+        <form method="GET" class="charts-controls">
+            <div class="control-group">
+                <label class="control-label" for="q">Search</label>
+                <input id="q" name="q" class="control-input" type="text" placeholder="Name or location" value="<?= htmlspecialchars($searchQuery) ?>">
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="visibility">Visibility</label>
+                <select id="visibility" name="visibility" class="control-select">
+                    <option value="all" <?= $visibility === 'all' ? 'selected' : '' ?>>All</option>
+                    <option value="public" <?= $visibility === 'public' ? 'selected' : '' ?>>Public</option>
+                    <option value="private" <?= $visibility === 'private' ? 'selected' : '' ?>>Private</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="sort">Sort</label>
+                <select id="sort" name="sort" class="control-select">
+                    <option value="newest" <?= $sort === 'newest' ? 'selected' : '' ?>>Newest first</option>
+                    <option value="oldest" <?= $sort === 'oldest' ? 'selected' : '' ?>>Oldest first</option>
+                    <option value="name_asc" <?= $sort === 'name_asc' ? 'selected' : '' ?>>Name A-Z</option>
+                    <option value="name_desc" <?= $sort === 'name_desc' ? 'selected' : '' ?>>Name Z-A</option>
+                </select>
+            </div>
+            <div class="controls-actions">
+                <button type="submit" class="btn btn-secondary">Apply</button>
+                <?php if ($hasActiveFilters): ?>
+                    <a href="/charts" class="btn btn-secondary">Reset</a>
+                <?php endif; ?>
+            </div>
+        </form>
+
         <?php if (empty($charts)): ?>
             <div class="empty-state">
                 <div class="empty-icon">🌟</div>
-                <h2 class="empty-title">No Charts Yet</h2>
+                <h2 class="empty-title"><?= $hasActiveFilters ? 'No Matching Charts' : 'No Charts Yet' ?></h2>
                 <p class="empty-description">
-                    Create your first natal chart to begin your astrological journey
+                    <?= $hasActiveFilters
+                        ? 'Try broadening your search or resetting filters.'
+                        : 'Create your first natal chart to begin your astrological journey' ?>
                 </p>
-                <a href="/charts/create" class="btn btn-primary">Create Your First Chart</a>
+                <?php if ($hasActiveFilters): ?>
+                    <a href="/charts" class="btn btn-secondary">Reset Filters</a>
+                <?php endif; ?>
+                <a href="/charts/create" class="btn btn-primary"><?= $hasActiveFilters ? 'Create New Chart' : 'Create Your First Chart' ?></a>
             </div>
         <?php else: ?>
             <div class="charts-grid">
@@ -314,6 +445,25 @@ $pageTitle = 'My Charts - Quantum Astrology';
                     </div>
                 <?php endforeach ?>
             </div>
+
+            <?php if ($totalPages > 1): ?>
+                <?php
+                    $startItem = $offset + 1;
+                    $endItem = min($offset + count($charts), $totalCharts);
+                ?>
+                <div class="pagination-summary">
+                    Showing <?= $startItem ?>-<?= $endItem ?> of <?= $totalCharts ?> charts
+                </div>
+                <div class="pagination" role="navigation" aria-label="Charts pagination">
+                    <a href="/charts?<?= $baseQuery ?>page=<?= $page - 1 ?>"
+                       class="btn btn-secondary"
+                       aria-disabled="<?= $hasPrev ? 'false' : 'true' ?>">Previous</a>
+                    <span class="btn btn-secondary" style="cursor: default;">Page <?= $page ?> of <?= $totalPages ?></span>
+                    <a href="/charts?<?= $baseQuery ?>page=<?= $page + 1 ?>"
+                       class="btn btn-secondary"
+                       aria-disabled="<?= $hasNext ? 'false' : 'true' ?>">Next</a>
+                </div>
+            <?php endif; ?>
         <?php endif ?>
     </div>
 

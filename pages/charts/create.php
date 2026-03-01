@@ -94,8 +94,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $rawLat  = $_POST['birth_latitude']  ?? null;
     $rawLon  = $_POST['birth_longitude'] ?? null;
+    $rawCity = trim((string)($_POST['birth_city'] ?? ''));
+    $rawState = trim((string)($_POST['birth_state'] ?? ''));
 
     $locationStr = trim((string)($_POST['birth_location_name'] ?? ''));
+    if ($locationStr === '' && ($rawCity !== '' || $rawState !== '')) {
+        $locationStr = trim($rawCity . ($rawCity !== '' && $rawState !== '' ? ', ' : '') . $rawState);
+    }
     $houseSystem = $_POST['house_system'] ?? 'P';
     $isPublic    = isset($_POST['is_public']) ? 1 : 0;
 
@@ -174,6 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData = [
         'name'                => $rawName,
         'birth_timezone'      => $rawTz,
+        'birth_city'          => $rawCity,
+        'birth_state'         => $rawState,
         'birth_location_name' => $locationStr,
         'house_system'        => $houseSystem,
         'is_public'           => (bool)$isPublic,
@@ -369,6 +376,28 @@ $hasProfileBirthData = (
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">City and State</label>
+                    <div class="map-link-row">
+                        <input type="text"
+                               id="birth_city"
+                               name="birth_city"
+                               class="form-input"
+                               placeholder="City (e.g., New York)"
+                               autocomplete="address-level2"
+                               value="<?= htmlspecialchars($formData['birth_city'] ?? '') ?>">
+                        <input type="text"
+                               id="birth_state"
+                               name="birth_state"
+                               class="form-input"
+                               placeholder="State (e.g., NY)"
+                               autocomplete="address-level1"
+                               value="<?= htmlspecialchars($formData['birth_state'] ?? '') ?>">
+                        <button type="button" id="city_state_button" class="btn btn-secondary">Find Coordinates</button>
+                    </div>
+                    <p id="city_state_status" class="helper-text map-link-status">Enter city and state to auto-fill latitude and longitude.</p>
+                </div>
+
+                <div class="form-group">
                     <label for="map_link" class="form-label">Google Maps Link (optional)</label>
                     <div class="map-link-row">
                         <input type="url"
@@ -487,6 +516,8 @@ $hasProfileBirthData = (
                 date: document.getElementById('birth_date'),
                 time: document.getElementById('birth_time'),
                 timezone: document.getElementById('birth_timezone'),
+                city: document.getElementById('birth_city'),
+                state: document.getElementById('birth_state'),
                 locationName: document.getElementById('birth_location_name'),
                 latitude: document.getElementById('birth_latitude'),
                 longitude: document.getElementById('birth_longitude'),
@@ -575,6 +606,8 @@ $hasProfileBirthData = (
             const mapLinkInput = document.getElementById('map_link');
             const mapLinkButton = document.getElementById('map_link_button');
             const mapLinkStatus = document.getElementById('map_link_status');
+            const cityStateButton = document.getElementById('city_state_button');
+            const cityStateStatus = document.getElementById('city_state_status');
 
             const setMapLinkStatus = (message, variant = 'info') => {
                 if (!mapLinkStatus) return;
@@ -582,6 +615,87 @@ $hasProfileBirthData = (
                 mapLinkStatus.classList.remove('success', 'error');
                 if (variant === 'success' || variant === 'error') {
                     mapLinkStatus.classList.add(variant);
+                }
+            };
+
+            const setCityStateStatus = (message, variant = 'info') => {
+                if (!cityStateStatus) return;
+                cityStateStatus.textContent = message;
+                cityStateStatus.classList.remove('success', 'error');
+                if (variant === 'success' || variant === 'error') {
+                    cityStateStatus.classList.add(variant);
+                }
+            };
+
+            const setLocationNameFromCityState = (city, state) => {
+                if (!birthFields.locationName) {
+                    return;
+                }
+
+                if (birthFields.locationName.value.trim() !== '') {
+                    return;
+                }
+
+                if (city && state) {
+                    birthFields.locationName.value = `${city}, ${state}, USA`;
+                }
+            };
+
+            let lastCityStateLookupKey = '';
+            let cityStateLookupTimer = null;
+
+            const resolveCityState = async (manual = false) => {
+                if (!birthFields.city || !birthFields.state || !cityStateButton) {
+                    return;
+                }
+
+                const city = birthFields.city.value.trim();
+                const state = birthFields.state.value.trim();
+                if (!city || !state) {
+                    if (manual) {
+                        setCityStateStatus('Please enter both city and state.', 'error');
+                    }
+                    return;
+                }
+
+                const lookupKey = `${city.toLowerCase()}|${state.toLowerCase()}`;
+                if (!manual && lookupKey === lastCityStateLookupKey) {
+                    return;
+                }
+
+                lastCityStateLookupKey = lookupKey;
+                setCityStateStatus('Finding coordinates...');
+                cityStateButton.disabled = true;
+                cityStateButton.textContent = 'Finding...';
+
+                try {
+                    const response = await fetch('/api/resolve_location.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ city, state }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok || !payload?.ok) {
+                        const message = payload?.error?.message ?? 'Could not resolve the location.';
+                        throw new Error(message);
+                    }
+
+                    birthFields.latitude.value = payload.latitude;
+                    birthFields.longitude.value = payload.longitude;
+                    setLocationNameFromCityState(city, state);
+                    updateCoordinateLabels();
+                    setCityStateStatus('Coordinates found and filled in.', 'success');
+                } catch (error) {
+                    if (manual) {
+                        const message = error instanceof Error ? error.message : 'Could not resolve the location.';
+                        setCityStateStatus(message, 'error');
+                    } else {
+                        setCityStateStatus('Could not auto-resolve this city/state. You can click Find Coordinates or use a map link.');
+                    }
+                } finally {
+                    cityStateButton.disabled = false;
+                    cityStateButton.textContent = 'Find Coordinates';
                 }
             };
 
@@ -628,6 +742,42 @@ $hasProfileBirthData = (
 
             if (mapLinkButton) {
                 mapLinkButton.addEventListener('click', resolveMapLink);
+            }
+
+            if (cityStateButton) {
+                cityStateButton.addEventListener('click', () => resolveCityState(true));
+            }
+
+            const scheduleCityStateLookup = () => {
+                if (!birthFields.city || !birthFields.state) {
+                    return;
+                }
+
+                if (cityStateLookupTimer) {
+                    clearTimeout(cityStateLookupTimer);
+                }
+
+                cityStateLookupTimer = setTimeout(() => {
+                    const hasCoords = birthFields.latitude.value.trim() !== '' && birthFields.longitude.value.trim() !== '';
+                    if (!hasCoords) {
+                        resolveCityState(false);
+                    }
+                }, 600);
+            };
+
+            if (birthFields.city) {
+                birthFields.city.addEventListener('input', scheduleCityStateLookup);
+                birthFields.city.addEventListener('blur', () => resolveCityState(false));
+            }
+            if (birthFields.state) {
+                birthFields.state.addEventListener('input', scheduleCityStateLookup);
+                birthFields.state.addEventListener('blur', () => resolveCityState(false));
+                birthFields.state.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        resolveCityState(true);
+                    }
+                });
             }
 
             if (mapLinkInput) {

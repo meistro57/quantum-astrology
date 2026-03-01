@@ -49,6 +49,9 @@ class AIInterpreter
     {
         // Determine provider from config or environment
         $this->provider = strtolower($this->aiConfig['provider'] ?? $_ENV['AI_PROVIDER'] ?? 'ollama');
+        if (!isset(self::PROVIDERS[$this->provider])) {
+            $this->provider = 'ollama';
+        }
 
         // Get API key from config or environment
         $this->apiKey = $this->aiConfig['api_key'] ?? $_ENV['AI_API_KEY'] ?? '';
@@ -83,7 +86,17 @@ class AIInterpreter
      */
     public function getModel(): string
     {
-        return $this->aiConfig['model'] ?? $_ENV['AI_MODEL'] ?? self::DEFAULT_MODELS[$this->provider] ?? 'default';
+        $configuredModel = trim((string) ($this->aiConfig['model'] ?? ''));
+        if ($configuredModel !== '' && strtolower($configuredModel) !== 'default') {
+            return $configuredModel;
+        }
+
+        $envModel = trim((string) ($_ENV['AI_MODEL'] ?? ''));
+        if ($envModel !== '' && strtolower($envModel) !== 'default') {
+            return $envModel;
+        }
+
+        return self::DEFAULT_MODELS[$this->provider] ?? 'default';
     }
     
     /**
@@ -305,6 +318,11 @@ class AIInterpreter
      */
     private function callAI(string $prompt, string $category): ?string
     {
+        $focus = trim((string) ($this->aiConfig['focus'] ?? ''));
+        if ($focus !== '') {
+            $prompt .= "\n\nAdditional user focus: " . $focus;
+        }
+
         if ($this->apiEndpoint === 'mock') {
             return $this->getMockResponse($category);
         }

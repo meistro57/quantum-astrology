@@ -64,10 +64,12 @@ define('HTTPS', (
     (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
 ));
 
-// Session configuration
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', HTTPS ? '1' : '0');
-ini_set('session.cookie_samesite', 'Strict');
+// Session configuration (must be set before session_start)
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_secure', HTTPS ? '1' : '0');
+    ini_set('session.cookie_samesite', 'Strict');
+}
 define('SESSION_LIFETIME', (int) env('SESSION_LIFETIME', 3600));
 
 // Set default timezone

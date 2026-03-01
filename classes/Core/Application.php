@@ -65,13 +65,25 @@ class Application
             case $path === '/charts/transits':
                 $this->servePage('charts/transits/index.php');
                 exit;
+            case $path === '/transits':
+                $this->servePage('charts/transits/index.php');
+                exit;
 
             case $path === '/charts/progressions':
+                $this->servePage('charts/progressions/index.php');
+                exit;
+            case $path === '/progressions':
                 $this->servePage('charts/progressions/index.php');
                 exit;
 
             case $path === '/charts/solar-returns':
                 $this->servePage('charts/solar-returns/index.php');
+                exit;
+            case $path === '/relationships':
+                $this->servePage('charts/relationships.php');
+                exit;
+            case $path === '/timing':
+                $this->servePage('forecasting/index.php');
                 exit;
 
             case $path === '/forecasting':
@@ -211,9 +223,20 @@ class Application
             $this->serveAIInterpretation((int) $matches[1]);
             return;
         }
+
+        if ($path === '/api/ai/providers') {
+            $this->serveAIProviders();
+            return;
+        }
         
         if (preg_match('/^\/api\/charts\/(\d+)\/patterns$/', $path, $matches)) {
             $this->serveAspectPatterns((int) $matches[1]);
+            return;
+        }
+
+        if (preg_match('/^\/api\/charts\/(\d+)\/export$/', $path, $matches)) {
+            $_GET['id'] = (string) $matches[1];
+            require __DIR__ . '/../../api/charts/export.php';
             return;
         }
         
@@ -253,9 +276,50 @@ class Application
                 return;
             }
             
-            $planetaryPositions = $chart->getPlanetaryPositions();
-            $housePositions = $chart->getHousePositions();
-            $aspects = $chart->getAspects();
+            $planetaryPositions = [];
+            foreach ($chart->getPlanetaryPositions() as $key => $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $name = is_string($key) && !is_int($key)
+                    ? strtolower($key)
+                    : strtolower((string) ($row['planet'] ?? $row['name'] ?? ''));
+                $longitude = $row['longitude'] ?? $row['lon'] ?? null;
+                if ($name === '' || !is_numeric($longitude)) {
+                    continue;
+                }
+                $planetaryPositions[$name] = ['longitude' => (float) $longitude];
+            }
+
+            $houseRaw = $chart->getHousePositions();
+            $housePositions = [];
+            if (isset($houseRaw['cusps']) && is_array($houseRaw['cusps'])) {
+                foreach ($houseRaw['cusps'] as $house => $cusp) {
+                    if (is_numeric($house) && is_numeric($cusp)) {
+                        $housePositions[(int) $house] = ['cusp' => (float) $cusp];
+                    }
+                }
+            } else {
+                foreach ($houseRaw as $house => $row) {
+                    if (is_numeric($house) && is_array($row) && isset($row['cusp']) && is_numeric($row['cusp'])) {
+                        $housePositions[(int) $house] = ['cusp' => (float) $row['cusp']];
+                    }
+                }
+            }
+
+            $aspects = [];
+            foreach ($chart->getAspects() as $aspect) {
+                if (!is_array($aspect)) {
+                    continue;
+                }
+                $p1 = strtolower((string) ($aspect['planet1'] ?? ''));
+                $p2 = strtolower((string) ($aspect['planet2'] ?? ''));
+                $type = strtolower((string) ($aspect['aspect'] ?? $aspect['type'] ?? ''));
+                if ($p1 === '' || $p2 === '' || $type === '') {
+                    continue;
+                }
+                $aspects[] = ['planet1' => $p1, 'planet2' => $p2, 'aspect' => $type];
+            }
             
             if (!$planetaryPositions) {
                 http_response_code(400);
@@ -756,21 +820,101 @@ class Application
                 return;
             }
 
-            // Optional AI configuration from query parameters
+            $provider = strtolower(trim((string)($_GET['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama'))));
+            $model = trim((string)($_GET['model'] ?? 'default'));
+            $style = trim((string)($_GET['style'] ?? 'professional'));
+            $length = trim((string)($_GET['length'] ?? 'medium'));
+            $focus = trim((string)($_GET['focus'] ?? ''));
+            $fresh = filter_var($_GET['fresh'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            $cacheTtl = (int)($_ENV['AI_CACHE_TTL'] ?? 21600);
+            if ($cacheTtl < 0) {
+                $cacheTtl = 21600;
+            }
+
+            $cacheKeyPayload = [
+                'chart_id' => $chart->getId(),
+                'chart_updated' => $chart->getUpdatedAt(),
+                'provider' => $provider,
+                'model' => $model,
+                'style' => $style,
+                'length' => $length,
+                'focus' => $focus,
+            ];
+            $cacheKey = sha1(json_encode($cacheKeyPayload, JSON_UNESCAPED_SLASHES));
+
+            $cacheDir = STORAGE_PATH . '/cache/ai';
+            $cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+
+            if (!$fresh && $cacheTtl > 0 && is_file($cacheFile)) {
+                $age = time() - filemtime($cacheFile);
+                if ($age >= 0 && $age <= $cacheTtl) {
+                    $cached = json_decode((string)file_get_contents($cacheFile), true);
+                    if (is_array($cached)) {
+                        $cached['cache'] = [
+                            'hit' => true,
+                            'ttl_seconds' => $cacheTtl,
+                            'age_seconds' => $age,
+                        ];
+                        $this->sendJson($cached);
+                        return;
+                    }
+                }
+            }
+
             $aiConfig = [
-                'model' => $_GET['model'] ?? 'default',
-                'style' => $_GET['style'] ?? 'professional',
-                'length' => $_GET['length'] ?? 'medium'
+                'provider' => $provider,
+                'model' => $model,
+                'style' => $style,
+                'length' => $length,
+                'focus' => $focus,
             ];
 
+            $startedAt = microtime(true);
             $aiInterpreter = new \QuantumAstrology\Interpretations\AIInterpreter($chart, $aiConfig);
             $interpretation = $aiInterpreter->generateNaturalLanguageInterpretation();
+            $processingMs = (int) round((microtime(true) - $startedAt) * 1000);
+            $interpretation['cache'] = [
+                'hit' => false,
+                'ttl_seconds' => $cacheTtl,
+                'age_seconds' => 0,
+            ];
+            $interpretation['request'] = [
+                'provider' => $provider,
+                'model' => $model,
+                'style' => $style,
+                'length' => $length,
+                'focus' => $focus,
+                'processing_ms' => $processingMs,
+            ];
+
+            if ($cacheTtl > 0) {
+                if (!is_dir($cacheDir)) {
+                    @mkdir($cacheDir, 0755, true);
+                }
+                @file_put_contents($cacheFile, json_encode($interpretation, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            }
 
             $this->sendJson($interpretation);
 
         } catch (\Exception $e) {
             Logger::error("AI interpretation failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
             $this->sendJson(['error' => 'AI interpretation failed'], 500);
+        }
+    }
+
+    private function serveAIProviders(): void
+    {
+        try {
+            $providers = \QuantumAstrology\Interpretations\AIInterpreter::getSupportedProviders();
+            $this->sendJson([
+                'providers' => $providers,
+                'default_provider' => strtolower((string)($_ENV['AI_PROVIDER'] ?? 'ollama')),
+                'default_model' => (string)($_ENV['AI_MODEL'] ?? ''),
+            ]);
+        } catch (\Throwable $e) {
+            Logger::error('AI provider metadata failed', ['error' => $e->getMessage()]);
+            $this->sendJson(['error' => 'Unable to load AI provider metadata'], 500);
         }
     }
     

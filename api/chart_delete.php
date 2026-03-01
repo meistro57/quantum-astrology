@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
-session_start();
 
 require __DIR__ . '/../config.php';
 
 use QuantumAstrology\Core\DB;
+use QuantumAstrology\Core\Session;
 
 header('Content-Type: application/json');
+Session::start();
 
 // Require login
 if (!isset($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {

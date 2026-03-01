@@ -17,7 +17,8 @@ final class ChartService
         string $birthTimezone,
         float  $birthLat,
         float  $birthLon,
-        string $houseSystem = 'P'
+        string $houseSystem = 'P',
+        ?int $userId = null
     ): array {
         try {
             if ($name === '') { throw new \InvalidArgumentException('Name required'); }
@@ -41,21 +42,52 @@ final class ChartService
                 $planets = $cached['planets'];
                 $houses  = $cached['houses'];
             } else {
-                $planets = SwissEphemeris::positions($utc, $birthLat, $birthLon);
-                $houses  = SwissEphemeris::houses($utc, $birthLat, $birthLon, $houseSystem);
+                try {
+                    $planets = SwissEphemeris::positions($utc, $birthLat, $birthLon);
+                    $houses  = SwissEphemeris::houses($utc, $birthLat, $birthLon, $houseSystem);
+                } catch (\Throwable $ephemerisError) {
+                    // Fallback for environments where swetest is unavailable.
+                    $fallback = new \QuantumAstrology\Core\SwissEphemeris();
+                    $fallbackDate = new \DateTime($utc->format('Y-m-d H:i:s'));
+                    $fallbackPlanets = $fallback->calculatePlanetaryPositions($fallbackDate, $birthLat, $birthLon);
+                    $fallbackHouses = $fallback->calculateHouses($fallbackDate, $birthLat, $birthLon, $houseSystem);
+
+                    $planets = [];
+                    foreach ($fallbackPlanets as $planetName => $position) {
+                        if (!is_array($position) || !isset($position['longitude'])) {
+                            continue;
+                        }
+                        $planets[] = [
+                            'planet' => strtolower((string) $planetName),
+                            'lon' => (float) $position['longitude'],
+                            'lat' => isset($position['latitude']) ? (float) $position['latitude'] : 0.0,
+                            'dist' => isset($position['distance']) ? (float) $position['distance'] : 0.0,
+                        ];
+                    }
+                    $houses = $fallbackHouses;
+
+                    Logger::warning('Falling back to analytical ephemeris', [
+                        'error' => $ephemerisError->getMessage(),
+                    ]);
+                }
                 Cache::put($key, $planets, $houses);
             }
 
             $aspects = Aspects::compute($planets);
 
             $pdo = DB::conn();
+            if ($userId === null || $userId <= 0) {
+                throw new \InvalidArgumentException('Authenticated user is required to create a chart.');
+            }
+
             $stmt = $pdo->prepare("
                 INSERT INTO charts
                   (user_id, name, birth_datetime, birth_timezone, birth_latitude, birth_longitude, house_system, is_public, planetary_positions, house_positions, aspects)
                 VALUES
-                  (NULL,    :name, :dt,             :tz,            :lat,           :lon,            :hsys,        0,        :planets,     :houses,     :aspects)
+                  (:user_id,:name, :dt,             :tz,            :lat,           :lon,            :hsys,        0,        :planets,     :houses,     :aspects)
             ");
             $stmt->execute([
+                ':user_id' => $userId,
                 ':name'    => $name,
                 ':dt'      => $local->format('Y-m-d H:i:s'),
                 ':tz'      => $birthTimezone,

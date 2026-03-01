@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quantum-astrology-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      APP_ENV: "${APP_ENV:-production}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+      APP_TIMEZONE: "${APP_TIMEZONE:-UTC}"
+
+      DB_DRIVER: "${DB_DRIVER:-mysql}"
+      DB_HOST: "${DB_HOST:-db}"
+      DB_PORT: "${DB_PORT:-3306}"
+      DB_NAME: "${DB_NAME:-quantum_astrology}"
+      DB_USER: "${DB_USER:-quantum_app}"
+      DB_PASS: "${DB_PASS:-quantum_password_change_me}"
+      DB_CHARSET: "${DB_CHARSET:-utf8mb4}"
+      DB_COLLATION: "${DB_COLLATION:-utf8mb4_unicode_ci}"
+
+      SWEPH_PATH: "${SWEPH_PATH:-/usr/local/bin/swetest}"
+      SWEPH_DATA_PATH: "${SWEPH_DATA_PATH:-/var/www/html/data/ephemeris}"
+      SESSION_LIFETIME: "${SESSION_LIFETIME:-3600}"
+      CACHE_ENABLED: "${CACHE_ENABLED:-true}"
+      CACHE_TTL: "${CACHE_TTL:-3600}"
+    volumes:
+      - qa_storage:/var/www/html/storage
+
+  db:
+    image: mysql:8.0
+    container_name: quantum-astrology-db
+    restart: unless-stopped
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: "${DB_NAME:-quantum_astrology}"
+      MYSQL_USER: "${DB_USER:-quantum_app}"
+      MYSQL_PASSWORD: "${DB_PASS:-quantum_password_change_me}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root_password_change_me}"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - qa_mysql_data:/var/lib/mysql
+
+volumes:
+  qa_storage:
+  qa_mysql_data:

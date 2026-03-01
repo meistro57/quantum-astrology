@@ -13,6 +13,8 @@ This repository contains a professional astrology software suite powered by Swis
   - Handles both MySQL and SQLite automatically.
   - Track migrations in the `migrations` table.
 - **Development Server**: `bash start_server.sh` or `php -S localhost:8080 index.php`
+- **Production Startup (Docker)**: `bash startup.sh`
+- **Production Shutdown (Docker)**: `bash shutdown.sh`
 - **Tests**: `composer test` or `vendor/bin/phpunit`
 - **Syntax Check**: `php test-syntax.php`
 - **Storage Maintenance**: `php tools/manage-storage.php --list`

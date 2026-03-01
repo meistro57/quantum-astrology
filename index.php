@@ -153,22 +153,22 @@ try {
     <div class="card">
       <h3>Transit Analysis</h3>
       <p>Track real-time planetary movements and their influence on your energy matrix.</p>
-      <a class="btn secondary" href="/transits">Analyze Transits</a>
+      <a class="btn secondary" href="/charts/transits">Analyze Transits</a>
     </div>
     <div class="card">
       <h3>Progression Engine</h3>
       <p>Secondary progressions, solar returns, and evolutionary timelines.</p>
-      <a class="btn secondary" href="/progressions">Calculate</a>
+      <a class="btn secondary" href="/charts/progressions">Calculate</a>
     </div>
     <div class="card">
       <h3>Timing Optimizer</h3>
       <p>Find optimal electional windows and synchronicity patterns.</p>
-      <a class="btn secondary" href="/timing">Find Timing</a>
+      <a class="btn secondary" href="/forecasting">Find Timing</a>
     </div>
     <div class="card">
       <h3>Relationship Matrix</h3>
       <p>Synastry & composite insights for meaningful connections.</p>
-      <a class="btn secondary" href="/relationships">Compare Charts</a>
+      <a class="btn secondary" href="/charts/relationships">Compare Charts</a>
     </div>
   </div>
 

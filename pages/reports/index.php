@@ -227,6 +227,13 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             color: var(--quantum-gold);
             margin-bottom: 1rem;
         }
+        .ai-preview-body {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: rgba(255, 255, 255, 0.92);
+        }
 
         .pdf-embed {
             width: 100%;
@@ -360,6 +367,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             <div class="action-buttons">
                 <button id="generate-btn" class="btn btn-generate" disabled>Generate Report</button>
                 <button id="download-btn" class="btn btn-download" disabled style="display: none;">Download PDF</button>
+                <button id="generate-ai-summary-btn" class="btn btn-secondary" disabled>Generate AI Summary (.md)</button>
+                <button id="download-ai-summary-btn" class="btn btn-download" disabled style="display: none;">Download AI Summary (.md)</button>
             </div>
 
             <div id="error" class="error-message"></div>
@@ -375,6 +384,11 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             <iframe id="pdf-embed" class="pdf-embed"></iframe>
         </div>
 
+        <div id="ai-preview" class="pdf-preview">
+            <h2 class="preview-title">AI Summary Preview</h2>
+            <div id="ai-preview-body" class="ai-preview-body"></div>
+        </div>
+
         <?php endif ?>
     </div>
 
@@ -382,14 +396,19 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         let selectedChartId = null;
         let selectedReportType = 'natal';
         let currentPdfUrl = null;
+        let currentAiSummaryDownloadUrl = null;
 
         const chartSelect = document.getElementById('chart-select');
         const generateBtn = document.getElementById('generate-btn');
         const downloadBtn = document.getElementById('download-btn');
+        const generateAiSummaryBtn = document.getElementById('generate-ai-summary-btn');
+        const downloadAiSummaryBtn = document.getElementById('download-ai-summary-btn');
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('error');
         const pdfPreview = document.getElementById('pdf-preview');
         const pdfEmbed = document.getElementById('pdf-embed');
+        const aiPreview = document.getElementById('ai-preview');
+        const aiPreviewBody = document.getElementById('ai-preview-body');
 
         // Chart selection
         chartSelect?.addEventListener('change', function() {
@@ -408,6 +427,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 
         function updateGenerateButton() {
             generateBtn.disabled = !selectedChartId;
+            generateAiSummaryBtn.disabled = !selectedChartId;
         }
 
         // Generate report
@@ -417,6 +437,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             loadingDiv.style.display = 'block';
             errorDiv.style.display = 'none';
             pdfPreview.style.display = 'none';
+            aiPreview.style.display = 'none';
             downloadBtn.style.display = 'none';
 
             try {
@@ -461,6 +482,51 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             window.location.href = url;
         });
 
+        generateAiSummaryBtn?.addEventListener('click', async function() {
+            if (!selectedChartId) return;
+
+            loadingDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            aiPreview.style.display = 'none';
+            pdfPreview.style.display = 'none';
+            downloadAiSummaryBtn.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/reports/ai_summary.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chart_id: selectedChartId,
+                        report_type: selectedReportType,
+                        format: 'json'
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate AI summary report');
+                }
+
+                aiPreviewBody.innerHTML = data.html_preview || '<div class="no-data">No AI summary content returned.</div>';
+                aiPreview.style.display = 'block';
+                currentAiSummaryDownloadUrl = data.download_url || null;
+                if (currentAiSummaryDownloadUrl) {
+                    downloadAiSummaryBtn.style.display = 'inline-block';
+                    downloadAiSummaryBtn.disabled = false;
+                }
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+
+        downloadAiSummaryBtn?.addEventListener('click', function() {
+            if (!currentAiSummaryDownloadUrl) return;
+            window.location.href = currentAiSummaryDownloadUrl;
+        });
+
         function base64ToBlob(base64, mimeType) {
             const byteCharacters = atob(base64);
             const byteNumbers = new Array(byteCharacters.length);
@@ -493,4 +559,3 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
     </script>
 </body>
 </html>
-
