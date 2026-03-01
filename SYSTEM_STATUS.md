@@ -2,7 +2,7 @@
 
 **Version:** 1.3.0-alpha
 **Status:** 🚧 Core platform under active development
-**Last Updated:** December 19, 2025
+**Last Updated:** March 1, 2026
 
 ## 📌 Overview
 - The project is in early alpha with core chart generation, authentication, and API scaffolding in place.
@@ -14,8 +14,12 @@
 ### ✅ Stable & Usable Today
 - **Swiss Ephemeris service** via `QuantumAstrology\Core\SwissEphemeris` for planetary and house calculations.
 - **Natal chart pipeline** (`Chart::generateNatalChart`) storing planets, houses, aspects, and metadata in the `charts` table.
-- **Authentication & chart CRUD** flows covering registration, login, chart creation/listing (`api/chart_create.php`, `api/charts_list.php`, `classes/Charts/Chart.php`).
+- **Authentication & chart CRUD** flows covering registration, login, chart creation/listing/deletion (`api/chart_create.php`, `api/charts_list.php`, `api/chart_delete.php`, `classes/Charts/Chart.php`).
 - **REST endpoints** for health checks, chart retrieval, SVG export, and chart listing within the authenticated API surface.
+- **Chart list pagination** in API and web chart library UI.
+- **Profile workflow upgrades** including city/state coordinate auto-fill and in-profile password changes.
+- **AI interpretation controls** in chart view (provider/model/focus selection and cache-aware responses).
+- **AI summary reports** in reports UI with pretty preview + downloadable Markdown (`.md`) export.
 - **Transit Analysis**: Full UI and service pipeline integrated at `/charts/transits`.
 - **SVG Wheel**: Enhanced with colored zodiac wedges and responsive layout logic.
 - **Report Scaffolding**: PDF generation engine integrated (`ReportGenerator.php`).
@@ -39,5 +43,7 @@
 - Manual verification still required for chart math, transit accuracy, and PDF exports.
 
 ## 🚀 Next Immediate Focus
-- Finish progressions and solar returns logic.
+- Finish progressions and solar returns validation pass.
 - Produce end-to-end chart/report tests to secure the core experience.
+- Normalize API response structures across older and newer endpoints.
+- Tune AI summary/report prompts and add provider-specific output quality benchmarks.

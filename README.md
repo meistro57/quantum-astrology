@@ -24,20 +24,23 @@ Quantum Astrology provides professional-grade astrological calculations and char
 - **SVG Chart Wheels** — polished wheel with **zodiac wedges**, planets, and aspect chords
 - **Aspect Engine** — configurable orbs and detection of major aspects
 - **User Authentication** — secure registration, login, and profile management (MySQL/SQLite)
-- **Chart Management API** — create, get, and list charts with JSON output
+- **Chart Management API** — create, get, list, delete, export, and paginated chart endpoints
 - **Validation** — strict input checks for date/time, timezone, lat/lon, and house systems
 - **Database Migrations** — schema setup with version tracking and SQLite fallback
 - **Report Scaffolding** — integrated PDF generation engine via mPDF
+- **AI Summary Reports** — generate pretty in-app AI summary previews and download Markdown (`.md`) summary files
+- **Profile Enhancements** — saved birth data, city/state coordinate auto-fill, and in-profile password change
 
 ---
 
 ## 🔜 Next Development Phase
 
-- Zodiac wedges + planet glyphs in the SVG wheel  
-- Delete and pagination endpoints for chart management  
-- Chart export (JSON + SVG pack)  
-- Transit analysis with real-time planetary movement  
-- Progressions & returns (secondary, solar, lunar)  
+- Progressions and solar returns hardening + test coverage  
+- Expand report templates and interpretation depth  
+- API consistency cleanup (response shape/versioning across legacy and newer endpoints)  
+- End-to-end regression tests for chart create/list/delete/export flows  
+- UX polish for large chart libraries (filters/search and richer pagination controls)  
+- AI report quality controls (prompt templates, section tuning, and output style presets)
 
 ---
 

@@ -46,6 +46,16 @@ The database user should have the following privileges on the target schema: `SE
 | `SWEPH_PATH` | Yes | `/usr/local/bin/swetest` | Absolute path to the `swetest` executable. Ensure the binary is executable by the web server user. |
 | `SWEPH_DATA_PATH` | Yes | `data/ephemeris` | Directory containing the Swiss Ephemeris data files. Provide an absolute path in production deployments. |
 
+## AI Configuration
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `AI_PROVIDER` | No | `ollama` | AI provider used for natural-language interpretations and AI summary reports (`ollama`, `openrouter`, `openai`, `anthropic`, `deepseek`, `gemini`). |
+| `AI_MODEL` | No | provider-specific default | Model override. Set to a provider-supported model string; leave unset to use built-in defaults. |
+| `AI_API_KEY` | Conditional | *(empty)* | API key for cloud providers. Not required for local `ollama`. |
+| `AI_API_ENDPOINT` | No | provider default endpoint | Optional custom endpoint override (useful for self-hosted proxies/gateways). |
+| `AI_CACHE_TTL` | No | `21600` | AI interpretation cache TTL in seconds for chart-view AI reads. Set to `0` to disable cache writes/reads. |
+
 ## Session & Security Hardening
 
 | Variable | Required | Default | Description |
@@ -78,6 +88,13 @@ CACHE_TTL=900
 # Swiss Ephemeris
 SWEPH_PATH="/usr/local/bin/swetest"
 SWEPH_DATA_PATH="/opt/sweph/ephemeris"
+
+# AI
+AI_PROVIDER="ollama"
+AI_MODEL="llama3.1"
+AI_API_KEY=""
+AI_API_ENDPOINT=""
+AI_CACHE_TTL=21600
 
 # Sessions
 SESSION_LIFETIME=7200
