@@ -78,3 +78,30 @@ Follow the **Quantum Minds United** aesthetic:
 
 ## 🗺 Roadmap Reference
 Consult `ROADMAP.md` and `TODO.md` for current development focus. Phase 2 (Advanced Features like Synastry and AI Interpretations) is currently in development.
+
+## 📍 Current Status (2026-03-01)
+
+### Live/Implemented
+- Production Docker HTTPS stack (`startup.sh`) with self-signed and real-cert modes.
+- Public domain routing via nginx reverse proxy and forced HTTP→HTTPS redirect.
+- Chart creation/view/delete flows repaired; delete available from dashboard, chart list, viewer, and chart view.
+- Report generation path repaired (`/api/reports/generate.php`) and hardened for auth/ownership.
+- AI summary endpoint repaired (`/api/reports/ai_summary.php` includes `config.php`).
+- Chart view UX improvements: larger wheel, zoom controls, responsive alignment fixes.
+- Transit calculation normalization fixed to support mixed stored position formats (`lon` and `longitude`).
+- Persistent session behavior enabled (long-lived cookies and refreshed session expiry).
+- Admin system panel at `/admin` with:
+  - system metrics and log tail
+  - cache maintenance actions
+  - user list
+  - manual user creation
+  - password reset
+  - grant/revoke admin role (`is_admin`)
+
+### Access Rules
+- Admin access via `AdminGate`: user `id=1`, `users.is_admin = 1`, or `ADMIN_EMAIL(S)` allowlist.
+- All admin mutation actions require CSRF token and authenticated admin session.
+
+### Known Follow-ups
+- OpenRouter profile UX is still pending: per-user API key entry + live model discovery/query.
+- Add/expand end-to-end browser-level regression tests for full page workflows.
