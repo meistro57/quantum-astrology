@@ -1,4 +1,8 @@
-<!-- pages/dashboard/index.php -->
+<?php // pages/dashboard/index.php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../_bootstrap.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
