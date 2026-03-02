@@ -5,7 +5,17 @@
 
 Professional astrology software suite with Quantum Minds United branding. Swiss Ephemeris–powered chart calculations with clean, responsive SVG chart wheels.
 
-<img width="906" height="1602" alt="image" src="https://github.com/user-attachments/assets/74b635dc-6f2e-47e4-93f5-2683c6d385ff" />
+<img width="1246" height="1813" alt="image" src="https://github.com/user-attachments/assets/4882ceda-b18d-4163-b5c2-98ea8d50f9a7" />
+
+<img width="1257" height="1780" alt="image" src="https://github.com/user-attachments/assets/3e84b4fd-dd16-43ba-9382-53ba404a2ede" />
+
+<img width="1242" height="1799" alt="image" src="https://github.com/user-attachments/assets/75a14a54-321b-4f34-8d80-950084b60aaf" />
+
+<img width="1224" height="496" alt="image" src="https://github.com/user-attachments/assets/2d6e37d9-f8e4-4275-82fa-08406fd5cf34" />
+
+<img width="1222" height="642" alt="image" src="https://github.com/user-attachments/assets/f15b3825-b2ac-4c9a-84da-58e3b27c5ce1" />
+
+<img width="1236" height="1821" alt="image" src="https://github.com/user-attachments/assets/22d3e0da-0219-43d3-96b8-9862abe93e65" />
 
 ---
 
@@ -197,3 +207,4 @@ considerations, and a sample `.env` layout to accelerate both local prototyping 
 - `php tools/clear-cache.php` — clears the application cache using the shared storage maintenance routines.
 - `php tools/manage-storage.php --list` — inspects cache, ephemeris, chart, and report directories with a friendly audit summary.
 - `php tools/manage-storage.php --purge --target=ephemeris --older-than=30` — prunes cached ephemeris files older than 30 days, keeping recent calculations intact.
+
