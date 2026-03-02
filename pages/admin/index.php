@@ -16,6 +16,7 @@ if (!AdminGate::canAccess($user)) {
 
 $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 $pageTitle = 'System Admin Panel - Quantum Astrology';
+$issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https://github.com/meistro57/quantum-astrology/issues';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -36,6 +37,7 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
         .actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
         .btn { padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: var(--quantum-text); cursor: pointer; }
         .btn-primary { background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-purple)); border: none; color: #fff; }
+        .btn-link { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
         .form-row { margin-bottom: 0.7rem; }
         .input { width: 100%; padding: 0.7rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.09); color: #fff; }
@@ -49,6 +51,7 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
         .status { margin-top: 0.8rem; color: #86efac; min-height: 1.1rem; }
         .status.error { color: #ff8e8e; }
         .log { background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.7rem; max-height: 260px; overflow: auto; font-family: ui-monospace,monospace; font-size: 0.82rem; line-height: 1.35; white-space: pre-wrap; }
+        .ops-output { margin-top: 0.8rem; background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem; min-height: 70px; max-height: 320px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; }
         @media (max-width: 1080px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -62,6 +65,9 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
         </div>
         <h1 class="admin-title">System Admin Panel</h1>
         <p class="admin-sub">Operational controls, health telemetry, and manual user administration.</p>
+        <div class="actions" style="margin-bottom: 1rem;">
+            <a class="btn btn-link" href="<?= htmlspecialchars($issuesUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener noreferrer">Open GitHub Issues</a>
+        </div>
 
         <div class="grid">
             <div class="card"><div class="metric-label">Users</div><div class="metric-value" id="m-users">-</div></div>
@@ -79,6 +85,36 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
                 <button class="btn btn-primary" id="reload-overview">Refresh Overview</button>
             </div>
             <div class="status" id="action-status"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title">System Operations</h3>
+            <div class="actions">
+                <button class="btn" data-system-task="syntax_check">Error Check (Syntax)</button>
+                <button class="btn" data-system-task="chart_smoke_test">Chart Smoke Test</button>
+                <button class="btn" data-system-task="run_migrations">Update DB (Migrate)</button>
+                <button class="btn" data-system-task="rebuild_cache">Rebuild Cache</button>
+                <button class="btn" data-system-task="storage_audit">Storage Audit</button>
+            </div>
+            <div id="system-ops-output" class="ops-output">Run a task to see command output.</div>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title">Database Maintenance</h3>
+            <div class="actions">
+                <button class="btn btn-primary" id="create-db-backup">Create DB Backup</button>
+                <button class="btn" id="refresh-db-backups">Refresh Backup List</button>
+            </div>
+            <div class="table-wrap" style="margin-top:0.8rem; max-height: 300px;">
+                <table>
+                    <thead>
+                        <tr><th>File</th><th>Size</th><th>Modified</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="db-backups-body">
+                        <tr><td colspan="4" style="opacity:0.75;">Loading backups...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
@@ -180,6 +216,7 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
     <script>
         const csrf = <?= json_encode($csrfToken, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         const actionStatus = document.getElementById('action-status');
+        const systemOpsOutput = document.getElementById('system-ops-output');
         let aiProvidersMeta = {};
 
         function setStatus(message, isError = false) {
@@ -210,6 +247,20 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
                 idx++;
             }
             return `${value.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+        }
+
+        function formatSystemTaskResult(data) {
+            const lines = [];
+            lines.push(`Task: ${data.task_label || data.task || 'Unknown'}`);
+            lines.push(`Command: ${data.command || '-'}`);
+            lines.push(`Exit Code: ${Number(data.exit_code ?? 1)}`);
+            lines.push('');
+            lines.push('[stdout]');
+            lines.push((data.stdout || '').trim() || '(empty)');
+            lines.push('');
+            lines.push('[stderr]');
+            lines.push((data.stderr || '').trim() || '(empty)');
+            return lines.join('\n');
         }
 
         async function loadOverview() {
@@ -324,6 +375,36 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
             });
         }
 
+        async function loadDbBackups() {
+            const data = await postAdminAction('list_db_backups');
+            const tbody = document.getElementById('db-backups-body');
+            if (!tbody) return;
+
+            const backups = Array.isArray(data.backups) ? data.backups : [];
+            if (backups.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="opacity:0.75;">No backups yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = backups.map((backup) => {
+                const file = String(backup.file || '');
+                const safeFile = file.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                const modified = backup.modified_at ? new Date(backup.modified_at).toLocaleString() : '';
+                const downloadUrl = `/api/admin/db-backup?file=${encodeURIComponent(file)}`;
+                return `
+                    <tr>
+                        <td class="mono">${safeFile}</td>
+                        <td>${fmtBytes(backup.size || 0)}</td>
+                        <td class="mono">${modified}</td>
+                        <td>
+                            <a class="btn" href="${downloadUrl}" style="padding:0.45rem 0.65rem; text-decoration:none;">Download</a>
+                            <button class="btn" data-delete-backup="${safeFile}" style="padding:0.45rem 0.65rem; margin-left:0.35rem;">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         document.querySelectorAll('[data-action]').forEach((btn) => {
             btn.addEventListener('click', async () => {
                 const action = btn.getAttribute('data-action');
@@ -332,6 +413,29 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
                     setStatus(`${action}: removed ${result.deleted_files ?? 0} files.`);
                 } catch (error) {
                     setStatus(error.message || 'Action failed', true);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-system-task]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const task = btn.getAttribute('data-system-task');
+                if (!task) return;
+                try {
+                    setStatus(`Running ${task}...`);
+                    btn.disabled = true;
+                    const result = await postAdminAction('run_system_task', { task });
+                    setStatus(result.ok ? `${result.task_label} passed.` : `${result.task_label} finished with errors.`, !result.ok);
+                    if (systemOpsOutput) {
+                        systemOpsOutput.textContent = formatSystemTaskResult(result);
+                    }
+                } catch (error) {
+                    setStatus(error.message || 'System task failed', true);
+                    if (systemOpsOutput) {
+                        systemOpsOutput.textContent = String(error.message || 'System task failed');
+                    }
+                } finally {
+                    btn.disabled = false;
                 }
             });
         });
@@ -407,9 +511,48 @@ $pageTitle = 'System Admin Panel - Quantum Astrology';
             }
         });
 
+        document.getElementById('create-db-backup').addEventListener('click', async () => {
+            try {
+                const result = await postAdminAction('create_db_backup');
+                setStatus(result.message || 'Database backup created.');
+                await loadDbBackups();
+            } catch (error) {
+                setStatus(error.message || 'Database backup failed', true);
+            }
+        });
+
+        document.getElementById('refresh-db-backups').addEventListener('click', async () => {
+            try {
+                await loadDbBackups();
+                setStatus('Database backup list refreshed.');
+            } catch (error) {
+                setStatus(error.message || 'Failed to load backups', true);
+            }
+        });
+
+        document.getElementById('db-backups-body').addEventListener('click', async (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+            const file = target.getAttribute('data-delete-backup');
+            if (!file) return;
+            event.preventDefault();
+
+            if (!window.confirm(`Delete backup "${file}"?`)) {
+                return;
+            }
+
+            try {
+                const result = await postAdminAction('delete_db_backup', { file });
+                setStatus(result.message || 'Backup deleted.');
+                await loadDbBackups();
+            } catch (error) {
+                setStatus(error.message || 'Failed to delete backup', true);
+            }
+        });
+
         (async () => {
             try {
-                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig()]);
+                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig(), loadDbBackups()]);
                 setStatus('Admin panel ready.');
             } catch (error) {
                 setStatus(error.message || 'Failed to load admin panel', true);

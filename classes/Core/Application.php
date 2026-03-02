@@ -244,6 +244,11 @@ class Application
             return;
         }
 
+        if ($path === '/api/admin/db-backup') {
+            $this->serveAdminBackupDownload();
+            return;
+        }
+
         if (preg_match('/^\/api\/charts\/(\d+)\/patterns$/', $path, $matches)) {
             $this->serveAspectPatterns((int) $matches[1]);
             return;
@@ -1086,6 +1091,10 @@ class Application
                 'clear_ai_cache' => $this->clearDirectoryFiles(STORAGE_PATH . '/cache/ai', ['json']),
                 'clear_chart_cache' => $this->clearDirectoryFiles(STORAGE_PATH . '/cache/charts', ['svg']),
                 'clear_all_cache' => $this->clearDirectoryFiles(STORAGE_PATH . '/cache', []),
+                'run_system_task' => $this->adminRunSystemTask($input),
+                'create_db_backup' => $this->adminCreateDatabaseBackup(),
+                'list_db_backups' => $this->adminListDatabaseBackups(),
+                'delete_db_backup' => $this->adminDeleteDatabaseBackup($input),
                 'list_users' => $this->adminListUsers(),
                 'get_ai_master_config' => $this->adminGetMasterAiConfig(),
                 'set_ai_master_config' => $this->adminSetMasterAiConfig($input),
@@ -1118,6 +1127,204 @@ class Application
             Logger::error('Admin action failed', ['error' => $e->getMessage()]);
             $this->sendJson(['error' => 'Admin action failed.'], 500);
         }
+    }
+
+    private function serveAdminBackupDownload(): void
+    {
+        try {
+            \QuantumAstrology\Core\Auth::requireLogin();
+            $user = \QuantumAstrology\Core\Auth::user();
+            if (!\QuantumAstrology\Core\AdminGate::canAccess($user)) {
+                http_response_code(403);
+                echo 'Admin access required.';
+                return;
+            }
+
+            $file = (string)($_GET['file'] ?? '');
+            if ($file === '' || !preg_match('/^[a-zA-Z0-9._-]+$/', $file)) {
+                http_response_code(400);
+                echo 'Invalid backup file.';
+                return;
+            }
+
+            $backupPath = STORAGE_PATH . '/backups/' . $file;
+            if (!is_file($backupPath)) {
+                http_response_code(404);
+                echo 'Backup file not found.';
+                return;
+            }
+
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . basename($backupPath) . '"');
+            header('Content-Length: ' . (string)filesize($backupPath));
+            header('Cache-Control: private, no-store, no-cache, must-revalidate');
+            readfile($backupPath);
+        } catch (\Throwable $e) {
+            Logger::error('Admin backup download failed', ['error' => $e->getMessage()]);
+            http_response_code(500);
+            echo 'Backup download failed.';
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminCreateDatabaseBackup(): array
+    {
+        $driver = strtolower((string) \QuantumAstrology\Database\Connection::getDriver());
+        $backupDir = STORAGE_PATH . '/backups';
+        if (!is_dir($backupDir) && !@mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
+            throw new \RuntimeException('Failed to create backup directory.');
+        }
+
+        $timestamp = date('Ymd_His');
+        $createdFiles = [];
+
+        if ($driver === 'sqlite' && is_file(DB_SQLITE_PATH)) {
+            $sqliteCopy = sprintf('db_backup_%s.sqlite', $timestamp);
+            $sqlitePath = $backupDir . '/' . $sqliteCopy;
+            if (@copy(DB_SQLITE_PATH, $sqlitePath)) {
+                $createdFiles[] = $sqliteCopy;
+            }
+        }
+
+        $sqlDump = $this->buildDatabaseSqlDump();
+        $sqlFile = sprintf('db_backup_%s.sql', $timestamp);
+        $sqlPath = $backupDir . '/' . $sqlFile;
+        if (@file_put_contents($sqlPath, $sqlDump) === false) {
+            throw new \RuntimeException('Failed to write SQL backup.');
+        }
+        $createdFiles[] = $sqlFile;
+
+        return [
+            'message' => 'Database backup created.',
+            'driver' => $driver,
+            'files' => $createdFiles,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminListDatabaseBackups(): array
+    {
+        $backupDir = STORAGE_PATH . '/backups';
+        if (!is_dir($backupDir)) {
+            return ['backups' => []];
+        }
+
+        $items = [];
+        $entries = @scandir($backupDir) ?: [];
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            if (!preg_match('/^db_backup_.*\.(sql|sqlite)$/', $entry)) {
+                continue;
+            }
+            $fullPath = $backupDir . '/' . $entry;
+            if (!is_file($fullPath)) {
+                continue;
+            }
+            $items[] = [
+                'file' => $entry,
+                'size' => (int)filesize($fullPath),
+                'modified_at' => date('c', (int)filemtime($fullPath)),
+            ];
+        }
+
+        usort($items, static fn(array $a, array $b): int => strcmp((string)$b['modified_at'], (string)$a['modified_at']));
+        return ['backups' => $items];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function adminDeleteDatabaseBackup(array $input): array
+    {
+        $file = trim((string)($input['file'] ?? ''));
+        if ($file === '' || !preg_match('/^[a-zA-Z0-9._-]+$/', $file)) {
+            throw new \RuntimeException('Invalid backup filename.');
+        }
+
+        $backupPath = STORAGE_PATH . '/backups/' . $file;
+        if (!is_file($backupPath)) {
+            throw new \RuntimeException('Backup file not found.');
+        }
+
+        if (!@unlink($backupPath)) {
+            throw new \RuntimeException('Failed to delete backup.');
+        }
+
+        return [
+            'message' => 'Backup deleted.',
+            'file' => $file,
+        ];
+    }
+
+    private function buildDatabaseSqlDump(): string
+    {
+        $pdo = \QuantumAstrology\Core\DB::conn();
+        $driver = strtolower((string)$pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
+        $tables = [];
+
+        if ($driver === 'mysql') {
+            $tables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+        } else {
+            $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+            $tables = $stmt ? ($stmt->fetchAll(\PDO::FETCH_COLUMN) ?: []) : [];
+        }
+
+        $dump = [];
+        $dump[] = '-- Quantum Astrology database backup';
+        $dump[] = '-- Driver: ' . $driver;
+        $dump[] = '-- Generated: ' . date('c');
+        $dump[] = '';
+
+        foreach ($tables as $table) {
+            $tableName = (string)$table;
+            if ($tableName === '') {
+                continue;
+            }
+            $dump[] = '-- Table: ' . $tableName;
+
+            if ($driver === 'mysql') {
+                $createStmt = $pdo->query('SHOW CREATE TABLE `' . str_replace('`', '``', $tableName) . '`');
+                $createRow = $createStmt ? $createStmt->fetch(\PDO::FETCH_ASSOC) : false;
+                $createSql = is_array($createRow) ? (string)($createRow['Create Table'] ?? '') : '';
+            } else {
+                $stmt = $pdo->prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name = :t");
+                $stmt->execute([':t' => $tableName]);
+                $createSql = (string)($stmt->fetchColumn() ?: '');
+            }
+
+            if ($createSql !== '') {
+                $dump[] = $createSql . ';';
+            }
+
+            $rowsStmt = $pdo->query('SELECT * FROM "' . str_replace('"', '""', $tableName) . '"');
+            $rows = $rowsStmt ? ($rowsStmt->fetchAll(\PDO::FETCH_ASSOC) ?: []) : [];
+            foreach ($rows as $row) {
+                $columns = array_keys($row);
+                $quotedCols = array_map(static fn(string $c): string => '"' . str_replace('"', '""', $c) . '"', $columns);
+                $values = [];
+                foreach ($row as $value) {
+                    if ($value === null) {
+                        $values[] = 'NULL';
+                    } elseif (is_int($value) || is_float($value)) {
+                        $values[] = (string)$value;
+                    } else {
+                        $values[] = $pdo->quote((string)$value);
+                    }
+                }
+                $dump[] = 'INSERT INTO "' . str_replace('"', '""', $tableName) . '" (' . implode(', ', $quotedCols) . ') VALUES (' . implode(', ', $values) . ');';
+            }
+
+            $dump[] = '';
+        }
+
+        return implode("\n", $dump) . "\n";
     }
 
     /**
@@ -1352,6 +1559,108 @@ class Application
             'focus_template' => (string) ($cfg['focus_template'] ?? ''),
             'updated_at' => $cfg['updated_at'] ?? null,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function adminRunSystemTask(array $input): array
+    {
+        $task = strtolower(trim((string)($input['task'] ?? '')));
+        $tasks = [
+            'syntax_check' => [
+                'label' => 'Syntax check',
+                'command' => ['php', 'test-syntax.php'],
+            ],
+            'chart_smoke_test' => [
+                'label' => 'Chart generation smoke test',
+                'command' => ['php', 'tools/test-chart-generation.php'],
+            ],
+            'run_migrations' => [
+                'label' => 'Database migration update',
+                'command' => ['php', 'tools/migrate.php'],
+            ],
+            'rebuild_cache' => [
+                'label' => 'Runtime cache rebuild',
+                'command' => ['php', 'tools/clear-cache.php'],
+            ],
+            'storage_audit' => [
+                'label' => 'Storage audit',
+                'command' => ['php', 'tools/manage-storage.php', '--list'],
+            ],
+        ];
+
+        if (!isset($tasks[$task])) {
+            throw new \RuntimeException('Unknown system task.');
+        }
+
+        $definition = $tasks[$task];
+        $execution = $this->runAdminCommand($definition['command']);
+
+        return [
+            'message' => $definition['label'] . ' completed.',
+            'task' => $task,
+            'task_label' => $definition['label'],
+            'command' => implode(' ', array_map('strval', $definition['command'])),
+            'exit_code' => $execution['exit_code'],
+            'stdout' => $execution['stdout'],
+            'stderr' => $execution['stderr'],
+            'ok' => $execution['exit_code'] === 0,
+        ];
+    }
+
+    /**
+     * @param array<int, string> $command
+     * @return array{exit_code: int, stdout: string, stderr: string}
+     */
+    private function runAdminCommand(array $command): array
+    {
+        if ($command === []) {
+            throw new \RuntimeException('System command is empty.');
+        }
+        if (!function_exists('proc_open')) {
+            throw new \RuntimeException('Command execution is unavailable on this server.');
+        }
+
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $env = [
+            'PATH' => getenv('PATH') ?: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'HOME' => ROOT_PATH,
+        ];
+
+        $process = @proc_open($command, $descriptors, $pipes, ROOT_PATH, $env, ['bypass_shell' => true]);
+        if (!is_resource($process)) {
+            throw new \RuntimeException('Failed to start command.');
+        }
+
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]) ?: '';
+        fclose($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]) ?: '';
+        fclose($pipes[2]);
+        $exitCode = proc_close($process);
+
+        return [
+            'exit_code' => is_int($exitCode) ? $exitCode : 1,
+            'stdout' => $this->truncateAdminCommandOutput($stdout),
+            'stderr' => $this->truncateAdminCommandOutput($stderr),
+        ];
+    }
+
+    private function truncateAdminCommandOutput(string $output, int $maxBytes = 48000): string
+    {
+        if (strlen($output) <= $maxBytes) {
+            return $output;
+        }
+
+        $tail = substr($output, -$maxBytes);
+        return "[output truncated to last {$maxBytes} bytes]\n" . $tail;
     }
 
     private function directorySize(string $dir): int

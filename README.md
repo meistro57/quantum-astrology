@@ -35,6 +35,8 @@ Quantum Astrology provides professional-grade astrological calculations and char
 - **Profile Enhancements** — saved birth data, city/state coordinate auto-fill, and in-profile password change
 - **System Admin Panel (`/admin`)** — admin-only operational panel with system metrics, log tailing, cache maintenance actions, and user administration tools
 - **User Administration** — manually create users, reset passwords, and grant/revoke admin status from the admin panel
+- **Admin System Operations** — one-click syntax/error check, chart smoke test, DB migration update, cache rebuild, and storage audit from `/admin`
+- **GitHub Issues Shortcut** — configurable `/admin` link for opening your project issue tracker quickly
 - **Persistent Login Sessions** — beta-friendly long-lived login cookies (configurable via `.env`) so users stay signed in across browser restarts
 
 ---
@@ -177,6 +179,11 @@ Once an admin is signed in, user administration (create/reset/grant/revoke) is a
 - AI summary system prompt/style/length/focus template
 
 When set, these admin AI settings are treated as the system defaults used by report/chart AI flows.
+
+`/admin` also includes:
+- system operations buttons for syntax checks, migrations, cache rebuild, storage audit, and chart smoke checks
+- database backup create/list/download/delete controls
+- a quick link to GitHub Issues (configured via `GITHUB_ISSUES_URL`)
 
 ### Environment Variables
 

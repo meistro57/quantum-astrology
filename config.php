@@ -33,6 +33,7 @@ define('APP_DEBUG', filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN)
 define('APP_NAME', (string) env('APP_NAME', 'Quantum Astrology'));
 define('APP_URL', (string) env('APP_URL', 'http://localhost'));
 define('APP_TIMEZONE', (string) env('APP_TIMEZONE', 'UTC'));
+define('GITHUB_ISSUES_URL', (string) env('GITHUB_ISSUES_URL', 'https://github.com/meistro57/quantum-astrology/issues'));
 
 // Paths
 define('ROOT_PATH', __DIR__);

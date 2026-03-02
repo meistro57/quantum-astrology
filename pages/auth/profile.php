@@ -263,6 +263,21 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             font-size: 0.95rem;
             margin-bottom: 1rem;
         }
+        .section-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-top: -0.35rem;
+            margin-bottom: 0.75rem;
+        }
+        .coords-summary {
+            margin-bottom: 0.75rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+        }
         .location-status {
             margin-top: 0.35rem;
             margin-bottom: 0;
@@ -575,6 +590,16 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                         <p id="city_state_status" class="helper-text location-status">Enter city and state to auto-fill birth latitude and longitude.</p>
                     </div>
 
+                    <h4 class="section-title" style="font-size:1.05rem; margin-top:0.25rem;">Birth Coordinates</h4>
+                    <p class="section-subtitle">These are used for accurate chart calculations and house placements.</p>
+                    <div class="coords-summary">
+                        Current saved coordinates:
+                        <strong>
+                            <?= htmlspecialchars((string)($user->getBirthLatitude() ?? 'Not set')) ?>,
+                            <?= htmlspecialchars((string)($user->getBirthLongitude() ?? 'Not set')) ?>
+                        </strong>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="birth_latitude" class="form-label">Birth Latitude</label>
@@ -599,8 +624,8 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                 </div>
 
                 <div class="form-section">
-                    <h3 class="section-title">Change Password (optional)</h3>
-                    <p class="helper-text">Leave blank to keep your current password unchanged.</p>
+                    <h3 class="section-title">Security</h3>
+                    <p class="helper-text">Change your password below. Leave all three fields blank to keep your current password unchanged.</p>
 
                     <div class="form-group">
                         <label for="current_password" class="form-label">Current Password</label>
@@ -620,6 +645,9 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    class="form-input"
                                    minlength="8"
                                    autocomplete="new-password">
+                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(255,255,255,0.75);font-size:0.85rem;">
+                                <input type="checkbox" id="toggle_new_password"> Show
+                            </label>
                         </div>
 
                         <div class="form-group">
@@ -630,6 +658,9 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    class="form-input"
                                    minlength="8"
                                    autocomplete="new-password">
+                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(255,255,255,0.75);font-size:0.85rem;">
+                                <input type="checkbox" id="toggle_confirm_password"> Show
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -680,6 +711,11 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             const locationInput = document.getElementById('birth_location_name');
             const cityStateButton = document.getElementById('city_state_button');
             const cityStateStatus = document.getElementById('city_state_status');
+            const currentPasswordInput = document.getElementById('current_password');
+            const newPasswordInput = document.getElementById('new_password');
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            const toggleNewPassword = document.getElementById('toggle_new_password');
+            const toggleConfirmPassword = document.getElementById('toggle_confirm_password');
 
             if (!cityInput || !stateInput || !latInput || !lonInput || !cityStateButton || !cityStateStatus) {
                 return;
@@ -779,6 +815,20 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             });
 
             cityStateButton.addEventListener('click', () => resolveCityState(true));
+
+            if (toggleNewPassword && newPasswordInput) {
+                toggleNewPassword.addEventListener('change', () => {
+                    newPasswordInput.type = toggleNewPassword.checked ? 'text' : 'password';
+                });
+            }
+            if (toggleConfirmPassword && confirmPasswordInput) {
+                toggleConfirmPassword.addEventListener('change', () => {
+                    confirmPasswordInput.type = toggleConfirmPassword.checked ? 'text' : 'password';
+                });
+            }
+            if (currentPasswordInput) {
+                currentPasswordInput.autocomplete = 'current-password';
+            }
         });
     </script>
 </body>

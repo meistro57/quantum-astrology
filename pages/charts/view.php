@@ -390,6 +390,79 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             color: var(--quantum-gold);
             margin-bottom: 1rem;
         }
+        .ai-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.9rem;
+            min-height: 170px;
+            justify-content: center;
+        }
+        .ai-loader-orb {
+            position: relative;
+            width: 88px;
+            height: 88px;
+        }
+        .ai-loader-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+        .ai-loader-ring.outer {
+            border-top-color: rgba(255, 215, 0, 0.95);
+            border-right-color: rgba(74, 144, 226, 0.9);
+            animation: aiSpin 1.4s linear infinite;
+        }
+        .ai-loader-ring.inner {
+            inset: 10px;
+            border-bottom-color: rgba(139, 92, 246, 0.92);
+            border-left-color: rgba(99, 102, 241, 0.85);
+            animation: aiSpinReverse 1.1s linear infinite;
+        }
+        .ai-loader-core {
+            position: absolute;
+            inset: 28px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 32%, #fff4c8, #ffd977 45%, #c9a13b 75%);
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.42);
+            animation: aiPulse 1.6s ease-in-out infinite;
+        }
+        .ai-loader-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #b9dbff;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.8);
+            left: 50%;
+            top: 0;
+            margin-left: -5px;
+            animation: aiOrbit 1.9s linear infinite;
+            transform-origin: 0 44px;
+        }
+        .ai-loader-text {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.92rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        @keyframes aiSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes aiSpinReverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+        @keyframes aiPulse {
+            0%, 100% { transform: scale(0.9); opacity: 0.92; }
+            50% { transform: scale(1.08); opacity: 1; }
+        }
+        @keyframes aiOrbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
         @media (max-width: 1280px) {
             .chart-content { grid-template-columns: 1fr 340px; }
@@ -643,7 +716,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <div id="interpretation-tab" class="tab-content">
                 <h3 class="info-card-title">Chart Interpretation</h3>
                 <div id="interpretation-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-                    Loading interpretation...
+                    <div class="ai-loader">
+                        <div class="ai-loader-orb" aria-hidden="true">
+                            <div class="ai-loader-ring outer"></div>
+                            <div class="ai-loader-ring inner"></div>
+                            <div class="ai-loader-core"></div>
+                            <div class="ai-loader-dot"></div>
+                        </div>
+                        <div id="interpretation-loading-text" class="ai-loader-text">Consulting the stars...</div>
+                    </div>
                 </div>
                 <div id="interpretation-content" style="display: none;"></div>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center;">
@@ -1222,7 +1303,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const loading = document.getElementById('interpretation-loading');
             const content = document.getElementById('interpretation-content');
             const button = document.getElementById('load-interpretation');
+            const loadingText = document.getElementById('interpretation-loading-text');
             
+            if (loadingText) loadingText.textContent = 'Reading chart structure...';
             loading.style.display = 'block';
             content.style.display = 'none';
             button.disabled = true;
@@ -1251,9 +1334,11 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const loading = document.getElementById('interpretation-loading');
             const content = document.getElementById('interpretation-content');
             const button = document.getElementById('load-ai-interpretation');
+            const loadingText = document.getElementById('interpretation-loading-text');
             const focusEl = document.getElementById('ai-focus');
             const freshEl = document.getElementById('ai-fresh');
             
+            if (loadingText) loadingText.textContent = 'Composing AI interpretation...';
             loading.style.display = 'block';
             content.style.display = 'none';
             button.disabled = true;
@@ -1285,7 +1370,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const loading = document.getElementById('interpretation-loading');
             const content = document.getElementById('interpretation-content');
             const button = document.getElementById('load-patterns');
+            const loadingText = document.getElementById('interpretation-loading-text');
             
+            if (loadingText) loadingText.textContent = 'Detecting aspect patterns...';
             loading.style.display = 'block';
             content.style.display = 'none';
             button.disabled = true;
@@ -1562,8 +1649,12 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         function displayAspectPatterns(data) {
             const content = document.getElementById('interpretation-content');
-            
-            if (!data.patterns || data.patterns.length === 0) {
+
+            const rawPatterns = Array.isArray(data?.patterns)
+                ? data.patterns
+                : (Array.isArray(data?.patterns?.patterns) ? data.patterns.patterns : []);
+
+            if (!rawPatterns.length) {
                 content.innerHTML = '<div class="no-data">No major aspect patterns detected in this chart</div>';
                 return;
             }
@@ -1571,14 +1662,14 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             let html = `
                 <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(74, 144, 226, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Aspect Pattern Analysis</strong><br>
-                    <span style="color: rgba(255, 255, 255, 0.7);">Found ${data.patterns.length} pattern${data.patterns.length !== 1 ? 's' : ''} in ${data.chart_name}</span>
+                    <span style="color: rgba(255, 255, 255, 0.7);">Found ${rawPatterns.length} pattern${rawPatterns.length !== 1 ? 's' : ''} in ${data.chart_name}</span>
                 </div>
             `;
             
             // Group patterns by significance
-            const majorPatterns = data.patterns.filter(p => p.significance === 'major');
-            const moderatePatterns = data.patterns.filter(p => p.significance === 'moderate');
-            const minorPatterns = data.patterns.filter(p => p.significance === 'minor');
+            const majorPatterns = rawPatterns.filter(p => p.significance === 'major');
+            const moderatePatterns = rawPatterns.filter(p => p.significance === 'moderate');
+            const minorPatterns = rawPatterns.filter(p => p.significance === 'minor');
             
             // Display Major Patterns
             if (majorPatterns.length > 0) {

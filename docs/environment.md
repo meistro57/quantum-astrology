@@ -14,6 +14,7 @@ This guide documents the environment variables used by the Quantum Astrology sui
 | `APP_NAME` | No | `Quantum Astrology` | Application display name. Used in provider headers such as OpenRouter `X-Title`. |
 | `APP_URL` | No | `http://localhost` | Base URL used for URL generation in CLI tasks and emails. |
 | `APP_TIMEZONE` | No | `UTC` | Default timezone applied across PHP date handling. |
+| `GITHUB_ISSUES_URL` | No | `https://github.com/meistro57/quantum-astrology/issues` | URL opened by the `/admin` "Open GitHub Issues" button. |
 
 ## Database Configuration
 
@@ -79,6 +80,7 @@ APP_DEBUG=true
 APP_NAME="Quantum Astrology"
 APP_URL="http://quantum-astrology.test"
 APP_TIMEZONE="Europe/London"
+GITHUB_ISSUES_URL="https://github.com/meistro57/quantum-astrology/issues"
 
 # Database
 DB_HOST=127.0.0.1
