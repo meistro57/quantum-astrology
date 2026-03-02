@@ -72,6 +72,11 @@ try {
         exit;
     }
 
+    $reportPrivacyOptions = [
+        'show_birth_date' => $currentUser->shouldShowBirthDateInReports(),
+        'show_birth_location' => $currentUser->shouldShowBirthLocationInReports(),
+    ];
+
     // Initialize report generator
     $generator = new ReportGenerator($reportType);
 
@@ -91,9 +96,9 @@ try {
 
         $transitEngine = new Transit($chart);
         $transitData = $transitEngine->getCurrentTransits($transitDate);
-        $pdfContent = $generator->generateTransitReport($chartId, $transitData);
+        $pdfContent = $generator->generateTransitReport($chartId, $transitData, $reportPrivacyOptions);
     } else {
-        $pdfContent = $generator->generateNatalReport($chartId);
+        $pdfContent = $generator->generateNatalReport($chartId, $reportPrivacyOptions);
     }
     $archive = ReportArchive::save(
         (int) $currentUser->getId(),

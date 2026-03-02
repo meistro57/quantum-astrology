@@ -18,6 +18,7 @@
 - **REST endpoints** for health checks, chart retrieval, SVG export, and chart listing within the authenticated API surface.
 - **Chart list pagination** in API and web chart library UI.
 - **Profile workflow upgrades** including city/state coordinate auto-fill and in-profile password changes.
+- **Profile report privacy controls** to toggle birth date/time and birth location visibility in generated reports.
 - **AI interpretation controls** in chart view (provider/model/focus selection and cache-aware responses).
 - **AI summary reports** in reports UI with pretty preview + downloadable Markdown (`.md`) export.
 - **Transit Analysis**: Full UI and service pipeline integrated at `/charts/transits`.

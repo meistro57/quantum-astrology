@@ -119,6 +119,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Profile Report Privacy Settings**
+  - Added user-level profile checkboxes to control whether birth date/time and birth location are shown in generated PDF reports.
+  - Added migration `010_add_report_birth_privacy_to_users.php` introducing `show_birth_date_in_reports` and `show_birth_location_in_reports` (default enabled).
+  - Wired report generation to honor these flags when rendering natal report cover and chart information sections.
+
 ## [1.3.0-alpha] - 2025-12-19 - Transit UI & SQLite Reliability
 
 ### Added

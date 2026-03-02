@@ -33,6 +33,7 @@ Quantum Astrology provides professional-grade astrological calculations and char
 - **Chart View AI Utilities** — AI reading panel supports quick **Copy** and **Download** actions
 - **Chart Symbol Legend** — chart view includes an on-page glyph legend for planets, signs, and major aspects
 - **Profile Enhancements** — saved birth data, city/state coordinate auto-fill, and in-profile password change
+- **Report Privacy Controls** — profile checkboxes let users hide birth date/time and/or birth location in generated PDF reports
 - **System Admin Panel (`/admin`)** — admin-only operational panel with system metrics, log tailing, cache maintenance actions, and user administration tools
 - **User Administration** — manually create users, reset passwords, and grant/revoke admin status from the admin panel
 - **Admin System Operations** — one-click syntax/error check, chart smoke test, DB migration update, cache rebuild, and storage audit from `/admin`

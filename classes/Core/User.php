@@ -22,6 +22,8 @@ class User
     private ?float $birthLatitude = null;
     private ?float $birthLongitude = null;
     private ?string $birthLocationName = null;
+    private bool $showBirthDateInReports = true;
+    private bool $showBirthLocationInReports = true;
     private bool $isAdmin = false;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -161,6 +163,8 @@ class User
             'birth_latitude',
             'birth_longitude',
             'birth_location_name',
+            'show_birth_date_in_reports',
+            'show_birth_location_in_reports',
             'is_admin',
         ];
         $updateFields = [];
@@ -223,6 +227,8 @@ class User
         $user->birthLatitude = isset($data['birth_latitude']) ? (float) $data['birth_latitude'] : null;
         $user->birthLongitude = isset($data['birth_longitude']) ? (float) $data['birth_longitude'] : null;
         $user->birthLocationName = $data['birth_location_name'] ?? null;
+        $user->showBirthDateInReports = !isset($data['show_birth_date_in_reports']) || (int)$data['show_birth_date_in_reports'] === 1;
+        $user->showBirthLocationInReports = !isset($data['show_birth_location_in_reports']) || (int)$data['show_birth_location_in_reports'] === 1;
         $user->isAdmin = isset($data['is_admin']) && (int)$data['is_admin'] === 1;
         $user->createdAt = $data['created_at'];
         $user->updatedAt = $data['updated_at'];
@@ -296,6 +302,16 @@ class User
         return $this->birthLocationName;
     }
 
+    public function shouldShowBirthDateInReports(): bool
+    {
+        return $this->showBirthDateInReports;
+    }
+
+    public function shouldShowBirthLocationInReports(): bool
+    {
+        return $this->showBirthLocationInReports;
+    }
+
     public function getCreatedAt(): ?string
     {
         return $this->createdAt;
@@ -327,6 +343,8 @@ class User
             'birth_latitude' => $this->birthLatitude,
             'birth_longitude' => $this->birthLongitude,
             'birth_location_name' => $this->birthLocationName,
+            'show_birth_date_in_reports' => $this->showBirthDateInReports,
+            'show_birth_location_in_reports' => $this->showBirthLocationInReports,
             'is_admin' => $this->isAdmin,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt

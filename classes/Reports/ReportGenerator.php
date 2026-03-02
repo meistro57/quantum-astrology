@@ -342,11 +342,11 @@ class ReportGenerator
         $html = '';
 
         // Cover page
-        $html .= $this->buildCoverPage($chart);
+        $html .= $this->buildCoverPage($chart, $options);
 
         // Chart information
         $html .= '<div class="page-break"></div>';
-        $html .= $this->buildChartInfo($chart, $chartData);
+        $html .= $this->buildChartInfo($chart, $chartData, $options);
 
         // Planetary positions
         $html .= '<div class="page-break"></div>';
@@ -369,12 +369,24 @@ class ReportGenerator
         return $html;
     }
 
-    private function buildCoverPage(Chart $chart): string
+    private function buildCoverPage(Chart $chart, array $options = []): string
     {
         $name = htmlspecialchars($chart->getName());
+        $showBirthDate = $this->shouldShowBirthDateInReports($options);
+        $showBirthLocation = $this->shouldShowBirthLocationInReports($options);
         $date = $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('F j, Y - g:i A') : 'Unknown';
         $locationName = $chart->getBirthLocationName();
         $location = $locationName ? htmlspecialchars($locationName) : 'Unknown';
+        $birthDetails = [];
+        if ($showBirthDate) {
+            $birthDetails[] = 'Born: ' . $date;
+        }
+        if ($showBirthLocation) {
+            $birthDetails[] = 'Location: ' . $location;
+        }
+        $birthDetailsHtml = $birthDetails !== []
+            ? implode('<br>', $birthDetails)
+            : 'Birth details hidden by profile privacy settings.';
 
         return '
         <div class="cover-page">
@@ -389,8 +401,7 @@ class ReportGenerator
 
             <div class="cover-name">' . $name . '</div>
             <div style="font-size: 13pt; color: #666; margin: 10pt 0;">
-                Born: ' . $date . '<br>
-                Location: ' . $location . '
+                ' . $birthDetailsHtml . '
             </div>
 
             <div class="cover-footer">
@@ -402,9 +413,11 @@ class ReportGenerator
         ';
     }
 
-    private function buildChartInfo(Chart $chart, array $chartData): string
+    private function buildChartInfo(Chart $chart, array $chartData, array $options = []): string
     {
         $name = htmlspecialchars($chart->getName());
+        $showBirthDate = $this->shouldShowBirthDateInReports($options);
+        $showBirthLocation = $this->shouldShowBirthLocationInReports($options);
         $datetime = $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('F j, Y - g:i A T') : 'Unknown';
         $locationName = $chart->getBirthLocationName();
         $location = $locationName ? htmlspecialchars($locationName) : 'Unknown';
@@ -418,15 +431,19 @@ class ReportGenerator
             <div class="info-row">
                 <span class="info-label">Name:</span> ' . $name . '
             </div>
+            ' . ($showBirthDate ? '
             <div class="info-row">
                 <span class="info-label">Birth Date/Time:</span> ' . $datetime . '
             </div>
+            ' : '') . '
+            ' . ($showBirthLocation ? '
             <div class="info-row">
                 <span class="info-label">Birth Location:</span> ' . $location . '
             </div>
             <div class="info-row">
                 <span class="info-label">Coordinates:</span> ' . number_format($lat, 4) . '° ' . ($lat >= 0 ? 'N' : 'S') . ', ' . number_format($lon, 4) . '° ' . ($lon >= 0 ? 'E' : 'W') . '
             </div>
+            ' : '') . '
             <div class="info-row">
                 <span class="info-label">House System:</span> ' . $houseSystem . '
             </div>
@@ -812,7 +829,7 @@ class ReportGenerator
      */
     private function buildSynastryReportHTML(Chart $chart1, Chart $chart2, array $synastryData, array $options): string
     {
-        $html = $this->buildCoverPage($chart1); // You might want a custom cover for couples
+        $html = $this->buildCoverPage($chart1, $options); // You might want a custom cover for couples
 
         $html .= '<div class="page-break"></div>';
         $html .= '<h1>Synastry Analysis</h1>';
@@ -890,5 +907,21 @@ class ReportGenerator
             </p>
         </div>
         ';
+    }
+
+    private function shouldShowBirthDateInReports(array $options): bool
+    {
+        if (!array_key_exists('show_birth_date', $options)) {
+            return true;
+        }
+        return filter_var($options['show_birth_date'], FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function shouldShowBirthLocationInReports(array $options): bool
+    {
+        if (!array_key_exists('show_birth_location', $options)) {
+            return true;
+        }
+        return filter_var($options['show_birth_location'], FILTER_VALIDATE_BOOLEAN);
     }
 }

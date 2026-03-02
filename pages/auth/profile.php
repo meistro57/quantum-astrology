@@ -59,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $birthLongitudeRaw = $_POST['birth_longitude'] ?? null;
     $birthCityRaw = trim($_POST['birth_city'] ?? '');
     $birthStateRaw = trim($_POST['birth_state'] ?? '');
+    $showBirthDateInReports = isset($_POST['show_birth_date_in_reports']);
+    $showBirthLocationInReports = isset($_POST['show_birth_location_in_reports']);
 
     $currentPasswordRaw = (string) ($_POST['current_password'] ?? '');
     $newPasswordRaw = (string) ($_POST['new_password'] ?? '');
@@ -129,6 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $birthLocationName = trim($birthCityRaw . ($birthCityRaw !== '' && $birthStateRaw !== '' ? ', ' : '') . $birthStateRaw);
         }
         $updateData['birth_location_name'] = $birthLocationName !== '' ? $birthLocationName : null;
+        $updateData['show_birth_date_in_reports'] = $showBirthDateInReports ? 1 : 0;
+        $updateData['show_birth_location_in_reports'] = $showBirthLocationInReports ? 1 : 0;
     } catch (InvalidArgumentException $e) {
         $errors[] = $e->getMessage();
     }
@@ -620,6 +624,27 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    placeholder="0.1278 W"
                                    value="<?= htmlspecialchars($_POST['birth_longitude'] ?? ($user->getBirthLongitude() ?? '')) ?>">
                         </div>
+                    </div>
+
+                    <h4 class="section-title" style="font-size:1.05rem; margin-top:0.5rem;">Report Privacy</h4>
+                    <p class="section-subtitle">Control whether your birth date/time and location are shown in generated reports.</p>
+                    <?php
+                        $showDateChecked = isset($_POST['show_birth_date_in_reports'])
+                            ? true
+                            : $user->shouldShowBirthDateInReports();
+                        $showLocationChecked = isset($_POST['show_birth_location_in_reports'])
+                            ? true
+                            : $user->shouldShowBirthLocationInReports();
+                    ?>
+                    <div class="form-group" style="margin-top:0.35rem;">
+                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(255,255,255,0.88);margin-bottom:0.55rem;">
+                            <input type="checkbox" name="show_birth_date_in_reports" value="1" <?= $showDateChecked ? 'checked' : '' ?>>
+                            <span>Show birth date/time in reports</span>
+                        </label>
+                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(255,255,255,0.88);">
+                            <input type="checkbox" name="show_birth_location_in_reports" value="1" <?= $showLocationChecked ? 'checked' : '' ?>>
+                            <span>Show birth location in reports</span>
+                        </label>
                     </div>
                 </div>
 
