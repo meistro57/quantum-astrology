@@ -42,11 +42,12 @@ class Progression
             $calculationDate->add(new DateInterval("P{$daysToProgress}D"));
 
             // Calculate progressed planetary positions for the calculation date
-            $progressedPositions = $this->swissEph->calculatePlanetaryPositions(
+            $rawProgressedPositions = $this->swissEph->calculatePlanetaryPositions(
                 $calculationDate,
                 $this->natalChart->getBirthLatitude(),
                 $this->natalChart->getBirthLongitude()
             );
+            $progressedPositions = $this->normalizePositionMap($rawProgressedPositions);
 
             // Calculate progressed houses (using progressed date but natal birth time and place)
             $progressedHouses = $this->swissEph->calculateHouses(
@@ -57,11 +58,11 @@ class Progression
             );
 
             // Calculate aspects between progressed and natal positions
-            $natalPositions = $this->natalChart->getPlanetaryPositions();
+            $natalPositions = $this->normalizePositionMap($this->natalChart->getPlanetaryPositions());
             $progressedAspects = $this->calculateProgressedAspects($progressedPositions, $natalPositions);
 
             // Calculate aspects within progressed chart
-            $progressedInternalAspects = Chart::calculateAspects($progressedPositions);
+            $progressedInternalAspects = Aspects::compute($this->toAspectInput($progressedPositions));
 
             return [
                 'progression_type' => 'secondary',
@@ -83,7 +84,7 @@ class Progression
                 ]
             ];
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Logger::error("Secondary progression calculation failed", [
                 'error' => $e->getMessage(),
                 'chart_id' => $this->natalChart->getId(),
@@ -129,7 +130,7 @@ class Progression
 
                 $current->add($interval);
 
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Logger::error("Progressed lunar phase calculation failed", [
                     'date' => $current->format('c'),
                     'error' => $e->getMessage()
@@ -170,7 +171,7 @@ class Progression
                 $previousProgression = $currentProgression;
                 $current->add(new DateInterval('P1M')); // Monthly intervals for progressions
 
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Logger::error("Progressed aspect search failed", [
                     'date' => $current->format('c'),
                     'error' => $e->getMessage()
@@ -223,7 +224,13 @@ class Progression
         ];
 
         foreach ($progressedPositions as $progressedPlanet => $progressedData) {
+            if (!is_array($progressedData) || !isset($progressedData['longitude'])) {
+                continue;
+            }
             foreach ($natalPositions as $natalPlanet => $natalData) {
+                if (!is_array($natalData) || !isset($natalData['longitude'])) {
+                    continue;
+                }
                 $progressedLon = $progressedData['longitude'];
                 $natalLon = $natalData['longitude'];
 
@@ -277,13 +284,15 @@ class Progression
         ];
 
         foreach ($pos1 as $planet => $data1) {
-            if (!isset($pos2[$planet])) continue;
+            if (!is_array($data1) || !isset($data1['longitude']) || !isset($pos2[$planet])) continue;
 
             $data2 = $pos2[$planet];
+            if (!is_array($data2) || !isset($data2['longitude'])) continue;
             $lon1 = $data1['longitude'];
             $lon2 = $data2['longitude'];
 
             foreach ($natalPos as $natalPlanet => $natalData) {
+                if (!is_array($natalData) || !isset($natalData['longitude'])) continue;
                 $natalLon = $natalData['longitude'];
 
                 foreach ($aspectTypes as $aspectType) {
@@ -394,6 +403,65 @@ class Progression
     }
 
     /**
+     * Normalize mixed position payloads into keyed map with longitude/latitude/distance fields.
+     *
+     * @param array<mixed> $positions
+     * @return array<string, array{longitude:float, latitude:float, distance:float}>
+     */
+    private function normalizePositionMap(array $positions): array
+    {
+        $normalized = [];
+
+        foreach ($positions as $key => $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $planet = $value['planet'] ?? $value['name'] ?? (is_string($key) ? $key : null);
+            if (!is_string($planet) || $planet === '') {
+                continue;
+            }
+
+            $lonRaw = $value['longitude'] ?? $value['lon'] ?? null;
+            if (!is_numeric($lonRaw)) {
+                continue;
+            }
+
+            $latRaw = $value['latitude'] ?? $value['lat'] ?? 0.0;
+            $distRaw = $value['distance'] ?? $value['dist'] ?? 0.0;
+
+            $normalized[strtolower($planet)] = [
+                'longitude' => (float) $lonRaw,
+                'latitude' => is_numeric($latRaw) ? (float) $latRaw : 0.0,
+                'distance' => is_numeric($distRaw) ? (float) $distRaw : 0.0,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Convert keyed longitude map to aspect engine list format.
+     *
+     * @param array<string, array{longitude:float}> $positions
+     * @return array<int, array{planet:string, lon:float}>
+     */
+    private function toAspectInput(array $positions): array
+    {
+        $out = [];
+        foreach ($positions as $planet => $data) {
+            if (!is_array($data) || !isset($data['longitude']) || !is_numeric($data['longitude'])) {
+                continue;
+            }
+            $out[] = [
+                'planet' => $planet,
+                'lon' => (float) $data['longitude'],
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * Calculate progressed lunar returns (progressed Moon returning to natal Moon position)
      */
     public function calculateProgressedLunarReturns(DateTime $startDate, DateTime $endDate): array
@@ -432,7 +500,7 @@ class Progression
 
                 $current->add(new DateInterval('P3M')); // Check quarterly
 
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Logger::error("Progressed lunar return calculation failed", [
                     'date' => $current->format('c'),
                     'error' => $e->getMessage()

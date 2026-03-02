@@ -11,6 +11,7 @@ This guide documents the environment variables used by the Quantum Astrology sui
 | --- | --- | --- | --- |
 | `APP_ENV` | No | `production` | Sets the runtime environment. Use `local` during development to enable verbose logging. |
 | `APP_DEBUG` | No | `false` | Enables debugging output when `true`. Ensure this is `false` in production to avoid leaking sensitive information. |
+| `APP_NAME` | No | `Quantum Astrology` | Application display name. Used in provider headers such as OpenRouter `X-Title`. |
 | `APP_URL` | No | `http://localhost` | Base URL used for URL generation in CLI tasks and emails. |
 | `APP_TIMEZONE` | No | `UTC` | Default timezone applied across PHP date handling. |
 
@@ -56,6 +57,8 @@ The database user should have the following privileges on the target schema: `SE
 | `AI_API_ENDPOINT` | No | provider default endpoint | Optional custom endpoint override (useful for self-hosted proxies/gateways). |
 | `AI_CACHE_TTL` | No | `21600` | AI interpretation cache TTL in seconds for chart-view AI reads. Set to `0` to disable cache writes/reads. |
 
+> In current builds, AI provider/model are expected to be managed from `/admin` system settings for runtime usage in chart/report AI flows.
+
 ## Session & Security Hardening
 
 | Variable | Required | Default | Description |
@@ -73,6 +76,7 @@ In addition to environment variables, PHP session cookies inherit secure default
 # Application
 APP_ENV=local
 APP_DEBUG=true
+APP_NAME="Quantum Astrology"
 APP_URL="http://quantum-astrology.test"
 APP_TIMEZONE="Europe/London"
 

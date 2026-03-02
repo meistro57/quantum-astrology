@@ -193,10 +193,16 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
+        html, body {
+            min-height: 100%;
+            overflow-y: auto;
+        }
+
         .profile-container {
             max-width: 800px;
             margin: 0 auto;
             padding: 2rem;
+            padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 2.5rem));
         }
 
         .profile-header {
@@ -226,6 +232,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             border-radius: 20px;
             padding: 2.5rem;
             margin-bottom: 2rem;
+            overflow: visible;
         }
 
         .form-row {
@@ -376,6 +383,11 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         }
 
         @media (max-width: 768px) {
+            .profile-container {
+                padding: 1rem;
+                padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 3rem));
+            }
+
             .form-row {
                 flex-direction: column;
                 gap: 0;

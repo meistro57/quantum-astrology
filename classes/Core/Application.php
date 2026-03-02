@@ -287,7 +287,7 @@ class Application
 
             // Check if chart is public or belongs to current user
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 header('Content-Type: application/json');
                 echo json_encode(['error' => 'Access denied']);
@@ -428,7 +428,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -459,7 +459,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -490,7 +490,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -528,7 +528,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -539,7 +539,7 @@ class Application
 
             echo json_encode($progressedChart);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Logger::error("Progression chart generation failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
             http_response_code(500);
             echo json_encode(['error' => 'Progression chart generation failed']);
@@ -559,20 +559,20 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
             }
 
-            $progressedDate = isset($_GET['date']) ? new DateTime($_GET['date']) : new DateTime();
+            $progressedDate = isset($_GET['date']) ? new \DateTime($_GET['date']) : new \DateTime();
 
             $progression = new \QuantumAstrology\Charts\Progression($chart);
             $currentProgressions = $progression->calculateSecondaryProgressions($progressedDate);
 
             echo json_encode($currentProgressions);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Logger::error("Current progressions failed", ['error' => $e->getMessage(), 'chart_id' => $chartId]);
             http_response_code(500);
             echo json_encode(['error' => 'Current progressions calculation failed']);
@@ -592,7 +592,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -628,7 +628,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied']);
                 return;
@@ -679,8 +679,8 @@ class Application
 
             // Check access permissions for both charts
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if ((!$chart1->isPublic() && (!$currentUser || $chart1->getUserId() !== $currentUser->getId())) ||
-                (!$chart2->isPublic() && (!$currentUser || $chart2->getUserId() !== $currentUser->getId()))) {
+            if ((!$chart1->isPublic() && (!$currentUser || (int)$chart1->getUserId() !== (int)$currentUser->getId())) ||
+                (!$chart2->isPublic() && (!$currentUser || (int)$chart2->getUserId() !== (int)$currentUser->getId()))) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied to one or both charts']);
                 return;
@@ -712,8 +712,8 @@ class Application
 
             // Check access permissions for both charts
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if ((!$chart1->isPublic() && (!$currentUser || $chart1->getUserId() !== $currentUser->getId())) ||
-                (!$chart2->isPublic() && (!$currentUser || $chart2->getUserId() !== $currentUser->getId()))) {
+            if ((!$chart1->isPublic() && (!$currentUser || (int)$chart1->getUserId() !== (int)$currentUser->getId())) ||
+                (!$chart2->isPublic() && (!$currentUser || (int)$chart2->getUserId() !== (int)$currentUser->getId()))) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied to one or both charts']);
                 return;
@@ -751,8 +751,8 @@ class Application
 
             // Check access permissions for both charts
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if ((!$chart1->isPublic() && (!$currentUser || $chart1->getUserId() !== $currentUser->getId())) ||
-                (!$chart2->isPublic() && (!$currentUser || $chart2->getUserId() !== $currentUser->getId()))) {
+            if ((!$chart1->isPublic() && (!$currentUser || (int)$chart1->getUserId() !== (int)$currentUser->getId())) ||
+                (!$chart2->isPublic() && (!$currentUser || (int)$chart2->getUserId() !== (int)$currentUser->getId()))) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied to one or both charts']);
                 return;
@@ -784,8 +784,8 @@ class Application
 
             // Check access permissions for both charts
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if ((!$chart1->isPublic() && (!$currentUser || $chart1->getUserId() !== $currentUser->getId())) ||
-                (!$chart2->isPublic() && (!$currentUser || $chart2->getUserId() !== $currentUser->getId()))) {
+            if ((!$chart1->isPublic() && (!$currentUser || (int)$chart1->getUserId() !== (int)$currentUser->getId())) ||
+                (!$chart2->isPublic() && (!$currentUser || (int)$chart2->getUserId() !== (int)$currentUser->getId()))) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Access denied to one or both charts']);
                 return;
@@ -821,7 +821,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
@@ -849,15 +849,17 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
 
-            $provider = strtolower(trim((string)($_GET['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama'))));
-            $model = trim((string)($_GET['model'] ?? 'default'));
-            $style = trim((string)($_GET['style'] ?? 'professional'));
-            $length = trim((string)($_GET['length'] ?? 'medium'));
+            $masterAi = \QuantumAstrology\Core\SystemSettings::getMasterAiConfig();
+            $summaryCfg = \QuantumAstrology\Core\SystemSettings::getAiSummaryConfig();
+            $provider = strtolower(trim((string)($masterAi['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama'))));
+            $model = trim((string)($masterAi['model'] ?? 'default'));
+            $style = trim((string)($summaryCfg['style'] ?? 'professional'));
+            $length = trim((string)($summaryCfg['length'] ?? 'medium'));
             $focus = trim((string)($_GET['focus'] ?? ''));
             $fresh = filter_var($_GET['fresh'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
@@ -899,6 +901,7 @@ class Application
             $aiConfig = [
                 'provider' => $provider,
                 'model' => $model,
+                'api_key' => (string)($masterAi['api_key'] ?? ''),
                 'style' => $style,
                 'length' => $length,
                 'focus' => $focus,
@@ -940,11 +943,13 @@ class Application
     private function serveAIProviders(): void
     {
         try {
+            $masterAi = \QuantumAstrology\Core\SystemSettings::getMasterAiConfig();
             $providers = \QuantumAstrology\Interpretations\AIInterpreter::getSupportedProviders();
             $this->sendJson([
                 'providers' => $providers,
-                'default_provider' => strtolower((string)($_ENV['AI_PROVIDER'] ?? 'ollama')),
-                'default_model' => (string)($_ENV['AI_MODEL'] ?? ''),
+                'default_provider' => strtolower((string)($masterAi['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama'))),
+                'default_model' => (string)($masterAi['model'] ?? ($_ENV['AI_MODEL'] ?? '')),
+                'master_key_set' => !empty($masterAi['api_key_set']),
             ]);
         } catch (\Throwable $e) {
             Logger::error('AI provider metadata failed', ['error' => $e->getMessage()]);
@@ -964,7 +969,7 @@ class Application
 
             // Check access permissions
             $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+            if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
                 $this->sendJson(['error' => 'Access denied'], 403);
                 return;
             }
@@ -1082,6 +1087,10 @@ class Application
                 'clear_chart_cache' => $this->clearDirectoryFiles(STORAGE_PATH . '/cache/charts', ['svg']),
                 'clear_all_cache' => $this->clearDirectoryFiles(STORAGE_PATH . '/cache', []),
                 'list_users' => $this->adminListUsers(),
+                'get_ai_master_config' => $this->adminGetMasterAiConfig(),
+                'set_ai_master_config' => $this->adminSetMasterAiConfig($input),
+                'get_ai_summary_config' => $this->adminGetAiSummaryConfig(),
+                'set_ai_summary_config' => $this->adminSetAiSummaryConfig($input),
                 'create_user' => $this->adminCreateUser($input),
                 'reset_user_password' => $this->adminResetUserPassword($input),
                 'set_user_admin' => $this->adminSetUserAdmin($input),
@@ -1247,6 +1256,101 @@ class Application
                 'username' => $target->getUsername(),
                 'is_admin' => $isAdmin,
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminGetMasterAiConfig(): array
+    {
+        $cfg = \QuantumAstrology\Core\SystemSettings::getMasterAiConfig();
+
+        return [
+            'provider' => $cfg['provider'],
+            'model' => $cfg['model'],
+            'api_key_set' => (bool) $cfg['api_key_set'],
+            'updated_at' => $cfg['updated_at'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function adminSetMasterAiConfig(array $input): array
+    {
+        $provider = strtolower(trim((string)($input['provider'] ?? '')));
+        $model = trim((string)($input['model'] ?? ''));
+        $apiKeyRaw = array_key_exists('api_key', $input) ? (string) $input['api_key'] : null;
+        $clearKey = filter_var($input['clear_api_key'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        $providers = \QuantumAstrology\Interpretations\AIInterpreter::getSupportedProviders();
+        if ($provider === '' || !isset($providers[$provider])) {
+            throw new \RuntimeException('Valid AI provider is required.');
+        }
+
+        \QuantumAstrology\Core\SystemSettings::setMasterAiConfig($provider, $model, $apiKeyRaw, (bool)$clearKey);
+        $cfg = \QuantumAstrology\Core\SystemSettings::getMasterAiConfig();
+
+        return [
+            'message' => 'Master AI configuration saved.',
+            'provider' => $cfg['provider'],
+            'model' => $cfg['model'],
+            'api_key_set' => (bool) $cfg['api_key_set'],
+            'updated_at' => $cfg['updated_at'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminGetAiSummaryConfig(): array
+    {
+        $cfg = \QuantumAstrology\Core\SystemSettings::getAiSummaryConfig();
+        return [
+            'system_prompt' => (string) ($cfg['system_prompt'] ?? ''),
+            'style' => (string) ($cfg['style'] ?? 'professional'),
+            'length' => (string) ($cfg['length'] ?? 'short'),
+            'focus_template' => (string) ($cfg['focus_template'] ?? ''),
+            'updated_at' => $cfg['updated_at'] ?? null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function adminSetAiSummaryConfig(array $input): array
+    {
+        $systemPrompt = trim((string)($input['system_prompt'] ?? ''));
+        $style = strtolower(trim((string)($input['style'] ?? 'professional')));
+        $length = strtolower(trim((string)($input['length'] ?? 'short')));
+        $focusTemplate = trim((string)($input['focus_template'] ?? ''));
+
+        if ($systemPrompt === '') {
+            throw new \RuntimeException('System prompt is required.');
+        }
+        if (!in_array($style, ['professional', 'empathetic', 'direct', 'technical'], true)) {
+            throw new \RuntimeException('Invalid summary style.');
+        }
+        if (!in_array($length, ['short', 'medium', 'long'], true)) {
+            throw new \RuntimeException('Invalid summary length.');
+        }
+        if ($focusTemplate === '') {
+            $focusTemplate = 'Prioritize a concise summary suitable for a {report_type} report.';
+        }
+
+        \QuantumAstrology\Core\SystemSettings::setAiSummaryConfig($systemPrompt, $style, $length, $focusTemplate);
+        $cfg = \QuantumAstrology\Core\SystemSettings::getAiSummaryConfig();
+
+        return [
+            'message' => 'AI summary settings saved.',
+            'system_prompt' => (string) ($cfg['system_prompt'] ?? ''),
+            'style' => (string) ($cfg['style'] ?? 'professional'),
+            'length' => (string) ($cfg['length'] ?? 'short'),
+            'focus_template' => (string) ($cfg['focus_template'] ?? ''),
+            'updated_at' => $cfg['updated_at'] ?? null,
         ];
     }
 

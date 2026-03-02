@@ -30,6 +30,16 @@ body {
     line-height: 1.6;
 }
 
+/* Keep top-level page headers fixed across dashboard pages */
+body > header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(10, 10, 15, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Particles container (used in forms) */
 .particles-container {
     position: fixed;
@@ -467,6 +477,42 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+    body > header {
+        padding: 12px 14px !important;
+    }
+
+    body > header,
+    .portal-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    body > header nav,
+    .portal-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        width: 100%;
+    }
+
+    body > header nav a,
+    .portal-nav a {
+        margin-left: 0 !important;
+    }
+
+    .portal-brand > span:last-child {
+        display: none;
+    }
+
+    .container {
+        padding: 24px 14px;
+    }
+
+    .page-actions {
+        margin: 12px 0;
+    }
+
     .hero h1 {
         font-size: 2.5rem;
     }

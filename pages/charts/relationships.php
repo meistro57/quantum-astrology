@@ -10,6 +10,7 @@ Auth::requireLogin();
 
 $user = Auth::user();
 $userCharts = Chart::findByUserId($user->getId(), 50); // Get up to 50 charts
+$creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
 
 $pageTitle = 'Relationship Analysis - Quantum Astrology';
 ?>
@@ -400,7 +401,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
                         <?php foreach ($userCharts as $chart): ?>
                             <option value="<?= $chart->getId() ?>" data-name="<?= htmlspecialchars($chart->getName()) ?>">
                                 <?= htmlspecialchars($chart->getName()) ?> 
-                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?>)
+                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?> · Created by <?= htmlspecialchars($creatorLabel) ?>)
                             </option>
                         <?php endforeach ?>
                     </select>
@@ -415,7 +416,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
                         <?php foreach ($userCharts as $chart): ?>
                             <option value="<?= $chart->getId() ?>" data-name="<?= htmlspecialchars($chart->getName()) ?>">
                                 <?= htmlspecialchars($chart->getName()) ?> 
-                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?>)
+                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?> · Created by <?= htmlspecialchars($creatorLabel) ?>)
                             </option>
                         <?php endforeach ?>
                     </select>

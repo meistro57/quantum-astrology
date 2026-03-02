@@ -18,9 +18,9 @@ class ReportGenerator
     public function __construct(string $reportType = 'natal')
     {
         $this->reportType = $reportType;
+        $tmpDir = $this->resolveWritableMpdfTempDir();
 
-        // Initialize mPDF with professional settings
-        $this->mpdf = new Mpdf([
+        $mpdfConfig = [
             'mode' => 'utf-8',
             'format' => 'A4',
             'margin_left' => 20,
@@ -29,11 +29,49 @@ class ReportGenerator
             'margin_bottom' => 25,
             'margin_header' => 10,
             'margin_footer' => 10,
-        ]);
+        ];
+        if (is_dir($tmpDir)) {
+            $mpdfConfig['tempDir'] = $tmpDir;
+        }
+
+        // Initialize mPDF with professional settings
+        $this->mpdf = new Mpdf($mpdfConfig);
 
         // Set document properties
         $this->mpdf->SetAuthor('Quantum Minds United');
         $this->mpdf->SetCreator('Quantum Astrology v1.0');
+    }
+
+    /**
+     * Choose a writable temp directory for mPDF.
+     */
+    private function resolveWritableMpdfTempDir(): string
+    {
+        $candidates = [
+            ROOT_PATH . '/storage/cache/mpdf-runtime',
+            ROOT_PATH . '/storage/cache/mpdf',
+            rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . '/quantum-astrology-mpdf',
+        ];
+
+        foreach ($candidates as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+
+            // Ensure broad write access across php-fpm/apache/cli users.
+            @chmod($dir, 0777);
+            $nested = $dir . DIRECTORY_SEPARATOR . 'mpdf';
+            if (!is_dir($nested)) {
+                @mkdir($nested, 0777, true);
+            }
+            @chmod($nested, 0777);
+
+            if (is_dir($dir) && is_writable($dir)) {
+                return $dir;
+            }
+        }
+
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -546,7 +584,7 @@ class ReportGenerator
         if (!empty($interpretation['synthesis'])) {
             $html .= '<h2>Core Identity</h2>';
             $html .= '<div class="interpretation-box">';
-            $html .= '<p>' . htmlspecialchars($interpretation['synthesis']) . '</p>';
+            $html .= '<p>' . htmlspecialchars($this->stringifyInterpretationValue($interpretation['synthesis'])) . '</p>';
             $html .= '</div>';
         }
 
@@ -555,7 +593,8 @@ class ReportGenerator
             $html .= '<h2>Elemental Balance</h2>';
             $html .= '<p>';
             foreach ($interpretation['elemental_balance'] as $element => $count) {
-                $html .= '<span class="highlight">' . ucfirst($element) . ': ' . $count . '</span> ';
+                $label = is_string($element) ? ucfirst($element) : ('Element ' . (string) $element);
+                $html .= '<span class="highlight">' . htmlspecialchars($label) . ': ' . htmlspecialchars($this->stringifyInterpretationValue($count)) . '</span> ';
             }
             $html .= '</p>';
         }
@@ -564,18 +603,208 @@ class ReportGenerator
         if (!empty($interpretation['planetary_placements'])) {
             $html .= '<h2>Planetary Placements</h2>';
             foreach ($interpretation['planetary_placements'] as $planet => $text) {
-                $html .= '<h3>' . ucfirst(str_replace('_', ' ', $planet)) . '</h3>';
-                $html .= '<p>' . htmlspecialchars($text) . '</p>';
+                $planetLabel = is_string($planet) ? ucfirst(str_replace('_', ' ', $planet)) : ('Planet ' . (string) $planet);
+                $html .= '<h3>' . htmlspecialchars($planetLabel) . '</h3>';
+                $html .= '<p>' . htmlspecialchars($this->stringifyInterpretationValue($text)) . '</p>';
             }
         }
 
         return $html;
     }
 
+    /**
+     * Flatten mixed interpretation payloads into printable text.
+     */
+    private function stringifyInterpretationValue(mixed $value): string
+    {
+        if (is_string($value)) {
+            return trim($value);
+        }
+        if (is_int($value) || is_float($value) || is_bool($value)) {
+            return (string) $value;
+        }
+        if (is_array($value)) {
+            $parts = [];
+            foreach ($value as $k => $v) {
+                $segment = $this->stringifyInterpretationValue($v);
+                if ($segment === '') {
+                    continue;
+                }
+                if (is_string($k) && $k !== '') {
+                    $parts[] = ucfirst(str_replace('_', ' ', $k)) . ': ' . $segment;
+                } else {
+                    $parts[] = $segment;
+                }
+            }
+            return implode(' | ', $parts);
+        }
+        return '';
+    }
+
     private function buildTransitReportHTML(Chart $chart, array $transitData, array $options): string
     {
-        // Similar structure for transit reports
-        return '<h1>Transit Report</h1><p>Transit report content goes here...</p>';
+        $html = '';
+
+        $name = htmlspecialchars($chart->getName());
+        $transitDate = isset($transitData['transit_date']) ? (string)$transitData['transit_date'] : date('c');
+        $transitDateLabel = date('F j, Y - g:i A T', strtotime($transitDate));
+
+        $html .= '
+        <div class="cover-page">
+            <div class="cover-title">QUANTUM ASTROLOGY</div>
+            <div class="cover-subtitle">Current Transit Forecast</div>
+            <div class="cover-name">' . $name . '</div>
+            <div style="font-size: 13pt; color: #666; margin: 10pt 0;">
+                Transit Date: ' . htmlspecialchars($transitDateLabel) . '
+            </div>
+            <div class="cover-footer">
+                <strong>Quantum Minds United</strong><br>
+                Report Generated: ' . date('F j, Y') . '
+            </div>
+        </div>
+        ';
+
+        $html .= '<div class="page-break"></div>';
+        $html .= '<h1>Transit Overview</h1>';
+        $html .= '<div class="info-box">';
+        $html .= '<div class="info-row"><span class="info-label">Chart Name:</span> ' . $name . '</div>';
+        $html .= '<div class="info-row"><span class="info-label">Transit Date:</span> ' . htmlspecialchars($transitDateLabel) . '</div>';
+        $html .= '<div class="info-row"><span class="info-label">Forecast Type:</span> Current planetary influences to natal chart</div>';
+        $html .= '</div>';
+
+        // Transiting planetary positions
+        $currentPositions = $transitData['current_positions'] ?? [];
+        if (!is_array($currentPositions)) {
+            $currentPositions = [];
+        }
+
+        $html .= '<h2>Current Transiting Planet Positions</h2>';
+        if (empty($currentPositions)) {
+            $html .= '<p>No transit position data available.</p>';
+        } else {
+            $html .= '<table class="planet-table">';
+            $html .= '<tr><th>Transiting Planet</th><th>Sign</th><th>Degree</th><th>Speed</th></tr>';
+            foreach ($currentPositions as $planet => $data) {
+                if (!is_array($data)) {
+                    continue;
+                }
+                $longitude = null;
+                if (isset($data['longitude']) && is_numeric($data['longitude'])) {
+                    $longitude = (float)$data['longitude'];
+                } elseif (isset($data['lon']) && is_numeric($data['lon'])) {
+                    $longitude = (float)$data['lon'];
+                }
+                if ($longitude === null) {
+                    continue;
+                }
+
+                $sign = isset($data['sign']) && is_string($data['sign']) && $data['sign'] !== ''
+                    ? $data['sign']
+                    : $this->getSignFromLongitude($longitude);
+                $degree = number_format(fmod(($longitude + 360.0), 30.0), 2) . '°';
+                $speedRaw = $data['longitude_speed'] ?? $data['speed'] ?? null;
+                $speed = is_numeric($speedRaw) ? number_format((float)$speedRaw, 3) . '°/day' : '--';
+
+                $html .= '<tr>';
+                $html .= '<td><strong>' . ucfirst(str_replace('_', ' ', (string)$planet)) . '</strong></td>';
+                $html .= '<td>' . htmlspecialchars((string)$sign) . '</td>';
+                $html .= '<td>' . $degree . '</td>';
+                $html .= '<td>' . $speed . '</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</table>';
+        }
+
+        // Transit aspects to natal chart
+        $transits = $transitData['transits'] ?? [];
+        if (!is_array($transits)) {
+            $transits = [];
+        }
+
+        usort($transits, static function ($a, $b): int {
+            $orbA = (is_array($a) && isset($a['orb']) && is_numeric($a['orb'])) ? (float)$a['orb'] : 999.0;
+            $orbB = (is_array($b) && isset($b['orb']) && is_numeric($b['orb'])) ? (float)$b['orb'] : 999.0;
+            return $orbA <=> $orbB;
+        });
+
+        $html .= '<div class="page-break"></div>';
+        $html .= '<h1>Active Transit Aspects</h1>';
+        if (empty($transits)) {
+            $html .= '<p>No major transit aspects are active for this date.</p>';
+        } else {
+            $html .= '<table class="aspect-table">';
+            $html .= '<tr><th>Transiting Planet</th><th>Aspect</th><th>Natal Planet</th><th>Orb</th><th>Applying</th><th>Strength</th></tr>';
+            foreach (array_slice($transits, 0, 40) as $transit) {
+                if (!is_array($transit)) {
+                    continue;
+                }
+                $transitPlanet = ucfirst(str_replace('_', ' ', (string)($transit['transiting_planet'] ?? '--')));
+                $natalPlanet = ucfirst(str_replace('_', ' ', (string)($transit['natal_planet'] ?? '--')));
+                $aspect = strtolower((string)($transit['aspect'] ?? '--'));
+                $aspectLabel = ucfirst($aspect);
+                $aspectClass = 'aspect-' . preg_replace('/[^a-z]/', '', $aspect);
+                $orb = isset($transit['orb']) && is_numeric($transit['orb']) ? number_format((float)$transit['orb'], 2) . '°' : '--';
+                $applying = ($transit['applying'] ?? false) ? 'Yes' : 'No';
+                $strength = isset($transit['strength']) && is_numeric($transit['strength'])
+                    ? ((int)$transit['strength']) . '%'
+                    : '--';
+
+                $html .= '<tr>';
+                $html .= '<td>' . htmlspecialchars($transitPlanet) . '</td>';
+                $html .= '<td class="' . htmlspecialchars($aspectClass) . '">' . htmlspecialchars($aspectLabel) . '</td>';
+                $html .= '<td>' . htmlspecialchars($natalPlanet) . '</td>';
+                $html .= '<td>' . $orb . '</td>';
+                $html .= '<td>' . $applying . '</td>';
+                $html .= '<td>' . $strength . '</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</table>';
+        }
+
+        // Key themes and practical recommendations
+        $html .= '<h2>Key Transit Themes</h2>';
+        if (empty($transits)) {
+            $html .= '<div class="interpretation-box"><p>The current sky is comparatively quiet for this chart. Focus on consistency, maintenance, and incremental progress.</p></div>';
+        } else {
+            $dominant = array_slice($transits, 0, 5);
+            $html .= '<div class="interpretation-box"><ul>';
+            foreach ($dominant as $t) {
+                if (!is_array($t)) {
+                    continue;
+                }
+                $transitPlanet = ucfirst(str_replace('_', ' ', (string)($t['transiting_planet'] ?? 'Planet')));
+                $natalPlanet = ucfirst(str_replace('_', ' ', (string)($t['natal_planet'] ?? 'Planet')));
+                $aspect = ucfirst((string)($t['aspect'] ?? 'aspect'));
+                $orbValue = isset($t['orb']) && is_numeric($t['orb']) ? (float)$t['orb'] : null;
+                $orbText = $orbValue !== null ? number_format($orbValue, 2) . '° orb' : 'exactness unknown';
+                $html .= '<li><strong>' . htmlspecialchars($transitPlanet . ' ' . $aspect . ' ' . $natalPlanet) . '</strong>: ' .
+                    htmlspecialchars($this->transitGuidanceForAspect((string)($t['aspect'] ?? ''))) . ' (' . $orbText . ').</li>';
+            }
+            $html .= '</ul></div>';
+        }
+
+        $html .= '<h2>Practical Guidance</h2>';
+        $html .= '<div class="interpretation-box">';
+        $html .= '<p>Use this transit window for planning and timing, not just interpretation. Prioritize high-impact actions when supportive aspects are strongest, and reserve buffer capacity when tense aspects tighten.</p>';
+        $html .= '<p>Review this report weekly; fast-moving transits can shift quickly while outer-planet themes unfold over longer cycles.</p>';
+        $html .= '</div>';
+
+        $html .= $this->buildFooter();
+        return $html;
+    }
+
+    private function transitGuidanceForAspect(string $aspect): string
+    {
+        $aspect = strtolower(trim($aspect));
+        return match ($aspect) {
+            'conjunction' => 'A concentrated period of activation and focus; initiate deliberately',
+            'trine' => 'Supportive flow and momentum; capitalize on opportunities',
+            'sextile' => 'Productive openings through effort and collaboration',
+            'square' => 'Constructive pressure; adjust strategy and resolve friction points',
+            'opposition' => 'Polarization and feedback from others; seek balance and perspective',
+            'quincunx' => 'Realignment needed; refine routines and expectations',
+            default => 'Notice shifts in emphasis and respond with practical adjustments',
+        };
     }
 
     /**

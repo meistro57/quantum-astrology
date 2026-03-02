@@ -11,10 +11,13 @@ if (php_sapi_name() === 'cli-server') {
 }
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
 
 require __DIR__ . '/classes/autoload.php';
 require_once __DIR__ . '/config.php';
+
+$requestPathForErrors = (string)(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/');
+$shouldDisplayErrors = (APP_DEBUG && !str_starts_with($requestPathForErrors, '/api/'));
+ini_set('display_errors', $shouldDisplayErrors ? '1' : '0');
 
 // Bootstrap the application router
 $app = new \QuantumAstrology\Core\Application();
@@ -105,13 +108,21 @@ try {
   ul.list li:hover{background:#0f1424}
   ul.list li.active{background:linear-gradient(90deg,rgba(123,92,255,.18),rgba(92,200,255,.18));}
   .muted{color:var(--muted)}
-  .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
+  .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#0f1424}
   .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
   .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}
   .pill.danger{border-color:#6e2231;background:rgba(255,92,115,.1);color:#ffb3bf}
   .note{background:#241d0b;border:1px solid #3a2f0a;color:#ffd166;padding:10px 12px;border-radius:10px;margin-bottom:14px}
   footer{margin:40px 0 20px;color:var(--muted);text-align:center}
-  @media (max-width:980px){ .grid{grid-template-columns:1fr} .row{grid-template-columns:1fr} .stats{grid-template-columns:1fr 1fr;row-gap:10px} }
+  @media (max-width:980px){
+    header{padding:12px 14px;flex-direction:column;align-items:flex-start;gap:10px}
+    nav{display:flex;flex-wrap:wrap;gap:8px 12px}
+    nav a{margin-left:0}
+    .brand span{display:none}
+    .grid{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr}
+    .stats{grid-template-columns:1fr 1fr;row-gap:10px}
+  }
 </style>
 </head>
 <body>
@@ -120,7 +131,7 @@ try {
   <div class="brand"><div class="dot"></div> Quantum Astrology <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span></div>
   <nav>
     <a class="active" href="/">Portal</a>
-    <a href="/viewer.php">Charts</a>
+    <a href="/charts">Charts</a>
     <a href="/reports">Reports</a>
     <?php if ($isAdminUser): ?><a href="/admin">Admin</a><?php endif; ?>
     <a href="/profile">Profile</a>

@@ -6,6 +6,7 @@ namespace QuantumAstrology\Interpretations;
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Interpretations\ChartInterpretation;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Core\SystemSettings;
 
 class AIInterpreter
 {
@@ -47,14 +48,16 @@ class AIInterpreter
      */
     private function initializeAIConfig(): void
     {
+        $master = SystemSettings::getMasterAiConfig();
+
         // Determine provider from config or environment
-        $this->provider = strtolower($this->aiConfig['provider'] ?? $_ENV['AI_PROVIDER'] ?? 'ollama');
+        $this->provider = strtolower($this->aiConfig['provider'] ?? $master['provider'] ?? $_ENV['AI_PROVIDER'] ?? 'ollama');
         if (!isset(self::PROVIDERS[$this->provider])) {
             $this->provider = 'ollama';
         }
 
         // Get API key from config or environment
-        $this->apiKey = $this->aiConfig['api_key'] ?? $_ENV['AI_API_KEY'] ?? '';
+        $this->apiKey = $this->aiConfig['api_key'] ?? $master['api_key'] ?? $_ENV['AI_API_KEY'] ?? '';
 
         // Set endpoint based on provider or use custom endpoint
         if (isset($this->aiConfig['endpoint'])) {
@@ -86,9 +89,16 @@ class AIInterpreter
      */
     public function getModel(): string
     {
+        $master = SystemSettings::getMasterAiConfig();
+
         $configuredModel = trim((string) ($this->aiConfig['model'] ?? ''));
         if ($configuredModel !== '' && strtolower($configuredModel) !== 'default') {
             return $configuredModel;
+        }
+
+        $masterModel = trim((string) ($master['model'] ?? ''));
+        if ($masterModel !== '' && strtolower($masterModel) !== 'default') {
+            return $masterModel;
         }
 
         $envModel = trim((string) ($_ENV['AI_MODEL'] ?? ''));
@@ -149,6 +159,70 @@ class AIInterpreter
             ]);
 
             // Return fallback interpretation
+            return $this->generateFallbackInterpretation();
+        }
+    }
+
+    /**
+     * Generate a concise AI summary in a single model call to avoid long request chains.
+     */
+    public function generateSummaryReport(string $reportType = 'natal'): array
+    {
+        try {
+            $interpreter = new ChartInterpretation($this->chart);
+            $structuredData = $interpreter->generateFullInterpretation();
+
+            $personalityPrompt = $this->buildSinglePassSummaryPrompt($structuredData, $reportType);
+            $personalityText = $this->callAI($personalityPrompt, 'summary_personality');
+            if (!is_string($personalityText) || trim($personalityText) === '') {
+                return $this->generateFallbackInterpretation();
+            }
+
+            $cleanPersonality = $this->cleanAIResponse($personalityText);
+
+            $synthesisPrompt = "Create an 'Overall Synthesis' section for a {$reportType} astrology report.\n"
+                . "Write 2-4 paragraphs that integrate the most important chart themes into practical, cohesive guidance.\n"
+                . "Do not repeat the exact wording from other sections. Avoid bullet lists and markdown headers.\n\n"
+                . "Personality overview context:\n"
+                . $cleanPersonality;
+            $synthesisText = $this->callAI($synthesisPrompt, 'summary_synthesis');
+            $cleanSynthesis = (is_string($synthesisText) && trim($synthesisText) !== '')
+                ? $this->cleanAIResponse($synthesisText)
+                : $cleanPersonality;
+
+            $sections = [
+                'personality_overview' => $cleanPersonality,
+                'life_purpose' => '',
+                'relationships' => '',
+                'career_guidance' => '',
+                'challenges_growth' => '',
+                'timing_advice' => '',
+            ];
+
+            return [
+                'chart_id' => $this->chart->getId(),
+                'chart_name' => $this->chart->getName(),
+                'interpretation_type' => 'ai_summary_single_pass',
+                'personality_overview' => $cleanPersonality,
+                'life_purpose' => '',
+                'relationship_insights' => '',
+                'career_guidance' => '',
+                'challenges_and_growth' => '',
+                'timing_advice' => '',
+                'overall_synthesis' => $cleanSynthesis,
+                'confidence_score' => $this->calculateConfidenceScore($structuredData),
+                'interpretation_metadata' => [
+                    'generated_at' => date('c'),
+                    'ai_model' => $this->getModelInfo(),
+                    'processing_time' => 0,
+                    'word_count' => $this->calculateWordCount($sections),
+                ]
+            ];
+        } catch (\Throwable $e) {
+            Logger::error("AI summary generation failed", [
+                'error' => $e->getMessage(),
+                'chart_id' => $this->chart->getId(),
+            ]);
             return $this->generateFallbackInterpretation();
         }
     }
@@ -314,6 +388,41 @@ class AIInterpreter
     }
 
     /**
+     * Build one compact prompt for fast summary generation.
+     */
+    private function buildSinglePassSummaryPrompt(array $data, string $reportType): string
+    {
+        $core = $data['core_identity'] ?? [];
+        $sun = isset($core['sun']['sign']) ? (string) $core['sun']['sign'] : 'Unknown';
+        $moon = isset($core['moon']['sign']) ? (string) $core['moon']['sign'] : 'Unknown';
+        $rising = isset($core['rising']['sign']) ? (string) $core['rising']['sign'] : 'Unknown';
+        $dominantElement = (string)($data['elemental_balance']['dominant_element'] ?? 'balanced');
+        $dominantMode = (string)($data['modal_balance']['dominant_mode'] ?? 'balanced');
+        $lifePurpose = (string)($data['overall_themes']['life_purpose'] ?? '');
+        $style = strtolower(trim((string)($this->aiConfig['style'] ?? 'professional')));
+        $length = strtolower(trim((string)($this->aiConfig['length'] ?? 'short')));
+
+        $lengthInstruction = match ($length) {
+            'long' => 'Write 8-12 paragraphs with deeper nuance and concrete examples.',
+            'medium' => 'Write 6-9 paragraphs with balanced detail.',
+            default => 'Write 4-6 concise paragraphs with high signal.',
+        };
+        $styleInstruction = match ($style) {
+            'empathetic' => 'Tone: warm, empathetic, supportive, and non-judgmental.',
+            'direct' => 'Tone: direct, clear, practical, and to the point.',
+            'technical' => 'Tone: technical and precise while still readable.',
+            default => 'Tone: professional, insightful, and grounded.',
+        };
+
+        return "Create one astrology summary for a {$reportType} report.\n"
+            . $lengthInstruction . "\n"
+            . "Chart facts: Sun {$sun}, Moon {$moon}, Rising {$rising}, dominant element {$dominantElement}, dominant mode {$dominantMode}.\n"
+            . ($lifePurpose !== '' ? "Life purpose signal: {$lifePurpose}\n" : '')
+            . $styleInstruction . "\n"
+            . "Requirements: non-generic, no bullet lists, no markdown headers.";
+    }
+
+    /**
      * Call AI service or return mock response
      */
     private function callAI(string $prompt, string $category): ?string
@@ -379,6 +488,7 @@ class AIInterpreter
         $payload = [
             'model' => $model,
             'prompt' => $prompt,
+            'system' => $this->getSystemPrompt(),
             'stream' => false,
             'options' => [
                 'temperature' => 0.7,
@@ -434,7 +544,7 @@ class AIInterpreter
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                    'content' => $this->getSystemPrompt()
                 ],
                 [
                     'role' => 'user',
@@ -488,7 +598,7 @@ class AIInterpreter
         $payload = [
             'model' => $model,
             'max_tokens' => 1024,
-            'system' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.',
+            'system' => $this->getSystemPrompt(),
             'messages' => [
                 [
                     'role' => 'user',
@@ -544,7 +654,7 @@ class AIInterpreter
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                    'content' => $this->getSystemPrompt()
                 ],
                 [
                     'role' => 'user',
@@ -564,7 +674,7 @@ class AIInterpreter
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $this->apiKey,
                 'HTTP-Referer: ' . ($_ENV['APP_URL'] ?? 'https://quantum-astrology.local'),
-                'X-Title: Quantum Astrology'
+                'X-Title: ' . (defined('APP_NAME') ? APP_NAME : 'Quantum Astrology')
             ],
             CURLOPT_TIMEOUT => 90,
             CURLOPT_CONNECTTIMEOUT => 10
@@ -606,7 +716,7 @@ class AIInterpreter
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.'
+                    'content' => $this->getSystemPrompt()
                 ],
                 [
                     'role' => 'user',
@@ -667,7 +777,7 @@ class AIInterpreter
                     'role' => 'user',
                     'parts' => [
                         [
-                            'text' => "You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.\n\n" . $prompt
+                            'text' => $this->getSystemPrompt() . "\n\n" . $prompt
                         ]
                     ]
                 ]
@@ -724,6 +834,22 @@ class AIInterpreter
         ];
 
         return $mockResponses[$category] ?? $this->getGenericMockResponse();
+    }
+
+    private function getSystemPrompt(): string
+    {
+        $configured = trim((string)($this->aiConfig['system_prompt'] ?? ''));
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        $summaryCfg = SystemSettings::getAiSummaryConfig();
+        $fromSettings = trim((string)($summaryCfg['system_prompt'] ?? ''));
+        if ($fromSettings !== '') {
+            return $fromSettings;
+        }
+
+        return 'You are a professional astrologer providing insightful, personalized chart interpretations. Write in a warm, empathetic tone that speaks directly to the individual. Avoid generic statements and focus on the unique combination shown in each chart.';
     }
 
     /**

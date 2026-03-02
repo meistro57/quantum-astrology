@@ -4,11 +4,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 
 Auth::requireLogin();
 
 $user = Auth::user();
 $pageTitle = 'API Analytics - Quantum Astrology';
+$showAdminLink = AdminGate::canAccess($user);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -203,6 +205,7 @@ $pageTitle = 'API Analytics - Quantum Astrology';
             <a href="/" style="color: white; text-decoration: none;">Dashboard</a>
             <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
             <a href="/analytics" style="color: var(--quantum-gold); text-decoration: none;">Analytics</a>
+            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
         </nav>
     </header>
 

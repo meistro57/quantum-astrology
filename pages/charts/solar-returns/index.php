@@ -4,12 +4,15 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
 
 $user = Auth::user();
 $userCharts = Chart::findByUserId($user->getId(), 50);
+$creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
+$showAdminLink = AdminGate::canAccess($user);
 
 $currentYear = (int) date('Y');
 $pageTitle = 'Solar Returns - Quantum Astrology';
@@ -416,6 +419,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
             <a href="/charts/transits" style="color: white; text-decoration: none;">Transits</a>
             <a href="/charts/solar-returns" style="color: var(--quantum-gold); text-decoration: none;">Solar Returns</a>
+            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
         </nav>
     </header>
 
@@ -451,7 +455,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
                         <?php foreach ($userCharts as $chart): ?>
                             <option value="<?= $chart->getId() ?>">
                                 <?= htmlspecialchars($chart->getName()) ?>
-                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?>)
+                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?> · Created by <?= htmlspecialchars($creatorLabel) ?>)
                             </option>
                         <?php endforeach ?>
                     </select>

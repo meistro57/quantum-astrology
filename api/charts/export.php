@@ -29,7 +29,7 @@ if (!$chart) {
 }
 
 $user = Auth::user();
-if (!$user || ($chart->getUserId() !== $user->getId() && !$chart->isPublic())) {
+if (!$user || ((int)$chart->getUserId() !== (int)$user->getId() && !$chart->isPublic())) {
     export_error(403, 'Access denied.');
 }
 

@@ -117,7 +117,7 @@ $csrf = (string)$_SESSION['csrf_token'];
     max-width: 100%;
     height: auto;
     border-radius: 12px;
-    background: #fff;
+    background: #0f1424;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   }
   .btn-back {

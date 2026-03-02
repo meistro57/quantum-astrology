@@ -345,9 +345,11 @@ class Chart
         $chart->birthLocationName = $data['birth_location_name'] ?? null;
         $chart->houseSystem = $data['house_system'] ?? 'P';
 
-        // Decode JSON columns
-        $chart->planetaryPositions = !empty($data['planetary_positions']) ? json_decode($data['planetary_positions'], true) : [];
-        $chart->housePositions = !empty($data['house_positions']) ? json_decode($data['house_positions'], true) : [];
+        // Decode JSON columns and normalize mixed legacy/current payload formats.
+        $rawPlanets = !empty($data['planetary_positions']) ? json_decode($data['planetary_positions'], true) : [];
+        $rawHouses = !empty($data['house_positions']) ? json_decode($data['house_positions'], true) : [];
+        $chart->planetaryPositions = self::normalizePlanetaryPositions(is_array($rawPlanets) ? $rawPlanets : []);
+        $chart->housePositions = self::normalizeHousePositions(is_array($rawHouses) ? $rawHouses : []);
         $chart->aspects = !empty($data['aspects']) ? json_decode($data['aspects'], true) : [];
 
         $chart->isPublic = (bool) ($data['is_public'] ?? false);
@@ -383,5 +385,139 @@ class Chart
             $keyed[$key] = $p;
         }
         return $keyed;
+    }
+
+    private static function normalizePlanetaryPositions(array $positions): array
+    {
+        if ($positions === []) {
+            return [];
+        }
+
+        $normalized = [];
+
+        // List format: [{planet, lon, lat, ...}, ...]
+        $isList = array_keys($positions) === range(0, count($positions) - 1);
+        if ($isList) {
+            foreach ($positions as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $name = strtolower((string)($row['planet'] ?? $row['name'] ?? ''));
+                $lon = $row['longitude'] ?? $row['lon'] ?? null;
+                if ($name === '' || !is_numeric($lon)) {
+                    continue;
+                }
+                $normalized[$name] = [
+                    'name' => $name,
+                    'planet' => $name,
+                    'longitude' => (float)$lon,
+                    'latitude' => isset($row['latitude']) && is_numeric($row['latitude'])
+                        ? (float)$row['latitude']
+                        : (isset($row['lat']) && is_numeric($row['lat']) ? (float)$row['lat'] : 0.0),
+                    'distance' => isset($row['distance']) && is_numeric($row['distance'])
+                        ? (float)$row['distance']
+                        : (isset($row['dist']) && is_numeric($row['dist']) ? (float)$row['dist'] : 0.0),
+                ];
+            }
+            return $normalized;
+        }
+
+        // Keyed format: ['sun' => ['longitude' => ...], ...]
+        foreach ($positions as $key => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $name = strtolower((string)($row['planet'] ?? $row['name'] ?? $key));
+            $lon = $row['longitude'] ?? $row['lon'] ?? null;
+            if ($name === '' || !is_numeric($lon)) {
+                continue;
+            }
+            $normalized[$name] = [
+                'name' => $name,
+                'planet' => $name,
+                'longitude' => (float)$lon,
+                'latitude' => isset($row['latitude']) && is_numeric($row['latitude'])
+                    ? (float)$row['latitude']
+                    : (isset($row['lat']) && is_numeric($row['lat']) ? (float)$row['lat'] : 0.0),
+                'distance' => isset($row['distance']) && is_numeric($row['distance'])
+                    ? (float)$row['distance']
+                    : (isset($row['dist']) && is_numeric($row['dist']) ? (float)$row['dist'] : 0.0),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private static function normalizeHousePositions(array $houses): array
+    {
+        if ($houses === []) {
+            return [];
+        }
+
+        $normalized = [];
+
+        // New format: ['system' => 'P', 'cusps' => [1 => 123.4, ...], 'angles' => ...]
+        if (isset($houses['cusps']) && is_array($houses['cusps'])) {
+            foreach ($houses['cusps'] as $num => $cusp) {
+                if (!is_numeric($num) || !is_numeric($cusp)) {
+                    continue;
+                }
+                $houseNum = (int)$num;
+                if ($houseNum < 1 || $houseNum > 12) {
+                    continue;
+                }
+                $cuspDeg = (float)$cusp;
+                $normalized[$houseNum] = [
+                    'cusp' => $cuspDeg,
+                    'sign' => self::zodiacSign($cuspDeg),
+                ];
+            }
+            ksort($normalized);
+            return $normalized;
+        }
+
+        // Legacy keyed numeric format.
+        foreach ($houses as $num => $row) {
+            if (!is_numeric($num)) {
+                continue;
+            }
+            $houseNum = (int)$num;
+            if ($houseNum < 1 || $houseNum > 12) {
+                continue;
+            }
+
+            if (is_array($row) && isset($row['cusp']) && is_numeric($row['cusp'])) {
+                $cuspDeg = (float)$row['cusp'];
+                $normalized[$houseNum] = [
+                    'cusp' => $cuspDeg,
+                    'sign' => (string)($row['sign'] ?? self::zodiacSign($cuspDeg)),
+                ];
+            } elseif (is_numeric($row)) {
+                $cuspDeg = (float)$row;
+                $normalized[$houseNum] = [
+                    'cusp' => $cuspDeg,
+                    'sign' => self::zodiacSign($cuspDeg),
+                ];
+            }
+        }
+
+        ksort($normalized);
+        return $normalized;
+    }
+
+    private static function zodiacSign(float $longitude): string
+    {
+        $signs = [
+            'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+            'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+        ];
+
+        $norm = fmod($longitude, 360.0);
+        if ($norm < 0) {
+            $norm += 360.0;
+        }
+
+        $index = (int) floor($norm / 30.0);
+        return $signs[$index] ?? 'Unknown';
     }
 }

@@ -30,6 +30,7 @@ if (!function_exists('env')) {
 // Application settings
 define('APP_ENV', (string) env('APP_ENV', 'production'));
 define('APP_DEBUG', filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN));
+define('APP_NAME', (string) env('APP_NAME', 'Quantum Astrology'));
 define('APP_URL', (string) env('APP_URL', 'http://localhost'));
 define('APP_TIMEZONE', (string) env('APP_TIMEZONE', 'UTC'));
 
@@ -54,7 +55,11 @@ define('CACHE_ENABLED', filter_var(env('CACHE_ENABLED', true), FILTER_VALIDATE_B
 define('CACHE_TTL', (int) env('CACHE_TTL', 3600));
 
 // Swiss Ephemeris configuration
-define('SWEPH_PATH', (string) env('SWEPH_PATH', '/usr/local/bin/swetest'));
+$defaultSwephPath = '/usr/local/bin/swetest';
+if (!is_file($defaultSwephPath) || !is_executable($defaultSwephPath)) {
+    $defaultSwephPath = '/usr/bin/swetest';
+}
+define('SWEPH_PATH', (string) env('SWEPH_PATH', $defaultSwephPath));
 define('SWEPH_DATA_PATH', (string) env('SWEPH_DATA_PATH', ROOT_PATH . '/data/ephemeris'));
 
 // HTTPS detection

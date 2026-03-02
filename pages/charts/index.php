@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
@@ -45,6 +46,8 @@ $baseQuery = $baseQuery !== '' ? $baseQuery . '&' : '';
 
 $pageTitle = 'My Charts - Quantum Astrology';
 $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
+$creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
+$showAdminLink = AdminGate::canAccess($user);
 ?>
 
 <!DOCTYPE html>
@@ -55,6 +58,51 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
+        html, body {
+            background: #0a0e13 !important;
+            background-image: linear-gradient(135deg, #0a0e13 0%, #0f1419 100%) !important;
+            color: #e2e8f0 !important;
+        }
+        .portal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: rgba(10, 13, 20, 0.65);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .portal-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--quantum-text);
+        }
+        .portal-brand-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--quantum-purple), var(--quantum-blue));
+        }
+        .portal-nav a {
+            color: var(--quantum-text);
+            opacity: 0.85;
+            text-decoration: none;
+            margin-left: 16px;
+        }
+        .portal-nav a:hover {
+            opacity: 1;
+        }
+        .portal-nav a.active {
+            border-bottom: 2px solid var(--quantum-blue);
+            padding-bottom: 4px;
+        }
+        .portal-nav {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+        }
         .charts-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -340,6 +388,21 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         @media (max-width: 768px) {
+            .portal-header {
+                padding: 12px 14px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .portal-nav a {
+                margin-left: 0;
+            }
+            .portal-brand > span:last-child {
+                display: none;
+            }
+            .charts-container {
+                padding: 1rem;
+            }
             .charts-header {
                 flex-direction: column;
                 gap: 1rem;
@@ -362,6 +425,21 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 </head>
 <body>
     <div class="particles-container"></div>
+    <header class="portal-header">
+        <div class="portal-brand">
+            <div class="portal-brand-dot"></div>
+            Quantum Astrology
+            <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span>
+        </div>
+        <nav class="portal-nav">
+            <a href="/">Portal</a>
+            <a href="/charts" class="active">Charts</a>
+            <a href="/reports">Reports</a>
+            <?php if ($showAdminLink): ?><a href="/admin">Admin</a><?php endif; ?>
+            <a href="/profile">Profile</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
 
     <div class="charts-container">
         <div class="page-actions">
@@ -442,6 +520,11 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                         </div>
 
                         <div class="chart-info">
+                            <div class="chart-detail">
+                                <span class="chart-detail-icon">👤</span>
+                                Created by <?= htmlspecialchars($creatorLabel) ?>
+                            </div>
+
                             <?php if ($chart->getBirthDatetime()): ?>
                                 <div class="chart-detail">
                                     <span class="chart-detail-icon">📅</span>

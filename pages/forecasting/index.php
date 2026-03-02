@@ -4,12 +4,14 @@ declare(strict_types=1);
 require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
 
 $user = Auth::user();
 $userCharts = Chart::findByUserId($user->getId(), 10);
+$showAdminLink = AdminGate::canAccess($user);
 
 $pageTitle = 'Forecasting Tools - Quantum Astrology';
 ?>
@@ -217,6 +219,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
             <a href="/" style="color: white; text-decoration: none;">Dashboard</a>
             <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
             <a href="/forecasting" style="color: var(--quantum-gold); text-decoration: none;">Forecasting</a>
+            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
         </nav>
     </header>
 

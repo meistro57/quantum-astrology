@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
+use QuantumAstrology\Core\Logger;
 use QuantumAstrology\Core\Session;
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Core\SwissEphemeris;
@@ -172,7 +174,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (RuntimeException $e) {
         // validation errors already added
     } catch (Throwable $e) {
-        $errors[] = 'Unexpected error while creating chart.';
+        Logger::error('Chart create form submission failed', [
+            'error' => $e->getMessage(),
+            'user_id' => $user ? $user->getId() : null,
+            'name' => $rawName ?? null,
+            'birth_date' => $rawDate ?? null,
+            'birth_time' => $rawTime ?? null,
+            'birth_timezone' => $rawTz ?? null,
+            'birth_latitude' => $rawLat ?? null,
+            'birth_longitude' => $rawLon ?? null,
+        ]);
+        $errors[] = APP_DEBUG ? ('Unexpected error while creating chart: ' . $e->getMessage()) : 'Unexpected error while creating chart.';
     }
 
     // Keep user-entered values for re-render
@@ -208,6 +220,7 @@ $hasProfileBirthData = (
     $profileBirthData['birth_latitude'] !== null &&
     $profileBirthData['birth_longitude'] !== null
 );
+$showAdminLink = AdminGate::canAccess($user);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -217,6 +230,50 @@ $hasProfileBirthData = (
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
+        body {
+            background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
+            color: var(--quantum-text);
+        }
+        .portal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: rgba(10, 13, 20, 0.65);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .portal-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--quantum-text);
+        }
+        .portal-brand-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--quantum-purple), var(--quantum-blue));
+        }
+        .portal-nav a {
+            color: var(--quantum-text);
+            opacity: 0.85;
+            text-decoration: none;
+            margin-left: 16px;
+        }
+        .portal-nav a:hover {
+            opacity: 1;
+        }
+        .portal-nav a.active {
+            border-bottom: 2px solid var(--quantum-blue);
+            padding-bottom: 4px;
+        }
+        .portal-nav {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+        }
         .chart-creator { max-width: 900px; margin: 0 auto; padding: 2rem; }
         .creator-header { text-align: center; margin-bottom: 3rem; }
         .creator-title { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
@@ -253,6 +310,24 @@ $hasProfileBirthData = (
         .error-messages { background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); color: #ff6b6b; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; }
         .error-messages ul { margin: 0; padding-left: 1.5rem; }
         @media (max-width: 768px) {
+            .portal-header {
+                padding: 12px 14px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .portal-nav a {
+                margin-left: 0;
+            }
+            .portal-brand > span:last-child {
+                display: none;
+            }
+            .chart-creator {
+                padding: 1rem;
+            }
+            .chart-form {
+                padding: 1rem;
+            }
             .form-row { flex-direction: column; gap: 0; }
             .coordinate-inputs { flex-direction: column; }
             .button-group { flex-direction: column; }
@@ -261,6 +336,21 @@ $hasProfileBirthData = (
 </head>
 <body>
     <div class="particles-container"></div>
+    <header class="portal-header">
+        <div class="portal-brand">
+            <div class="portal-brand-dot"></div>
+            Quantum Astrology
+            <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span>
+        </div>
+        <nav class="portal-nav">
+            <a href="/">Portal</a>
+            <a href="/charts" class="active">Charts</a>
+            <a href="/reports">Reports</a>
+            <?php if ($showAdminLink): ?><a href="/admin">Admin</a><?php endif; ?>
+            <a href="/profile">Profile</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
 
     <div class="chart-creator">
         <div class="page-actions">

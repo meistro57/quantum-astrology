@@ -44,7 +44,7 @@ try {
     }
 
     $currentUser = Auth::user();
-    if (!$chart->isPublic() && (!$currentUser || $chart->getUserId() !== $currentUser->getId())) {
+    if (!$chart->isPublic() && (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId())) {
         respond_svg_error('Access denied.', 403);
     }
 

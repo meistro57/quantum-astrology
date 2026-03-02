@@ -8,7 +8,18 @@ require_once __DIR__ . '/../../config.php';
 use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Core\SystemSettings;
 use QuantumAstrology\Interpretations\AIInterpreter;
+use QuantumAstrology\Reports\ReportArchive;
+
+// API responses must remain valid JSON; avoid emitting PHP warnings/notices as HTML.
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
+error_reporting(E_ALL);
+
+if (ob_get_level() === 0) {
+    ob_start();
+}
 
 /**
  * Convert constrained markdown into safe HTML for in-app preview.
@@ -137,8 +148,10 @@ try {
     $chartId = (int)($input['chart_id'] ?? $_GET['chart_id'] ?? 0);
     $reportType = strtolower(trim((string)($input['report_type'] ?? $_GET['report_type'] ?? 'natal')));
     $format = strtolower(trim((string)($input['format'] ?? $_GET['format'] ?? 'json')));
-    $provider = trim((string)($input['provider'] ?? $_GET['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama')));
-    $model = trim((string)($input['model'] ?? $_GET['model'] ?? 'default'));
+    $masterAi = SystemSettings::getMasterAiConfig();
+    $summaryCfg = SystemSettings::getAiSummaryConfig();
+    $provider = trim((string)($masterAi['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama')));
+    $model = trim((string)($masterAi['model'] ?? 'default'));
     $focus = trim((string)($input['focus'] ?? $_GET['focus'] ?? ''));
 
     if (!in_array($reportType, ['natal', 'transit', 'synastry'], true)) {
@@ -161,28 +174,43 @@ try {
     }
 
     $currentUser = Auth::user();
-    if (!$currentUser || $chart->getUserId() !== $currentUser->getId()) {
+    if (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId()) {
         http_response_code(403);
         echo json_encode(['error' => 'Access denied.']);
         exit;
     }
 
-    $focusPrefix = $focus !== '' ? $focus . '. ' : '';
-    $focusWithReport = $focusPrefix . 'Prioritize a concise summary suitable for a ' . $reportType . ' report.';
+    $focusTemplate = trim((string)($summaryCfg['focus_template'] ?? 'Prioritize a concise summary suitable for a {report_type} report.'));
+    $focusFromTemplate = str_replace('{report_type}', $reportType, $focusTemplate);
+    $focusPrefix = $focus !== '' ? ($focus . '. ') : '';
+    $focusWithReport = trim($focusPrefix . $focusFromTemplate);
     $ai = new AIInterpreter($chart, [
         'provider' => $provider,
         'model' => $model,
+        'system_prompt' => (string)($summaryCfg['system_prompt'] ?? ''),
         'focus' => $focusWithReport,
-        'style' => 'professional',
-        'length' => 'medium',
+        'style' => (string)($summaryCfg['style'] ?? 'professional'),
+        'length' => (string)($summaryCfg['length'] ?? 'short'),
     ]);
-    $interpretation = $ai->generateNaturalLanguageInterpretation();
+    $interpretation = $ai->generateSummaryReport($reportType);
 
     $markdown = buildSummaryMarkdown($interpretation, $reportType);
     $safeName = preg_replace('/[^a-z0-9\-_]+/i', '_', strtolower((string)$chart->getName())) ?: 'chart';
     $filename = sprintf('ai_summary_%s_%d_%s.md', $safeName, $chartId, date('Ymd_His'));
+    $archive = ReportArchive::save(
+        (int) $currentUser->getId(),
+        $chartId,
+        $reportType,
+        'ai_summary',
+        'md',
+        'text/markdown',
+        $markdown
+    );
 
     if ($format === 'download') {
+        if (ob_get_length() > 0) {
+            ob_clean();
+        }
         header('Content-Type: text/markdown; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: private, max-age=0, must-revalidate');
@@ -191,19 +219,31 @@ try {
         exit;
     }
 
+    if (ob_get_length() > 0) {
+        ob_clean();
+    }
     echo json_encode([
         'success' => true,
         'chart_id' => $chartId,
         'report_type' => $reportType,
+        'history_id' => $archive['id'] ?? null,
         'markdown' => $markdown,
+        'filename' => $filename,
         'html_preview' => renderMarkdownPreview($markdown),
-        'download_url' => '/api/reports/ai_summary.php?chart_id=' . $chartId . '&report_type=' . urlencode($reportType) . '&provider=' . urlencode($provider) . '&model=' . urlencode($model) . '&focus=' . urlencode($focus) . '&format=download',
+        'download_url' => '/api/reports/ai_summary.php?chart_id=' . $chartId . '&report_type=' . urlencode($reportType) . '&focus=' . urlencode($focus) . '&format=download',
     ]);
 } catch (Throwable $e) {
+    $bufferedOutput = '';
+    if (ob_get_length() > 0) {
+        $bufferedOutput = trim((string) ob_get_contents());
+        ob_clean();
+    }
+
     Logger::error('AI summary report generation failed', [
         'chart_id' => $chartId ?? null,
         'report_type' => $reportType ?? null,
         'error' => $e->getMessage(),
+        'buffered_output' => $bufferedOutput !== '' ? mb_substr($bufferedOutput, 0, 1200) : null,
     ]);
 
     http_response_code(500);

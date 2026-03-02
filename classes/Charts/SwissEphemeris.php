@@ -87,6 +87,46 @@ final class SwissEphemeris
 
     $lines = self::run($args);
 
+    // Primary parser: extract DMS values from structured swetest lines.
+    $parsedCusps = [];
+    $parsedAngles = [];
+    foreach ($lines as $line) {
+        if (preg_match('/^house\s+(\d+)\s*,\s*([0-9]+)°\s*([0-9]+)\'\s*([0-9]+(?:\.[0-9]+)?)/i', $line, $m)) {
+            $houseNum = (int)$m[1];
+            if ($houseNum >= 1 && $houseNum <= 12) {
+                $parsedCusps[$houseNum] = self::dmsToDeg((int)$m[2], (int)$m[3], (float)$m[4]);
+            }
+            continue;
+        }
+        if (preg_match('/^(Ascendant|MC|ARMC|Vertex)\s*,\s*([0-9]+)°\s*([0-9]+)\'\s*([0-9]+(?:\.[0-9]+)?)/i', $line, $m)) {
+            $label = strtoupper(trim((string)$m[1]));
+            $label = $label === 'ASCENDANT' ? 'ASC' : $label;
+            $parsedAngles[$label] = self::dmsToDeg((int)$m[2], (int)$m[3], (float)$m[4]);
+        }
+    }
+
+    if (count($parsedCusps) === 12) {
+        ksort($parsedCusps);
+        $outCusps = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $outCusps[$i] = self::norm360((float)$parsedCusps[$i]);
+        }
+
+        $asc = isset($parsedAngles['ASC']) ? self::norm360((float)$parsedAngles['ASC']) : $outCusps[1];
+        $mc = isset($parsedAngles['MC']) ? self::norm360((float)$parsedAngles['MC']) : $outCusps[10];
+
+        return [
+            'system' => $hs,
+            'cusps'  => $outCusps,
+            'angles' => [
+                'ASC'    => $asc,
+                'MC'     => $mc,
+                'ARMC'   => isset($parsedAngles['ARMC']) ? self::norm360((float)$parsedAngles['ARMC']) : 0.0,
+                'Vertex' => isset($parsedAngles['VERTEX']) ? self::norm360((float)$parsedAngles['VERTEX']) : 0.0,
+            ],
+        ];
+    }
+
     // Collect only angles (0..360)
     $a = [];
     foreach ($lines as $line) {
@@ -156,6 +196,11 @@ final class SwissEphemeris
         ],
     ];
 }
+
+    private static function dmsToDeg(int $deg, int $min, float $sec): float
+    {
+        return $deg + ($min / 60.0) + ($sec / 3600.0);
+    }
 
 
     private static function norm360(float $deg): float

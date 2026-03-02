@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace QuantumAstrology\Core;
 
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Charts\SwissEphemeris as ChartSwissEphemeris;
 
 class SwissEphemeris
 {
@@ -62,8 +63,33 @@ class SwissEphemeris
             $planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
         }
 
-        $julianDay = $this->dateTimeToJulianDay($datetime);
         $results = [];
+
+        if ($this->isSwetestAvailable()) {
+            try {
+                $utc = \DateTimeImmutable::createFromInterface($datetime)->setTimezone(new \DateTimeZone('UTC'));
+                $rows = ChartSwissEphemeris::positions($utc, $latitude, $longitude);
+                $mapped = $this->mapChartSwissPositions($rows);
+
+                foreach ($planets as $planet) {
+                    if (isset($mapped[$planet])) {
+                        $results[$planet] = $mapped[$planet];
+                    } elseif (isset($this->planetCodes[$planet])) {
+                        $results[$planet] = $this->getAnalyticalPosition($this->dateTimeToJulianDay($datetime), $this->planetCodes[$planet]);
+                    } else {
+                        $results[$planet] = null;
+                    }
+                }
+
+                return $results;
+            } catch (\Throwable $e) {
+                Logger::warning("Core SwissEphemeris delegated parser failed; using fallback", [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        $julianDay = $this->dateTimeToJulianDay($datetime);
 
         foreach ($planets as $planet) {
             if (!isset($this->planetCodes[$planet])) {
@@ -140,30 +166,28 @@ class SwissEphemeris
 
     private function calculateHousePositions(float $julianDay, float $latitude, float $longitude, string $houseSystem): array
     {
-        if (!$this->isSwetestAvailable()) {
-            return $this->getAnalyticalHouses($latitude, $longitude);
+        if ($this->isSwetestAvailable()) {
+            try {
+                $utc = $this->julianDayToDateTimeImmutable($julianDay);
+                $houseData = ChartSwissEphemeris::houses($utc, $latitude, $longitude, $houseSystem);
+                $houses = [];
+                $cusps = $houseData['cusps'] ?? [];
+                for ($i = 1; $i <= 12; $i++) {
+                    $cusp = isset($cusps[$i]) ? (float) $cusps[$i] : 0.0;
+                    $houses[$i] = [
+                        'cusp' => $cusp,
+                        'sign' => $this->getZodiacSign($cusp),
+                    ];
+                }
+                return $houses;
+            } catch (\Throwable $e) {
+                Logger::warning("Core SwissEphemeris delegated house parser failed; using fallback", [
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
-        $command = sprintf(
-            '%s -b%f -house%f,%f,%s -f -head',
-            escapeshellcmd($this->swetestPath),
-            $julianDay,
-            $longitude,
-            $latitude,
-            $houseSystem
-        );
-
-        if (is_dir($this->dataPath)) {
-            $command .= ' -edir' . escapeshellarg($this->dataPath);
-        }
-
-        $output = shell_exec($command . ' 2>&1');
-
-        if ($output === null) {
-            throw new \Exception("Failed to execute swetest house command");
-        }
-
-        return $this->parseHouseOutput($output);
+        return $this->getAnalyticalHouses($latitude, $longitude);
     }
 
     private function parseSwetestOutput(string $output): ?array
@@ -340,6 +364,73 @@ class SwissEphemeris
         $jd += ($hour + $minute / 60.0 + $second / 3600.0) / 24.0;
 
         return $jd;
+    }
+
+    /**
+     * Convert Julian Day to UTC DateTimeImmutable.
+     */
+    private function julianDayToDateTimeImmutable(float $jd): \DateTimeImmutable
+    {
+        $unix = (int) round(($jd - 2440587.5) * 86400);
+        return (new \DateTimeImmutable('@' . $unix))->setTimezone(new \DateTimeZone('UTC'));
+    }
+
+    /**
+     * Normalize chart-engine rows to core keyed map format.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<string, array<string, float>>
+     */
+    private function mapChartSwissPositions(array $rows): array
+    {
+        $mapped = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $rawPlanet = isset($row['planet']) ? (string) $row['planet'] : '';
+            $key = $this->normalizePlanetName($rawPlanet);
+            if ($key === null || !isset($row['lon']) || !is_numeric($row['lon'])) {
+                continue;
+            }
+            $mapped[$key] = [
+                'longitude' => (float) $row['lon'],
+                'latitude' => isset($row['lat']) && is_numeric($row['lat']) ? (float) $row['lat'] : 0.0,
+                'distance' => isset($row['dist']) && is_numeric($row['dist']) ? (float) $row['dist'] : 0.0,
+                'longitude_speed' => 0.0,
+                'latitude_speed' => 0.0,
+                'distance_speed' => 0.0,
+            ];
+        }
+        return $mapped;
+    }
+
+    /**
+     * Map swetest display labels to internal planet keys.
+     */
+    private function normalizePlanetName(string $name): ?string
+    {
+        $n = strtolower(trim($name));
+        $n = str_replace(['-', '.'], ' ', $n);
+        $n = preg_replace('/\s+/', ' ', $n) ?? $n;
+
+        return match ($n) {
+            'sun' => 'sun',
+            'moon' => 'moon',
+            'mercury' => 'mercury',
+            'venus' => 'venus',
+            'mars' => 'mars',
+            'jupiter' => 'jupiter',
+            'saturn' => 'saturn',
+            'uranus' => 'uranus',
+            'neptune' => 'neptune',
+            'pluto' => 'pluto',
+            'mean node', 'north node' => 'north_node',
+            'true node' => 'north_node',
+            'chiron' => 'chiron',
+            'lilith', 'mean apogee' => 'lilith',
+            default => null,
+        };
     }
 
     private function isSwetestAvailable(): bool

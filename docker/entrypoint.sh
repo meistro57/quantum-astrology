@@ -21,4 +21,12 @@ if [ -f "${APP_ROOT}/tools/migrate.php" ]; then
     php "${APP_ROOT}/tools/migrate.php"
 fi
 
+# Ensure report temp/cache folders are writable by web + CLI users.
+mkdir -p \
+    "${APP_ROOT}/storage/cache/mpdf" \
+    "${APP_ROOT}/storage/cache/mpdf/mpdf" \
+    "${APP_ROOT}/storage/cache/mpdf-runtime" \
+    "${APP_ROOT}/storage/cache/mpdf-runtime/mpdf"
+chmod -R 0777 "${APP_ROOT}/storage/cache/mpdf" "${APP_ROOT}/storage/cache/mpdf-runtime" || true
+
 exec "$@"

@@ -5,7 +5,9 @@ use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
-$userCharts = Chart::findByUserId(Auth::user()->getId(), 100);
+$user = Auth::user();
+$userCharts = Chart::findByUserId($user->getId(), 100);
+$creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
 $pageTitle = 'Cosmic Weather Forecast';
 ?>
 <!DOCTYPE html>
@@ -55,7 +57,7 @@ $pageTitle = 'Cosmic Weather Forecast';
                     <label>Subject</label>
                     <select id="chartSelect">
                         <?php foreach ($userCharts as $c): ?>
-                            <option value="<?= $c->getId() ?>"><?= htmlspecialchars($c->getName()) ?></option>
+                            <option value="<?= $c->getId() ?>"><?= htmlspecialchars($c->getName()) ?> (Created by <?= htmlspecialchars($creatorLabel) ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>

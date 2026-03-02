@@ -29,6 +29,9 @@ Quantum Astrology provides professional-grade astrological calculations and char
 - **Database Migrations** — schema setup with version tracking and SQLite fallback
 - **Report Scaffolding** — integrated PDF generation engine via mPDF
 - **AI Summary Reports** — generate pretty in-app AI summary previews and download Markdown (`.md`) summary files
+- **AI Governance Controls** — AI provider/model and summary prompt behavior are now admin-managed from `/admin`
+- **Chart View AI Utilities** — AI reading panel supports quick **Copy** and **Download** actions
+- **Chart Symbol Legend** — chart view includes an on-page glyph legend for planets, signs, and major aspects
 - **Profile Enhancements** — saved birth data, city/state coordinate auto-fill, and in-profile password change
 - **System Admin Panel (`/admin`)** — admin-only operational panel with system metrics, log tailing, cache maintenance actions, and user administration tools
 - **User Administration** — manually create users, reset passwords, and grant/revoke admin status from the admin panel
@@ -106,6 +109,7 @@ Recommended `.env` production values:
 ```env
 APP_ENV=production
 APP_DEBUG=false
+APP_NAME=Quantum Astrology
 APP_URL=https://your-domain.example
 SERVER_NAME=your-domain.example
 HTTP_PORT=80
@@ -167,6 +171,12 @@ Set at least `DB_PASS` and `MYSQL_ROOT_PASSWORD` in your `.env` before exposing 
 - User email is listed in `ADMIN_EMAILS` (comma-separated) or `ADMIN_EMAIL`
 
 Once an admin is signed in, user administration (create/reset/grant/revoke) is available directly inside `/admin`.
+
+`/admin` also controls system AI settings, including:
+- master AI provider/model/API key
+- AI summary system prompt/style/length/focus template
+
+When set, these admin AI settings are treated as the system defaults used by report/chart AI flows.
 
 ### Environment Variables
 

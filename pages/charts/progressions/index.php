@@ -4,12 +4,15 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../_bootstrap.php';
 
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
 
 $user = Auth::user();
 $userCharts = Chart::findByUserId($user->getId(), 50);
+$creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
+$showAdminLink = AdminGate::canAccess($user);
 
 $pageTitle = 'Secondary Progressions - Quantum Astrology';
 ?>
@@ -343,6 +346,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
             <a href="/charts/transits" style="color: white; text-decoration: none;">Transits</a>
             <a href="/charts/progressions" style="color: var(--quantum-gold); text-decoration: none;">Progressions</a>
+            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
         </nav>
     </header>
 
@@ -378,7 +382,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
                         <?php foreach ($userCharts as $chart): ?>
                             <option value="<?= $chart->getId() ?>">
                                 <?= htmlspecialchars($chart->getName()) ?>
-                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?>)
+                                (<?= $chart->getBirthDatetime() ? $chart->getBirthDatetime()->format('M j, Y') : 'Unknown date' ?> · Created by <?= htmlspecialchars($creatorLabel) ?>)
                             </option>
                         <?php endforeach ?>
                     </select>
@@ -480,7 +484,13 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
 
             try {
                 const response = await fetch(`/api/charts/${chartId}/progressions/current?date=${date}`);
-                const data = await response.json();
+                const raw = await response.text();
+                let data = {};
+                try {
+                    data = raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    throw new Error('Progressions response was not valid JSON');
+                }
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to calculate progressions');
@@ -499,22 +509,26 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             resultsDiv.style.display = 'block';
 
             // Progressed age
+            const yearsProgressed = Number(data.progressed_age ?? data.years_progressed);
             document.getElementById('progressed-age').textContent =
-                data.progressed_age ? data.progressed_age.toFixed(1) : '--';
+                Number.isFinite(yearsProgressed) ? yearsProgressed.toFixed(1) : '--';
 
             // Progressed planets
-            const planetsHtml = Object.entries(data.progressed_positions || {}).map(([planet, pos]) => `
+            const planetsHtml = Object.entries(data.progressed_positions || {}).map(([planet, pos]) => {
+                const normalized = normalizePosition(pos);
+                return `
                 <div class="planet-row">
                     <span class="planet-name">
                         <span class="planet-symbol">${planetSymbols[planet] || ''}</span>
                         ${capitalize(planet)}
                     </span>
                     <span class="planet-position">
-                        <span class="position-sign">${pos.sign || '--'}</span>
-                        <div class="position-degree">${pos.degree ? pos.degree.toFixed(2) + '°' : '--'}</div>
+                        <span class="position-sign">${normalized.sign}</span>
+                        <div class="position-degree">${normalized.degreeText}</div>
                     </span>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             document.getElementById('progressed-planets').innerHTML = planetsHtml || '<p>No data available</p>';
 
             // Lunar phase
@@ -534,7 +548,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
                         P.${capitalize(aspect.progressed_planet)} - N.${capitalize(aspect.natal_planet)}
                     </span>
                     <span class="aspect-type aspect-${aspect.aspect.toLowerCase()}">
-                        ${capitalize(aspect.aspect)} ${aspect.orb ? '(' + aspect.orb.toFixed(1) + '°)' : ''}
+                        ${capitalize(aspect.aspect)} ${Number.isFinite(Number(aspect.orb)) ? '(' + Number(aspect.orb).toFixed(1) + '°)' : ''}
                     </span>
                 </div>
             `).join('');
@@ -552,6 +566,34 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
 
         function capitalize(str) {
             return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function normalizePosition(pos) {
+            if (!pos || typeof pos !== 'object') {
+                return { sign: '--', degreeText: '--' };
+            }
+
+            if (typeof pos.sign === 'string' && Number.isFinite(Number(pos.degree))) {
+                return {
+                    sign: pos.sign,
+                    degreeText: `${Number(pos.degree).toFixed(2)}°`
+                };
+            }
+
+            const lon = Number(pos.longitude ?? pos.lon);
+            if (!Number.isFinite(lon)) {
+                return { sign: '--', degreeText: '--' };
+            }
+
+            const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+            const normalized = ((lon % 360) + 360) % 360;
+            const signIndex = Math.floor(normalized / 30);
+            const degreeInSign = normalized % 30;
+
+            return {
+                sign: signs[signIndex] || '--',
+                degreeText: `${degreeInSign.toFixed(2)}°`
+            };
         }
 
         // Particle animation

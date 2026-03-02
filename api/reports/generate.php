@@ -7,8 +7,19 @@ require_once __DIR__ . '/../../config.php';
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Charts\Chart;
+use QuantumAstrology\Charts\Transit;
 use QuantumAstrology\Reports\ReportGenerator;
+use QuantumAstrology\Reports\ReportArchive;
 use QuantumAstrology\Core\Logger;
+
+// API responses must remain valid JSON; do not emit PHP warnings/notices to output.
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
+error_reporting(E_ALL);
+
+if (ob_get_level() === 0) {
+    ob_start();
+}
 
 header('Content-Type: application/json');
 
@@ -34,7 +45,8 @@ try {
     $reportType = $input['report_type'] ?? $_GET['report_type'] ?? 'natal';
     $format = $input['format'] ?? $_GET['format'] ?? 'pdf'; // pdf or download
 
-    if (!in_array($reportType, ['natal'], true)) {
+    $reportType = strtolower(trim((string) $reportType));
+    if (!in_array($reportType, ['natal', 'transit'], true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Report type not available yet.']);
         exit;
@@ -54,7 +66,7 @@ try {
     }
 
     $currentUser = Auth::user();
-    if (!$currentUser || $chart->getUserId() !== $currentUser->getId()) {
+    if (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId()) {
         http_response_code(403);
         echo json_encode(['error' => 'Access denied.']);
         exit;
@@ -63,13 +75,43 @@ try {
     // Initialize report generator
     $generator = new ReportGenerator($reportType);
 
-    // Generate PDF content
-    $pdfContent = $generator->generateNatalReport($chartId);
+    // Generate PDF content based on report type
+    if ($reportType === 'transit') {
+        $transitDate = null;
+        $dateInput = $input['date'] ?? $_GET['date'] ?? null;
+        if (is_string($dateInput) && trim($dateInput) !== '') {
+            try {
+                $transitDate = new \DateTime(trim($dateInput));
+            } catch (Throwable $dateError) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Invalid transit date format.']);
+                exit;
+            }
+        }
+
+        $transitEngine = new Transit($chart);
+        $transitData = $transitEngine->getCurrentTransits($transitDate);
+        $pdfContent = $generator->generateTransitReport($chartId, $transitData);
+    } else {
+        $pdfContent = $generator->generateNatalReport($chartId);
+    }
+    $archive = ReportArchive::save(
+        (int) $currentUser->getId(),
+        $chartId,
+        $reportType,
+        'pdf',
+        'pdf',
+        'application/pdf',
+        $pdfContent
+    );
 
     if ($format === 'download') {
+        if (ob_get_length() > 0) {
+            ob_clean();
+        }
         // Download the PDF
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="chart_' . $chartId . '_report.pdf"');
+        header('Content-Disposition: attachment; filename="chart_' . $chartId . '_' . $reportType . '_report.pdf"');
         header('Content-Length: ' . strlen($pdfContent));
         header('Cache-Control: private, max-age=0, must-revalidate');
         header('Pragma: public');
@@ -79,21 +121,32 @@ try {
     }
 
     // Return base64-encoded PDF for preview
+    if (ob_get_length() > 0) {
+        ob_clean();
+    }
     http_response_code(200);
     echo json_encode([
         'success' => true,
         'chart_id' => $chartId,
         'report_type' => $reportType,
+        'history_id' => $archive['id'] ?? null,
         'pdf_base64' => base64_encode($pdfContent),
         'download_url' => "/api/reports/generate.php?chart_id={$chartId}&report_type={$reportType}&format=download"
     ]);
 
 } catch (Throwable $e) {
+    $bufferedOutput = '';
+    if (ob_get_length() > 0) {
+        $bufferedOutput = trim((string) ob_get_contents());
+        ob_clean();
+    }
+
     Logger::error('Report generation failed', [
         'chart_id' => $chartId ?? null,
         'report_type' => $reportType ?? null,
         'format' => $format ?? null,
         'error' => $e->getMessage(),
+        'buffered_output' => $bufferedOutput !== '' ? mb_substr($bufferedOutput, 0, 1200) : null,
     ]);
 
     http_response_code(500);

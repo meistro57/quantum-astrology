@@ -117,6 +117,9 @@ final class InputValidator
                 return null;
             }
 
+            // Normalise common mobile keyboard variants (unicode minus/dash and decimal comma).
+            $raw = str_replace(['−', '–', '—', '﹣', '－'], '-', $raw);
+
             $direction = null;
             if (preg_match('/^([NSEW])\s*(.+)$/i', $raw, $matches)) {
                 $direction = strtoupper($matches[1]);
@@ -128,6 +131,16 @@ final class InputValidator
 
             // Remove common degree symbols before validation.
             $raw = str_replace(['°', 'º'], '', $raw);
+            // Remove directional words and stray spaces sometimes pasted from maps apps.
+            $raw = preg_replace('/\b(north|south|east|west)\b/i', '', $raw) ?? $raw;
+            $raw = trim((string) $raw);
+            // Accept decimal comma from locale keyboards.
+            if (str_contains($raw, ',') && !str_contains($raw, '.')) {
+                $raw = str_replace(',', '.', $raw);
+            } else {
+                // Otherwise treat commas as thousand separators/noise and strip them.
+                $raw = str_replace(',', '', $raw);
+            }
 
             $number = filter_var($raw, FILTER_VALIDATE_FLOAT);
             if ($number === false) {

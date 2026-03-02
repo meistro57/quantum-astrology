@@ -5,7 +5,7 @@
 - [x] Add regression fixtures for `TransitService::calculate()` covering aspect detection and house mapping.
 - [x] Finish SVG wheel enhancements (zodiac wedges, glyph placement, responsive scaling) and expose them in the UI.
 - [x] Implement PDF templates in `classes/Reports` using mPDF and wire them to downloadable chart reports.
-- [ ] Add end-to-end regression tests for chart create/list/delete/export flows.
+- [x] Add end-to-end regression tests for chart create/list/delete/export flows.
 - [x] Add validation tests for profile password change and location auto-fill paths.
 - [x] Add integration tests for AI summary report generation and markdown download flows.
 - [x] Add `/admin` system panel with operational controls and guard it behind admin-only access.

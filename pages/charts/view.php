@@ -25,7 +25,7 @@ if (!$chart) {
 }
 
 // Check if user has access to this chart
-if ($chart->getUserId() !== $user->getId() && !$chart->isPublic()) {
+if ((int)$chart->getUserId() !== (int)$user->getId() && !$chart->isPublic()) {
     header('Location: /dashboard');
     exit;
 }
@@ -34,6 +34,42 @@ $pageTitle = htmlspecialchars($chart->getName()) . ' - Quantum Astrology';
 $planetaryPositions = $chart->getPlanetaryPositions();
 $housePositions = $chart->getHousePositions();
 $aspects = $chart->getAspects();
+$planetLegend = [
+    'Sun' => '☉',
+    'Moon' => '☽',
+    'Mercury' => '☿',
+    'Venus' => '♀',
+    'Mars' => '♂',
+    'Jupiter' => '♃',
+    'Saturn' => '♄',
+    'Uranus' => '♅',
+    'Neptune' => '♆',
+    'Pluto' => '♇',
+    'North Node' => '☊',
+    'South Node' => '☋',
+    'Chiron' => '⚷',
+];
+$zodiacLegend = [
+    'Aries' => '♈',
+    'Taurus' => '♉',
+    'Gemini' => '♊',
+    'Cancer' => '♋',
+    'Leo' => '♌',
+    'Virgo' => '♍',
+    'Libra' => '♎',
+    'Scorpio' => '♏',
+    'Sagittarius' => '♐',
+    'Capricorn' => '♑',
+    'Aquarius' => '♒',
+    'Pisces' => '♓',
+];
+$aspectLegend = [
+    'Conjunction' => '☌',
+    'Opposition' => '☍',
+    'Square' => '□',
+    'Trine' => '△',
+    'Sextile' => '✶',
+];
 $aiProviders = AIInterpreter::getSupportedProviders();
 $defaultAiProvider = strtolower((string)($_ENV['AI_PROVIDER'] ?? 'ollama'));
 if (!isset($aiProviders[$defaultAiProvider])) {
@@ -104,7 +140,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             display: flex;
             align-items: stretch;
             justify-content: center;
-            min-height: 680px;
+            height: auto;
+            min-height: 1210px;
+            overflow: hidden;
         }
 
         .chart-wheel {
@@ -112,6 +150,8 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            min-width: 0;
+            min-height: 1144px;
         }
 
         .chart-zoom-toolbar {
@@ -147,14 +187,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .chart-zoom-stage {
-            flex: 1;
-            min-height: 560px;
+            flex: 1 1 auto;
+            min-height: 1056px;
+            height: auto;
             overflow: auto;
             border-radius: 14px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             background: radial-gradient(circle at center, rgba(74, 144, 226, 0.1) 0%, rgba(10, 14, 20, 0.65) 65%);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             padding: 1rem;
             cursor: zoom-in;
@@ -167,13 +208,17 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            min-height: 0;
         }
 
         .chart-wheel-image {
-            width: min(100%, 980px);
+            width: min(100%, 1100px);
             max-width: 100%;
             height: auto;
             display: block;
+            margin: 0 auto;
+            object-fit: contain;
         }
 
         .chart-sidebar {
@@ -197,6 +242,25 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.4rem 0.8rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .legend-symbol {
+            display: inline-flex;
+            width: 1.4rem;
+            justify-content: center;
+            color: var(--quantum-gold);
+            font-size: 1rem;
         }
 
         .planet-list, .house-list, .aspect-list {
@@ -329,8 +393,12 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         @media (max-width: 1280px) {
             .chart-content { grid-template-columns: 1fr 340px; }
-            .chart-wheel-container { min-height: 620px; }
-            .chart-zoom-stage { min-height: 520px; }
+            .chart-wheel-container {
+                height: auto;
+                min-height: 1078px;
+            }
+            .chart-wheel { min-height: 1012px; }
+            .chart-zoom-stage { min-height: 946px; }
             .chart-wheel-image { width: min(100%, 900px); }
         }
 
@@ -343,9 +411,22 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
 
             .chart-viewer { padding: 1rem; }
-            .chart-wheel-container { min-height: 500px; padding: 1rem; }
-            .chart-zoom-stage { min-height: 420px; padding: 0.75rem; }
-            .chart-wheel-image { width: min(100vw - 6rem, 700px); }
+            .chart-wheel-container {
+                height: auto;
+                min-height: 680px;
+                padding: 1rem;
+            }
+            .chart-wheel { min-height: 620px; }
+            .chart-zoom-stage {
+                min-height: 620px;
+                height: auto;
+                padding: 0.75rem;
+            }
+            .chart-wheel-image {
+                width: min(100%, 700px);
+                max-height: calc(100vh - 240px);
+            }
+            .legend-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -410,6 +491,21 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             </div>
 
             <div class="chart-sidebar">
+                <div class="info-card">
+                    <h3 class="info-card-title">Chart Symbol Legend</h3>
+                    <div class="legend-grid">
+                        <?php foreach ($planetLegend as $name => $symbol): ?>
+                            <div class="legend-item"><span class="legend-symbol"><?= $symbol ?></span><span><?= htmlspecialchars($name) ?></span></div>
+                        <?php endforeach; ?>
+                        <?php foreach ($zodiacLegend as $name => $symbol): ?>
+                            <div class="legend-item"><span class="legend-symbol"><?= $symbol ?></span><span><?= htmlspecialchars($name) ?></span></div>
+                        <?php endforeach; ?>
+                        <?php foreach ($aspectLegend as $name => $symbol): ?>
+                            <div class="legend-item"><span class="legend-symbol"><?= $symbol ?></span><span><?= htmlspecialchars($name) ?></span></div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
                 <!-- Planetary Positions -->
                 <div class="info-card">
                     <h3 class="info-card-title">Planetary Positions</h3>
@@ -551,14 +647,6 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 </div>
                 <div id="interpretation-content" style="display: none;"></div>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center;">
-                    <select id="ai-provider" class="btn btn-secondary" style="margin: 0; min-width: 170px;">
-                        <?php foreach ($aiProviders as $providerKey => $provider): ?>
-                            <option value="<?= htmlspecialchars($providerKey) ?>" <?= $providerKey === $defaultAiProvider ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($provider['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <select id="ai-model" class="btn btn-secondary" style="margin: 0; min-width: 220px;"></select>
                     <input id="ai-focus"
                            type="text"
                            class="btn btn-secondary"
@@ -572,13 +660,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                     <button id="load-interpretation" class="btn btn-primary" onclick="loadStructuredInterpretation()">Structured Analysis</button>
                     <button id="load-ai-interpretation" class="btn btn-secondary" onclick="loadAIInterpretation()" style="margin-left: 0.5rem;">AI Reading</button>
                     <button id="load-patterns" class="btn btn-secondary" onclick="loadAspectPatterns()" style="margin-left: 0.5rem;">Aspect Patterns</button>
+                    <button id="download-ai-reading" class="btn btn-secondary" onclick="downloadAIReading()" style="margin-left: 0.5rem; display:none;">Download AI</button>
+                    <button id="copy-ai-reading" class="btn btn-secondary" onclick="copyAIReading()" style="margin-left: 0.5rem; display:none;">Copy AI</button>
                 </div>
             </div>
         </div>
 
         <div class="chart-actions">
             <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
-            <?php if ($chart->getUserId() === $user->getId()): ?>
+            <?php if ((int)$chart->getUserId() === (int)$user->getId()): ?>
                 <a href="/charts/edit?id=<?= $chart->getId() ?>" class="btn btn-primary">Edit Chart</a>
                 <button type="button" class="btn btn-danger" onclick="deleteCurrentChart()">Delete Chart</button>
             <?php endif ?>
@@ -590,13 +680,21 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         const chartId = <?= $chart->getId() ?>;
         const chartName = <?= json_encode((string)$chart->getName(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         const csrfToken = <?= json_encode($csrfToken, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-        const aiProviders = <?= json_encode($aiProviders, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-        const defaultAiProvider = <?= json_encode($defaultAiProvider, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-        const defaultAiModel = <?= json_encode($defaultAiModel, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
         let chartZoom = 1;
         const chartZoomMin = 0.6;
         const chartZoomMax = 3.2;
         const chartZoomStep = 0.1;
+        let latestAIReadingText = '';
+
+        async function parseJsonResponse(response) {
+            const raw = await response.text();
+            try {
+                return JSON.parse(raw);
+            } catch (err) {
+                const snippet = raw.replace(/\s+/g, " ").slice(0, 180);
+                throw new Error(snippet ? `Server returned non-JSON response: ` : "Server returned non-JSON response.");
+            }
+        }
         
         // Add particle animation
         const particlesContainer = document.querySelector('.particles-container');
@@ -635,7 +733,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                         csrf: csrfToken
                     })
                 });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok || !payload.ok) {
                     throw new Error(payload?.error?.message || 'Failed to delete chart');
                 }
@@ -649,6 +747,16 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         function clampZoom(nextZoom) {
             return Math.max(chartZoomMin, Math.min(chartZoomMax, nextZoom));
+        }
+
+        function centerZoomStage() {
+            const zoomStage = document.getElementById('chart-zoom-stage');
+            if (!zoomStage) return;
+
+            const maxLeft = Math.max(0, zoomStage.scrollWidth - zoomStage.clientWidth);
+
+            zoomStage.scrollLeft = maxLeft / 2;
+            zoomStage.scrollTop = 0;
         }
 
         function applyChartZoom() {
@@ -679,6 +787,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             zoomReset.addEventListener('click', () => {
                 chartZoom = 1;
                 applyChartZoom();
+                centerZoomStage();
             });
 
             zoomStage.addEventListener('wheel', (event) => {
@@ -689,6 +798,12 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }, { passive: false });
 
             applyChartZoom();
+            centerZoomStage();
+
+            const wheelImage = document.querySelector('.chart-wheel-image');
+            if (wheelImage) {
+                wheelImage.addEventListener('load', centerZoomStage, { once: true });
+            }
         }
 
         document.addEventListener('DOMContentLoaded', setupChartZoomControls);
@@ -706,7 +821,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const response = await fetch(`/api/charts/${chartId}/transits/current`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayCurrentTransits(data);
@@ -735,7 +850,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const response = await fetch(`/api/charts/${chartId}/transits/upcoming?days=30`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayUpcomingTransits(data);
@@ -879,7 +994,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 }
                 
                 const response = await fetch(url);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayProgressions(data);
@@ -953,7 +1068,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             try {
                 const currentYear = new Date().getFullYear();
                 const response = await fetch(`/api/charts/${chartId}/solar-returns?start_year=${currentYear-2}&end_year=${currentYear+2}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displaySolarReturns(data);
@@ -982,7 +1097,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const response = await fetch(`/api/charts/${chartId}/solar-returns/${selectedYear}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displaySpecificSolarReturn(data);
@@ -1115,7 +1230,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const response = await fetch(`/api/charts/${chartId}/interpretation`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayStructuredInterpretation(data);
@@ -1136,8 +1251,6 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const loading = document.getElementById('interpretation-loading');
             const content = document.getElementById('interpretation-content');
             const button = document.getElementById('load-ai-interpretation');
-            const providerEl = document.getElementById('ai-provider');
-            const modelEl = document.getElementById('ai-model');
             const focusEl = document.getElementById('ai-focus');
             const freshEl = document.getElementById('ai-fresh');
             
@@ -1148,12 +1261,10 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const params = new URLSearchParams();
-                if (providerEl?.value) params.set('provider', providerEl.value);
-                if (modelEl?.value) params.set('model', modelEl.value);
                 if (focusEl?.value?.trim()) params.set('focus', focusEl.value.trim());
                 if (freshEl?.checked) params.set('fresh', '1');
                 const response = await fetch(`/api/charts/${chartId}/interpretation/ai?${params.toString()}`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayAIInterpretation(data);
@@ -1182,7 +1293,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             try {
                 const response = await fetch(`/api/charts/${chartId}/patterns`);
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 
                 if (response.ok) {
                     displayAspectPatterns(data);
@@ -1376,37 +1487,77 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
             
             content.innerHTML = html;
+            latestAIReadingText = buildAIReadingText(data);
+            const downloadBtn = document.getElementById('download-ai-reading');
+            const copyBtn = document.getElementById('copy-ai-reading');
+            if (downloadBtn) downloadBtn.style.display = 'inline-block';
+            if (copyBtn) copyBtn.style.display = 'inline-block';
         }
 
-        function syncAiModels() {
-            const providerEl = document.getElementById('ai-provider');
-            const modelEl = document.getElementById('ai-model');
-            if (!providerEl || !modelEl) return;
-
-            const provider = providerEl.value;
-            const providerConfig = aiProviders[provider] || null;
-            const models = providerConfig?.models || [];
-            const defaultModel = providerConfig?.default_model || '';
-            const requestedModel = provider === defaultAiProvider && defaultAiModel ? defaultAiModel : defaultModel;
-
-            modelEl.innerHTML = '';
-            if (models.length === 0) {
-                const option = document.createElement('option');
-                option.value = requestedModel || 'default';
-                option.textContent = requestedModel || 'Default model';
-                modelEl.appendChild(option);
-                return;
+        function buildAIReadingText(data) {
+            const lines = [];
+            lines.push(`AI Reading - ${chartName}`);
+            lines.push('');
+            if (data.personality_overview) {
+                lines.push('Personality Overview');
+                lines.push(data.personality_overview);
+                lines.push('');
             }
+            if (data.life_purpose) {
+                lines.push('Life Purpose');
+                lines.push(data.life_purpose);
+                lines.push('');
+            }
+            if (data.relationship_insights) {
+                lines.push('Relationship Insights');
+                lines.push(data.relationship_insights);
+                lines.push('');
+            }
+            if (data.career_guidance) {
+                lines.push('Career & Life Path');
+                lines.push(data.career_guidance);
+                lines.push('');
+            }
+            if (data.challenges_and_growth) {
+                lines.push('Challenges & Growth Opportunities');
+                lines.push(data.challenges_and_growth);
+                lines.push('');
+            }
+            if (data.overall_synthesis) {
+                lines.push('Overall Synthesis');
+                lines.push(data.overall_synthesis);
+                lines.push('');
+            }
+            return lines.join('\n').trim();
+        }
 
-            models.forEach((modelName) => {
-                const option = document.createElement('option');
-                option.value = modelName;
-                option.textContent = modelName;
-                if (modelName === requestedModel) {
-                    option.selected = true;
+        function downloadAIReading() {
+            if (!latestAIReadingText) return;
+            const filename = `ai_reading_chart_${chartId}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`;
+            const blob = new Blob([latestAIReadingText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function copyAIReading() {
+            if (!latestAIReadingText) return;
+            try {
+                await navigator.clipboard.writeText(latestAIReadingText);
+                const copyBtn = document.getElementById('copy-ai-reading');
+                if (copyBtn) {
+                    const original = copyBtn.textContent;
+                    copyBtn.textContent = 'Copied';
+                    setTimeout(() => { copyBtn.textContent = original || 'Copy AI'; }, 1400);
                 }
-                modelEl.appendChild(option);
-            });
+            } catch (error) {
+                console.error('Copy failed', error);
+            }
         }
 
         function displayAspectPatterns(data) {
@@ -1521,12 +1672,6 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             document.getElementById('interpretation-loading').style.display = 'none';
             document.getElementById('interpretation-content').innerHTML = '<div class="no-data">Click "Structured Analysis", "AI Reading", or "Aspect Patterns" to load interpretations</div>';
             document.getElementById('interpretation-content').style.display = 'block';
-
-            const providerEl = document.getElementById('ai-provider');
-            if (providerEl) {
-                providerEl.addEventListener('change', syncAiModels);
-            }
-            syncAiModels();
         });
     </script>
 </body>

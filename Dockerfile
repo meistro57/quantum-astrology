@@ -7,6 +7,8 @@ RUN apt-get update \
         git \
         unzip \
         netcat-openbsd \
+        swetest \
+        swe-standard-data \
         libicu-dev \
         libzip-dev \
         libonig-dev \
@@ -16,6 +18,7 @@ RUN apt-get update \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql mbstring intl zip gd \
     && a2enmod rewrite headers expires \
+    && ln -sf /usr/bin/swetest /usr/local/bin/swetest \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
