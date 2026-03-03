@@ -24,7 +24,11 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
     <style>
+        html {
+            background-color: #0a0e13;
+        }
         body {
+            background-color: #0a0e13;
             background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
             color: var(--quantum-text);
         }
@@ -421,21 +425,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 <body>
     <div class="particles-container"></div>
 
-    <header class="portal-header">
-        <div class="portal-brand">
-            <div class="portal-brand-dot"></div>
-            Quantum Astrology
-            <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span>
-        </div>
-        <nav class="portal-nav">
-            <a href="/">Portal</a>
-            <a href="/charts">Charts</a>
-            <a href="/reports" class="active">Reports</a>
-            <?php if ($showAdminLink): ?><a href="/admin">Admin</a><?php endif; ?>
-            <a href="/profile">Profile</a>
-            <a href="/logout">Logout</a>
-        </nav>
-    </header>
+    <?php $activeNav = 'reports'; require __DIR__ . '/../_partials/portal_header.php'; ?>
 
     <div class="reports-container">
         <div class="page-actions">
@@ -504,6 +494,34 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                 <button id="download-btn" class="btn btn-download" disabled style="display: none;">Download PDF</button>
                 <button id="generate-ai-summary-btn" class="btn btn-secondary" disabled>Generate AI Summary (.md)</button>
                 <button id="download-ai-summary-btn" class="btn btn-download" disabled style="display: none;">Download AI Summary (.md)</button>
+                <button id="generate-ai-horoscope-btn" class="btn btn-secondary" disabled>Generate AI Horoscope (.md)</button>
+                <button id="download-ai-horoscope-btn" class="btn btn-download" disabled style="display: none;">Download Horoscope (.md)</button>
+                <button id="generate-ai-master-btn" class="btn btn-secondary" disabled>Generate All Reports + AI (.md)</button>
+                <button id="download-ai-master-btn" class="btn btn-download" disabled style="display: none;">Download Full Dossier (.md)</button>
+            </div>
+
+            <div class="builder-grid" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Horoscope Period</label>
+                    <select id="horoscope-period" class="form-select">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Horoscope Date</label>
+                    <input id="horoscope-date" class="form-select" type="date" value="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Areas (comma-separated)</label>
+                    <input id="horoscope-areas" class="form-select" type="text" value="general,love,career,health,finance" placeholder="love,career,health">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Focus (optional)</label>
+                    <input id="horoscope-focus" class="form-select" type="text" placeholder="What should this horoscope emphasize?">
+                </div>
             </div>
 
             <div id="error" class="error-message"></div>
@@ -561,12 +579,26 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         let currentAiSummaryDownloadUrl = null;
         let currentAiSummaryMarkdown = null;
         let currentAiSummaryFilename = null;
+        let currentAiHoroscopeDownloadUrl = null;
+        let currentAiHoroscopeMarkdown = null;
+        let currentAiHoroscopeFilename = null;
+        let currentAiMasterDownloadUrl = null;
+        let currentAiMasterMarkdown = null;
+        let currentAiMasterFilename = null;
 
         const chartSelect = document.getElementById('chart-select');
         const generateBtn = document.getElementById('generate-btn');
         const downloadBtn = document.getElementById('download-btn');
         const generateAiSummaryBtn = document.getElementById('generate-ai-summary-btn');
         const downloadAiSummaryBtn = document.getElementById('download-ai-summary-btn');
+        const generateAiHoroscopeBtn = document.getElementById('generate-ai-horoscope-btn');
+        const downloadAiHoroscopeBtn = document.getElementById('download-ai-horoscope-btn');
+        const generateAiMasterBtn = document.getElementById('generate-ai-master-btn');
+        const downloadAiMasterBtn = document.getElementById('download-ai-master-btn');
+        const horoscopePeriodInput = document.getElementById('horoscope-period');
+        const horoscopeDateInput = document.getElementById('horoscope-date');
+        const horoscopeAreasInput = document.getElementById('horoscope-areas');
+        const horoscopeFocusInput = document.getElementById('horoscope-focus');
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('error');
         const pdfPreview = document.getElementById('pdf-preview');
@@ -599,6 +631,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         function updateGenerateButton() {
             generateBtn.disabled = !selectedChartId;
             generateAiSummaryBtn.disabled = !selectedChartId;
+            generateAiHoroscopeBtn.disabled = !selectedChartId;
+            generateAiMasterBtn.disabled = !selectedChartId;
         }
 
         // Generate report
@@ -701,6 +735,62 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             }
         });
 
+        generateAiHoroscopeBtn?.addEventListener('click', async function() {
+            if (!selectedChartId) return;
+
+            const period = (horoscopePeriodInput?.value || 'daily').toLowerCase();
+            const forDate = (horoscopeDateInput?.value || '').trim();
+            const focus = (horoscopeFocusInput?.value || '').trim();
+            const areasRaw = (horoscopeAreasInput?.value || '').trim();
+
+            loadingDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            aiPreview.style.display = 'none';
+            pdfPreview.style.display = 'none';
+            downloadAiHoroscopeBtn.style.display = 'none';
+            currentAiHoroscopeDownloadUrl = null;
+            currentAiHoroscopeMarkdown = null;
+            currentAiHoroscopeFilename = null;
+
+            try {
+                const response = await fetch('/api/reports/horoscope.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chart_id: selectedChartId,
+                        period,
+                        for_date: forDate,
+                        areas: areasRaw,
+                        focus,
+                        format: 'json'
+                    })
+                });
+
+                const data = await parseJsonResponse(response);
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate AI horoscope.');
+                }
+
+                aiPreviewBody.innerHTML = data.html_preview || '<div class="no-data">No horoscope content returned.</div>';
+                aiPreview.style.display = 'block';
+                currentAiHoroscopeDownloadUrl = data.download_url || null;
+                currentAiHoroscopeMarkdown = typeof data.markdown === 'string' ? data.markdown : null;
+                currentAiHoroscopeFilename = typeof data.filename === 'string' && data.filename.trim() !== ''
+                    ? data.filename
+                    : null;
+                if (currentAiHoroscopeDownloadUrl) {
+                    downloadAiHoroscopeBtn.style.display = 'inline-block';
+                    downloadAiHoroscopeBtn.disabled = false;
+                }
+                loadReportHistory();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+
         downloadAiSummaryBtn?.addEventListener('click', function() {
             if (currentAiSummaryMarkdown) {
                 const filename = currentAiSummaryFilename
@@ -722,10 +812,109 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             }
         });
 
+        downloadAiHoroscopeBtn?.addEventListener('click', function() {
+            if (currentAiHoroscopeMarkdown) {
+                const filename = currentAiHoroscopeFilename
+                    || `ai_horoscope_chart_${selectedChartId || 'unknown'}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.md`;
+                const blob = new Blob([currentAiHoroscopeMarkdown], { type: 'text/markdown;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                return;
+            }
+
+            if (currentAiHoroscopeDownloadUrl) {
+                window.location.href = currentAiHoroscopeDownloadUrl;
+            }
+        });
+
+        generateAiMasterBtn?.addEventListener('click', async function() {
+            if (!selectedChartId) return;
+
+            loadingDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            aiPreview.style.display = 'none';
+            pdfPreview.style.display = 'none';
+            downloadAiMasterBtn.style.display = 'none';
+            currentAiMasterMarkdown = null;
+            currentAiMasterFilename = null;
+            currentAiMasterDownloadUrl = null;
+
+            try {
+                const response = await fetch('/api/reports/ai_master_document.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chart_id: selectedChartId,
+                        format: 'json'
+                    })
+                });
+
+                const data = await parseJsonResponse(response);
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate full AI dossier.');
+                }
+
+                aiPreviewBody.innerHTML = data.html_preview || '<div class="no-data">No dossier content returned.</div>';
+                aiPreview.style.display = 'block';
+                currentAiMasterDownloadUrl = data.download_url || null;
+                currentAiMasterMarkdown = typeof data.markdown === 'string' ? data.markdown : null;
+                currentAiMasterFilename = typeof data.filename === 'string' && data.filename.trim() !== ''
+                    ? data.filename
+                    : null;
+                if (currentAiMasterDownloadUrl) {
+                    downloadAiMasterBtn.style.display = 'inline-block';
+                    downloadAiMasterBtn.disabled = false;
+                }
+                loadReportHistory();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+
+        downloadAiMasterBtn?.addEventListener('click', function() {
+            if (currentAiMasterMarkdown) {
+                const filename = currentAiMasterFilename
+                    || `ai_master_document_chart_${selectedChartId || 'unknown'}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.md`;
+                const blob = new Blob([currentAiMasterMarkdown], { type: 'text/markdown;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                return;
+            }
+
+            if (currentAiMasterDownloadUrl) {
+                window.location.href = currentAiMasterDownloadUrl;
+            }
+        });
+
         async function parseJsonResponse(response) {
             const raw = await response.text();
             try {
-                return JSON.parse(raw);
+                const payload = JSON.parse(raw);
+                if (
+                    payload &&
+                    typeof payload === 'object' &&
+                    payload.data &&
+                    typeof payload.data === 'object' &&
+                    !Array.isArray(payload.data)
+                ) {
+                    return { ...payload, ...payload.data };
+                }
+                return payload;
             } catch (err) {
                 const short = raw.replace(/\s+/g, ' ').slice(0, 160);
                 throw new Error(short ? `Server returned non-JSON response: ${short}` : 'Server returned non-JSON response.');

@@ -124,6 +124,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added user-level profile checkboxes to control whether birth date/time and birth location are shown in generated PDF reports.
   - Added migration `010_add_report_birth_privacy_to_users.php` introducing `show_birth_date_in_reports` and `show_birth_location_in_reports` (default enabled).
   - Wired report generation to honor these flags when rendering natal report cover and chart information sections.
+- **Integration Test Coverage (Reports + Admin Redis)**
+  - Added `tests/Integration/ReportGenerateApiTest.php` to lock `/api/reports/generate.php` response contract to a canonical envelope (`success`, `data`, `meta`) without duplicated top-level report fields.
+  - Added `tests/Integration/AdminRedisDashboardApiTest.php` to verify admin Redis dashboard action (`get_redis_dashboard`) auth/CSRF flow and payload structure.
+
+### Changed
+- **Report Generation Response Contract**
+  - Updated `/api/reports/generate.php` to return the canonical `ApiResponse::sendSuccess()` envelope without duplicating report fields at the top level.
+  - Updated reports page JSON parsing to normalize envelope-style responses while preserving existing UI behavior.
 
 ## [1.3.0-alpha] - 2025-12-19 - Transit UI & SQLite Reliability
 

@@ -11,6 +11,7 @@ use QuantumAstrology\Charts\Transit;
 use QuantumAstrology\Reports\ReportGenerator;
 use QuantumAstrology\Reports\ReportArchive;
 use QuantumAstrology\Core\Logger;
+use QuantumAstrology\Support\ApiResponse;
 
 // API responses must remain valid JSON; do not emit PHP warnings/notices to output.
 @ini_set('display_errors', '0');
@@ -32,9 +33,8 @@ try {
     if ($raw !== false && trim($raw) !== '') {
         $input = json_decode($raw, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid JSON request body.']);
-            exit;
+            ApiResponse::sendError('Invalid JSON request body.', 'INVALID_JSON', 400);
+            return;
         }
     }
     if (!is_array($input)) {
@@ -47,29 +47,25 @@ try {
 
     $reportType = strtolower(trim((string) $reportType));
     if (!in_array($reportType, ['natal', 'transit'], true)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Report type not available yet.']);
-        exit;
+        ApiResponse::sendError('Report type not available yet.', 'INVALID_REPORT_TYPE', 400);
+        return;
     }
 
     if ($chartId <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid chart ID']);
-        exit;
+        ApiResponse::sendError('Invalid chart ID', 'INVALID_CHART_ID', 400);
+        return;
     }
 
     $chart = Chart::findById($chartId);
     if (!$chart) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Chart not found.']);
-        exit;
+        ApiResponse::sendError('Chart not found.', 'CHART_NOT_FOUND', 404);
+        return;
     }
 
     $currentUser = Auth::user();
     if (!$currentUser || (int)$chart->getUserId() !== (int)$currentUser->getId()) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Access denied.']);
-        exit;
+        ApiResponse::sendError('Access denied.', 'ACCESS_DENIED', 403);
+        return;
     }
 
     $reportPrivacyOptions = [
@@ -88,9 +84,8 @@ try {
             try {
                 $transitDate = new \DateTime(trim($dateInput));
             } catch (Throwable $dateError) {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid transit date format.']);
-                exit;
+                ApiResponse::sendError('Invalid transit date format.', 'INVALID_TRANSIT_DATE', 400);
+                return;
             }
         }
 
@@ -129,15 +124,18 @@ try {
     if (ob_get_length() > 0) {
         ob_clean();
     }
-    http_response_code(200);
-    echo json_encode([
-        'success' => true,
+    $responseData = [
         'chart_id' => $chartId,
         'report_type' => $reportType,
         'history_id' => $archive['id'] ?? null,
         'pdf_base64' => base64_encode($pdfContent),
-        'download_url' => "/api/reports/generate.php?chart_id={$chartId}&report_type={$reportType}&format=download"
-    ]);
+        'download_url' => "/api/reports/generate.php?chart_id={$chartId}&report_type={$reportType}&format=download",
+    ];
+    ApiResponse::sendSuccess(
+        $responseData,
+        [],
+        200
+    );
 
 } catch (Throwable $e) {
     $bufferedOutput = '';
@@ -154,9 +152,5 @@ try {
         'buffered_output' => $bufferedOutput !== '' ? mb_substr($bufferedOutput, 0, 1200) : null,
     ]);
 
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Failed to generate report: ' . $e->getMessage(),
-        'trace' => $e->getTraceAsString()
-    ]);
+    ApiResponse::sendError('Failed to generate report.', 'REPORT_GENERATION_FAILED', 500);
 }
