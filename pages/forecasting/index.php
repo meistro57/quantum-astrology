@@ -213,15 +213,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
 <body>
     <div class="particles-container"></div>
 
-    <header style="padding: 1rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-weight: bold; color: var(--quantum-gold);">QUANTUM ASTROLOGY</div>
-        <nav style="display: flex; gap: 1.5rem;">
-            <a href="/" style="color: white; text-decoration: none;">Dashboard</a>
-            <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
-            <a href="/forecasting" style="color: var(--quantum-gold); text-decoration: none;">Forecasting</a>
-            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
-        </nav>
-    </header>
+    <?php $activeNav = 'forecasting'; require __DIR__ . '/../_partials/portal_header.php'; ?>
 
     <div class="forecasting-container">
         <div class="page-actions">

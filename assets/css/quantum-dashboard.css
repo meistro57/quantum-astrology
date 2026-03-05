@@ -6,6 +6,7 @@
     box-sizing: border-box;
 }
 :root {
+    color-scheme: dark;
     --quantum-dark: #0f1419;
     --quantum-darker: #0a0e13;
     --quantum-blue: #4a90e2;
@@ -20,9 +21,14 @@
     --quantum-accent: #1e293b;
     --quantum-gradient: linear-gradient(135deg, var(--quantum-blue), var(--quantum-purple));
 }
+html {
+    background: #0a0e13;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
+    background-color: var(--quantum-darker);
     color: var(--quantum-text);
     min-height: 100vh;
     overflow-x: hidden;

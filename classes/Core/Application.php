@@ -5,6 +5,7 @@ namespace QuantumAstrology\Core;
 
 use QuantumAstrology\Core\Logger;
 use QuantumAstrology\Core\Session;
+use QuantumAstrology\Support\OpenRouterMetrics;
 
 class Application
 {
@@ -1038,6 +1039,18 @@ class Application
                 'charts_bytes' => $this->directorySize(STORAGE_PATH . '/charts'),
             ];
 
+            $redisDashboard = $this->adminGetRedisDashboard();
+            $redisSummary = [
+                'status' => (string)($redisDashboard['status'] ?? 'unknown'),
+                'driver' => (string)($redisDashboard['driver'] ?? 'none'),
+                'message' => (string)($redisDashboard['message'] ?? ''),
+                'dbsize' => isset($redisDashboard['metrics']['dbsize']) ? (int)$redisDashboard['metrics']['dbsize'] : null,
+                'used_memory_human' => (string)($redisDashboard['metrics']['used_memory_human'] ?? ''),
+                'hit_rate_percent' => isset($redisDashboard['metrics']['hit_rate_percent']) ? (float)$redisDashboard['metrics']['hit_rate_percent'] : null,
+                'ops_per_sec' => isset($redisDashboard['metrics']['instantaneous_ops_per_sec']) ? (int)$redisDashboard['metrics']['instantaneous_ops_per_sec'] : null,
+                'connected_clients' => isset($redisDashboard['metrics']['connected_clients']) ? (int)$redisDashboard['metrics']['connected_clients'] : null,
+            ];
+
             $this->sendJson([
                 'ok' => true,
                 'counts' => $counts,
@@ -1045,6 +1058,7 @@ class Application
                 'log_file' => $logFile,
                 'log_tail' => $logTail,
                 'storage' => $storage,
+                'redis' => $redisSummary,
                 'app' => [
                     'env' => APP_ENV,
                     'debug' => APP_DEBUG,
@@ -1098,6 +1112,8 @@ class Application
                 'list_users' => $this->adminListUsers(),
                 'get_ai_master_config' => $this->adminGetMasterAiConfig(),
                 'set_ai_master_config' => $this->adminSetMasterAiConfig($input),
+                'get_openrouter_key_status' => $this->adminGetOpenRouterKeyStatus(),
+                'get_redis_dashboard' => $this->adminGetRedisDashboard(),
                 'get_ai_summary_config' => $this->adminGetAiSummaryConfig(),
                 'set_ai_summary_config' => $this->adminSetAiSummaryConfig($input),
                 'create_user' => $this->adminCreateUser($input),
@@ -1512,6 +1528,450 @@ class Application
     /**
      * @return array<string, mixed>
      */
+    private function adminGetOpenRouterKeyStatus(): array
+    {
+        $cfg = \QuantumAstrology\Core\SystemSettings::getMasterAiConfig();
+        $provider = strtolower(trim((string)($cfg['provider'] ?? '')));
+        $apiKey = trim((string)($cfg['api_key'] ?? ''));
+
+        if ($provider !== 'openrouter') {
+            return [
+                'status' => 'provider_not_openrouter',
+                'provider' => $provider,
+                'api_key_set' => (bool)($cfg['api_key_set'] ?? false),
+                'updated_at' => $cfg['updated_at'] ?? null,
+                'message' => 'Master AI provider is not set to OpenRouter.',
+            ];
+        }
+
+        if ($apiKey === '') {
+            return [
+                'status' => 'key_missing',
+                'provider' => $provider,
+                'api_key_set' => false,
+                'updated_at' => $cfg['updated_at'] ?? null,
+                'message' => 'No OpenRouter API key is saved.',
+            ];
+        }
+
+        $keyInfoUrlUsed = null;
+        $keyInfoData = null;
+        $keyInfoHttpStatus = 0;
+        $keyInfoError = '';
+
+        foreach (['https://openrouter.ai/api/v1/key', 'https://openrouter.ai/api/v1/auth/key'] as $url) {
+            $response = $this->httpGetJsonWithBearer($url, $apiKey, 20);
+            $keyInfoHttpStatus = (int)($response['http_status'] ?? 0);
+            $keyInfoError = (string)($response['error'] ?? '');
+
+            if (($response['ok'] ?? false) && is_array($response['json'])) {
+                $keyInfoUrlUsed = $url;
+                $keyInfoData = $response['json'];
+                break;
+            }
+        }
+
+        if (!is_array($keyInfoData)) {
+            throw new \RuntimeException(
+                'Unable to fetch OpenRouter key status.'
+                . ($keyInfoHttpStatus > 0 ? " HTTP {$keyInfoHttpStatus}." : '')
+                . ($keyInfoError !== '' ? " {$keyInfoError}" : '')
+            );
+        }
+
+        $keyData = is_array($keyInfoData['data'] ?? null) ? $keyInfoData['data'] : [];
+
+        $creditsResponse = $this->httpGetJsonWithBearer('https://openrouter.ai/api/v1/credits', $apiKey, 20);
+        $creditsData = (($creditsResponse['ok'] ?? false) && is_array($creditsResponse['json'])) ? $creditsResponse['json'] : [];
+        $creditsNode = is_array($creditsData['data'] ?? null) ? $creditsData['data'] : [];
+        $metrics = OpenRouterMetrics::summarize($keyData, $creditsNode);
+
+        return [
+            'status' => 'ok',
+            'provider' => $provider,
+            'api_key_set' => true,
+            'updated_at' => $cfg['updated_at'] ?? null,
+            'fetched_at' => date('c'),
+            'key_info' => [
+                'label' => isset($keyData['label']) ? (string)$keyData['label'] : '',
+                'is_free_tier' => isset($keyData['is_free_tier']) ? (bool)$keyData['is_free_tier'] : null,
+                'limit' => $metrics['limit'],
+                'limit_remaining' => $metrics['limit_remaining'],
+                'limit_reset' => isset($keyData['limit_reset']) ? (string)$keyData['limit_reset'] : null,
+                'usage' => $metrics['usage'],
+                'usage_daily' => $metrics['usage_daily'],
+                'usage_weekly' => $metrics['usage_weekly'],
+                'usage_monthly' => $metrics['usage_monthly'],
+                'byok_usage' => $metrics['byok_usage'],
+                'include_byok_in_limit' => isset($keyData['include_byok_in_limit']) ? (bool)$keyData['include_byok_in_limit'] : null,
+            ],
+            'credits' => [
+                'credits_left' => $metrics['credits_left'],
+                'total_credits' => $metrics['total_credits'],
+                'total_usage' => $metrics['total_usage'],
+                'utilization_percent' => $metrics['utilization_percent'],
+            ],
+            'rate_limit' => is_array($keyData['rate_limit'] ?? null) ? $keyData['rate_limit'] : null,
+            'source' => [
+                'key_info_endpoint' => $keyInfoUrlUsed,
+                'credits_endpoint' => 'https://openrouter.ai/api/v1/credits',
+                'credits_http_status' => (int)($creditsResponse['http_status'] ?? 0),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminGetRedisDashboard(): array
+    {
+        $host = trim((string)($_ENV['REDIS_HOST'] ?? '127.0.0.1'));
+        if ($host === '') {
+            $host = '127.0.0.1';
+        }
+
+        $port = (int)($_ENV['REDIS_PORT'] ?? 6379);
+        if ($port < 1 || $port > 65535) {
+            $port = 6379;
+        }
+
+        $timeout = (float)($_ENV['REDIS_TIMEOUT'] ?? 1.5);
+        if ($timeout <= 0) {
+            $timeout = 1.5;
+        }
+
+        $dbIndex = (int)($_ENV['REDIS_DB'] ?? 0);
+        if ($dbIndex < 0) {
+            $dbIndex = 0;
+        }
+
+        $password = trim((string)($_ENV['REDIS_PASSWORD'] ?? ''));
+        $base = [
+            'connection' => [
+                'host' => $host,
+                'port' => $port,
+                'db' => $dbIndex,
+                'timeout_seconds' => $timeout,
+                'password_set' => $password !== '',
+            ],
+            'fetched_at' => date('c'),
+        ];
+
+        try {
+            $probe = $this->probeRedisViaPhpRedis($host, $port, $password, $dbIndex, $timeout);
+            if (is_array($probe)) {
+                return array_merge($base, $probe);
+            }
+
+            $probe = $this->probeRedisViaSocket($host, $port, $password, $dbIndex, $timeout);
+            return array_merge($base, $probe);
+        } catch (\Throwable $e) {
+            return array_merge($base, [
+                'status' => 'error',
+                'driver' => 'none',
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function probeRedisViaPhpRedis(string $host, int $port, string $password, int $dbIndex, float $timeout): ?array
+    {
+        if (!class_exists(\Redis::class)) {
+            return null;
+        }
+
+        $redis = new \Redis();
+        try {
+            $connected = @$redis->connect($host, $port, $timeout);
+            if ($connected !== true) {
+                return null;
+            }
+
+            if ($password !== '' && @$redis->auth($password) !== true) {
+                return [
+                    'status' => 'error',
+                    'driver' => 'phpredis',
+                    'message' => 'Redis authentication failed.',
+                ];
+            }
+
+            if ($dbIndex > 0) {
+                @$redis->select($dbIndex);
+            }
+
+            $pong = $redis->ping();
+            if (!is_string($pong) && $pong !== true) {
+                return [
+                    'status' => 'error',
+                    'driver' => 'phpredis',
+                    'message' => 'Redis ping failed.',
+                ];
+            }
+
+            $info = $redis->info();
+            $dbSize = (int)$redis->dbSize();
+            return [
+                'status' => 'ok',
+                'driver' => 'phpredis',
+                'message' => 'Redis connection healthy.',
+                'metrics' => $this->buildRedisMetrics(is_array($info) ? $info : [], $dbSize),
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status' => 'error',
+                'driver' => 'phpredis',
+                'message' => $e->getMessage(),
+            ];
+        } finally {
+            try {
+                $redis->close();
+            } catch (\Throwable $e) {
+                // no-op
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function probeRedisViaSocket(string $host, int $port, string $password, int $dbIndex, float $timeout): array
+    {
+        $errno = 0;
+        $errstr = '';
+        $stream = @stream_socket_client(
+            sprintf('tcp://%s:%d', $host, $port),
+            $errno,
+            $errstr,
+            $timeout
+        );
+
+        if (!is_resource($stream)) {
+            return [
+                'status' => 'unavailable',
+                'driver' => 'socket',
+                'message' => 'Redis not reachable: ' . trim($errstr !== '' ? $errstr : ('connection error ' . $errno)),
+            ];
+        }
+
+        stream_set_timeout($stream, max(1, (int)ceil($timeout)));
+
+        try {
+            if ($password !== '') {
+                $auth = $this->redisSocketCommand($stream, ['AUTH', $password]);
+                if (!is_string($auth) || stripos($auth, 'OK') === false) {
+                    return [
+                        'status' => 'error',
+                        'driver' => 'socket',
+                        'message' => 'Redis authentication failed.',
+                    ];
+                }
+            }
+
+            if ($dbIndex > 0) {
+                $select = $this->redisSocketCommand($stream, ['SELECT', (string)$dbIndex]);
+                if (!is_string($select) || stripos($select, 'OK') === false) {
+                    return [
+                        'status' => 'error',
+                        'driver' => 'socket',
+                        'message' => 'Failed to select Redis database.',
+                    ];
+                }
+            }
+
+            $pong = $this->redisSocketCommand($stream, ['PING']);
+            if (!is_string($pong) || stripos($pong, 'PONG') === false) {
+                return [
+                    'status' => 'error',
+                    'driver' => 'socket',
+                    'message' => 'Redis ping failed.',
+                ];
+            }
+
+            $rawInfo = $this->redisSocketCommand($stream, ['INFO']);
+            $dbSize = $this->redisSocketCommand($stream, ['DBSIZE']);
+            $info = is_string($rawInfo) ? $this->parseRedisInfo($rawInfo) : [];
+
+            return [
+                'status' => 'ok',
+                'driver' => 'socket',
+                'message' => 'Redis connection healthy.',
+                'metrics' => $this->buildRedisMetrics($info, (int)$dbSize),
+            ];
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /**
+     * @param resource $stream
+     * @param list<string> $parts
+     * @return mixed
+     */
+    private function redisSocketCommand($stream, array $parts)
+    {
+        $payload = '*' . count($parts) . "\r\n";
+        foreach ($parts as $part) {
+            $payload .= '$' . strlen($part) . "\r\n" . $part . "\r\n";
+        }
+
+        fwrite($stream, $payload);
+        return $this->redisSocketRead($stream);
+    }
+
+    /**
+     * @param resource $stream
+     * @return mixed
+     */
+    private function redisSocketRead($stream)
+    {
+        $prefix = fgetc($stream);
+        if (!is_string($prefix) || $prefix === '') {
+            return null;
+        }
+
+        $line = fgets($stream);
+        if (!is_string($line)) {
+            return null;
+        }
+
+        $line = rtrim($line, "\r\n");
+
+        return match ($prefix) {
+            '+' => $line,
+            '-' => 'ERR: ' . $line,
+            ':' => (int)$line,
+            '$' => $this->redisReadBulkString($stream, (int)$line),
+            '*' => $this->redisReadArray($stream, (int)$line),
+            default => null,
+        };
+    }
+
+    /**
+     * @param resource $stream
+     * @return string|null
+     */
+    private function redisReadBulkString($stream, int $length): ?string
+    {
+        if ($length < 0) {
+            return null;
+        }
+
+        $remaining = $length;
+        $data = '';
+        while ($remaining > 0 && !feof($stream)) {
+            $chunk = fread($stream, $remaining);
+            if (!is_string($chunk) || $chunk === '') {
+                break;
+            }
+            $data .= $chunk;
+            $remaining -= strlen($chunk);
+        }
+
+        if ($remaining > 0) {
+            return null;
+        }
+
+        // consume trailing CRLF
+        fread($stream, 2);
+        return $data;
+    }
+
+    /**
+     * @param resource $stream
+     * @return list<mixed>|null
+     */
+    private function redisReadArray($stream, int $length): ?array
+    {
+        if ($length < 0) {
+            return null;
+        }
+
+        $items = [];
+        for ($i = 0; $i < $length; $i++) {
+            $items[] = $this->redisSocketRead($stream);
+        }
+        return $items;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function parseRedisInfo(string $raw): array
+    {
+        $info = [];
+        foreach (preg_split('/\r\n|\r|\n/', trim($raw)) as $line) {
+            $line = trim((string)$line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+            $parts = explode(':', $line, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+            $info[trim($parts[0])] = trim($parts[1]);
+        }
+        return $info;
+    }
+
+    /**
+     * @param array<string, mixed> $info
+     * @return array<string, mixed>
+     */
+    private function buildRedisMetrics(array $info, int $dbSize): array
+    {
+        $usedMemoryBytes = isset($info['used_memory']) ? (int)$info['used_memory'] : null;
+        $peakMemoryBytes = isset($info['used_memory_peak']) ? (int)$info['used_memory_peak'] : null;
+        $hits = isset($info['keyspace_hits']) ? max(0, (int)$info['keyspace_hits']) : null;
+        $misses = isset($info['keyspace_misses']) ? max(0, (int)$info['keyspace_misses']) : null;
+
+        $hitRate = null;
+        if ($hits !== null && $misses !== null && ($hits + $misses) > 0) {
+            $hitRate = round(($hits / ($hits + $misses)) * 100, 2);
+        }
+
+        return [
+            'redis_version' => (string)($info['redis_version'] ?? ''),
+            'redis_mode' => (string)($info['redis_mode'] ?? ''),
+            'uptime_seconds' => isset($info['uptime_in_seconds']) ? (int)$info['uptime_in_seconds'] : null,
+            'connected_clients' => isset($info['connected_clients']) ? (int)$info['connected_clients'] : null,
+            'dbsize' => $dbSize,
+            'used_memory_bytes' => $usedMemoryBytes,
+            'used_memory_human' => $usedMemoryBytes !== null ? $this->formatBytes($usedMemoryBytes) : null,
+            'used_memory_peak_bytes' => $peakMemoryBytes,
+            'used_memory_peak_human' => $peakMemoryBytes !== null ? $this->formatBytes($peakMemoryBytes) : null,
+            'mem_fragmentation_ratio' => isset($info['mem_fragmentation_ratio']) ? (float)$info['mem_fragmentation_ratio'] : null,
+            'total_commands_processed' => isset($info['total_commands_processed']) ? (int)$info['total_commands_processed'] : null,
+            'instantaneous_ops_per_sec' => isset($info['instantaneous_ops_per_sec']) ? (int)$info['instantaneous_ops_per_sec'] : null,
+            'keyspace_hits' => $hits,
+            'keyspace_misses' => $misses,
+            'hit_rate_percent' => $hitRate,
+            'expired_keys' => isset($info['expired_keys']) ? (int)$info['expired_keys'] : null,
+            'evicted_keys' => isset($info['evicted_keys']) ? (int)$info['evicted_keys'] : null,
+            'keyspace' => isset($info['db' . (string)max(0, (int)($_ENV['REDIS_DB'] ?? 0))]) ? (string)$info['db' . (string)max(0, (int)($_ENV['REDIS_DB'] ?? 0))] : null,
+        ];
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        }
+        $units = ['KB', 'MB', 'GB', 'TB'];
+        $value = (float)$bytes;
+        $idx = -1;
+        while ($value >= 1024 && $idx < count($units) - 1) {
+            $value /= 1024;
+            $idx++;
+        }
+        return number_format($value, 2) . ' ' . $units[max(0, $idx)];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function adminGetAiSummaryConfig(): array
     {
         $cfg = \QuantumAstrology\Core\SystemSettings::getAiSummaryConfig();
@@ -1558,6 +2018,83 @@ class Application
             'length' => (string) ($cfg['length'] ?? 'short'),
             'focus_template' => (string) ($cfg['focus_template'] ?? ''),
             'updated_at' => $cfg['updated_at'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array{ok:bool,http_status:int,error:string,json:array<string,mixed>|null}
+     */
+    private function httpGetJsonWithBearer(string $url, string $bearerToken, int $timeoutSeconds = 20): array
+    {
+        if (!function_exists('curl_init')) {
+            return [
+                'ok' => false,
+                'http_status' => 0,
+                'error' => 'cURL extension is not available.',
+                'json' => null,
+            ];
+        }
+
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return [
+                'ok' => false,
+                'http_status' => 0,
+                'error' => 'Failed to initialize cURL.',
+                'json' => null,
+            ];
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $bearerToken,
+                'Accept: application/json',
+                'User-Agent: QuantumAstrologyAdmin/1.0',
+            ],
+            CURLOPT_TIMEOUT => max(3, $timeoutSeconds),
+            CURLOPT_CONNECTTIMEOUT => 8,
+        ]);
+
+        $raw = curl_exec($ch);
+        $httpStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if (!is_string($raw)) {
+            return [
+                'ok' => false,
+                'http_status' => $httpStatus,
+                'error' => $curlError !== '' ? $curlError : 'Empty response body.',
+                'json' => null,
+            ];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [
+                'ok' => false,
+                'http_status' => $httpStatus,
+                'error' => 'Invalid JSON response.',
+                'json' => null,
+            ];
+        }
+
+        if ($httpStatus < 200 || $httpStatus >= 300) {
+            $apiError = isset($decoded['error']) ? (string)$decoded['error'] : '';
+            return [
+                'ok' => false,
+                'http_status' => $httpStatus,
+                'error' => $apiError !== '' ? $apiError : 'HTTP request failed.',
+                'json' => $decoded,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'http_status' => $httpStatus,
+            'error' => '',
+            'json' => $decoded,
         ];
     }
 

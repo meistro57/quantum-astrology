@@ -125,6 +125,47 @@ function buildSummaryMarkdown(array $interpretation, string $reportType): string
     return implode("\n", $lines);
 }
 
+/**
+ * Read cached AI summary payload when available and valid.
+ *
+ * @return array{age_seconds:int,payload:array<string,mixed>}|null
+ */
+function readCachedAiSummary(string $cacheFile, int $cacheTtl, bool $fresh): ?array
+{
+    if ($fresh || $cacheTtl <= 0 || !is_file($cacheFile)) {
+        return null;
+    }
+
+    $age = time() - (int) @filemtime($cacheFile);
+    if ($age < 0 || $age > $cacheTtl) {
+        return null;
+    }
+
+    $decoded = json_decode((string) @file_get_contents($cacheFile), true);
+    if (!is_array($decoded) || !isset($decoded['markdown'])) {
+        return null;
+    }
+
+    return [
+        'age_seconds' => $age,
+        'payload' => $decoded,
+    ];
+}
+
+/**
+ * Best-effort write of cache payload.
+ *
+ * @param array<string,mixed> $payload
+ */
+function writeCachedAiSummary(string $cacheDir, string $cacheFile, array $payload): void
+{
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0755, true);
+    }
+
+    @file_put_contents($cacheFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
 header('Content-Type: application/json');
 Auth::requireLogin();
 
@@ -153,6 +194,11 @@ try {
     $provider = trim((string)($masterAi['provider'] ?? ($_ENV['AI_PROVIDER'] ?? 'ollama')));
     $model = trim((string)($masterAi['model'] ?? 'default'));
     $focus = trim((string)($input['focus'] ?? $_GET['focus'] ?? ''));
+    $fresh = filter_var($input['fresh'] ?? $_GET['fresh'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $cacheTtl = (int)($_ENV['AI_SUMMARY_CACHE_TTL'] ?? $_ENV['AI_CACHE_TTL'] ?? 21600);
+    if ($cacheTtl < 0) {
+        $cacheTtl = 21600;
+    }
 
     if (!in_array($reportType, ['natal', 'transit', 'synastry'], true)) {
         http_response_code(400);
@@ -184,6 +230,65 @@ try {
     $focusFromTemplate = str_replace('{report_type}', $reportType, $focusTemplate);
     $focusPrefix = $focus !== '' ? ($focus . '. ') : '';
     $focusWithReport = trim($focusPrefix . $focusFromTemplate);
+
+    $cacheKeyPayload = [
+        'v' => 1,
+        'chart_id' => $chartId,
+        'user_id' => (int) $currentUser->getId(),
+        'chart_updated' => (string)($chart->getUpdatedAt() ?? ''),
+        'report_type' => $reportType,
+        'provider' => strtolower($provider),
+        'model' => $model,
+        'master_ai_updated_at' => (string)($masterAi['updated_at'] ?? ''),
+        'system_prompt' => (string)($summaryCfg['system_prompt'] ?? ''),
+        'style' => (string)($summaryCfg['style'] ?? ''),
+        'length' => (string)($summaryCfg['length'] ?? ''),
+        'focus_template' => $focusTemplate,
+        'focus' => $focus,
+        'focus_with_report' => $focusWithReport,
+    ];
+    $cacheKey = sha1(json_encode($cacheKeyPayload, JSON_UNESCAPED_SLASHES));
+    $cacheDir = STORAGE_PATH . '/cache/ai_summary';
+    $cacheFile = $cacheDir . '/' . $cacheKey . '.json';
+    $cached = readCachedAiSummary($cacheFile, $cacheTtl, $fresh);
+
+    if (is_array($cached)) {
+        $cachedPayload = $cached['payload'];
+        $cachedMarkdown = (string)($cachedPayload['markdown'] ?? '');
+        $cachedFilename = (string)($cachedPayload['filename'] ?? ('ai_summary_chart_' . $chartId . '.md'));
+        if ($format === 'download') {
+            if (ob_get_length() > 0) {
+                ob_clean();
+            }
+            header('Content-Type: text/markdown; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $cachedFilename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+            echo $cachedMarkdown;
+            exit;
+        }
+
+        if (ob_get_length() > 0) {
+            ob_clean();
+        }
+        echo json_encode([
+            'success' => true,
+            'chart_id' => $chartId,
+            'report_type' => $reportType,
+            'history_id' => $cachedPayload['history_id'] ?? null,
+            'markdown' => $cachedMarkdown,
+            'filename' => $cachedFilename,
+            'html_preview' => (string)($cachedPayload['html_preview'] ?? renderMarkdownPreview($cachedMarkdown)),
+            'download_url' => '/api/reports/ai_summary.php?chart_id=' . $chartId . '&report_type=' . urlencode($reportType) . '&focus=' . urlencode($focus) . '&format=download',
+            'cache' => [
+                'hit' => true,
+                'ttl_seconds' => $cacheTtl,
+                'age_seconds' => (int)($cached['age_seconds'] ?? 0),
+            ],
+        ]);
+        exit;
+    }
+
     $ai = new AIInterpreter($chart, [
         'provider' => $provider,
         'model' => $model,
@@ -195,8 +300,6 @@ try {
     $interpretation = $ai->generateSummaryReport($reportType);
 
     $markdown = buildSummaryMarkdown($interpretation, $reportType);
-    $safeName = preg_replace('/[^a-z0-9\-_]+/i', '_', strtolower((string)$chart->getName())) ?: 'chart';
-    $filename = sprintf('ai_summary_%s_%d_%s.md', $safeName, $chartId, date('Ymd_His'));
     $archive = ReportArchive::save(
         (int) $currentUser->getId(),
         $chartId,
@@ -206,6 +309,15 @@ try {
         'text/markdown',
         $markdown
     );
+    $filename = (string)($archive['file_name'] ?? ('ai_summary_chart_' . $chartId . '.md'));
+    $htmlPreview = renderMarkdownPreview($markdown);
+    $responsePayload = [
+        'history_id' => $archive['id'] ?? null,
+        'markdown' => $markdown,
+        'filename' => $filename,
+        'html_preview' => $htmlPreview,
+    ];
+    writeCachedAiSummary($cacheDir, $cacheFile, $responsePayload);
 
     if ($format === 'download') {
         if (ob_get_length() > 0) {
@@ -229,8 +341,13 @@ try {
         'history_id' => $archive['id'] ?? null,
         'markdown' => $markdown,
         'filename' => $filename,
-        'html_preview' => renderMarkdownPreview($markdown),
+        'html_preview' => $htmlPreview,
         'download_url' => '/api/reports/ai_summary.php?chart_id=' . $chartId . '&report_type=' . urlencode($reportType) . '&focus=' . urlencode($focus) . '&format=download',
+        'cache' => [
+            'hit' => false,
+            'ttl_seconds' => $cacheTtl,
+            'age_seconds' => 0,
+        ],
     ]);
 } catch (Throwable $e) {
     $bufferedOutput = '';

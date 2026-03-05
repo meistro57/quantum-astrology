@@ -54,6 +54,12 @@ define('DB_SQLITE_PATH', (string) env('DB_SQLITE_PATH', STORAGE_PATH . '/databas
 // Cache configuration
 define('CACHE_ENABLED', filter_var(env('CACHE_ENABLED', true), FILTER_VALIDATE_BOOLEAN));
 define('CACHE_TTL', (int) env('CACHE_TTL', 3600));
+define('REDIS_ENABLED', filter_var(env('REDIS_ENABLED', true), FILTER_VALIDATE_BOOLEAN));
+define('REDIS_HOST', (string) env('REDIS_HOST', '127.0.0.1'));
+define('REDIS_PORT', (int) env('REDIS_PORT', 6379));
+define('REDIS_DB', (int) env('REDIS_DB', 0));
+define('REDIS_PASSWORD', (string) env('REDIS_PASSWORD', ''));
+define('REDIS_TIMEOUT', (float) env('REDIS_TIMEOUT', 1.5));
 
 // Swiss Ephemeris configuration
 $defaultSwephPath = '/usr/local/bin/swetest';

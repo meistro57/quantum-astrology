@@ -8,6 +8,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       APP_ENV: "${APP_ENV:-production}"
       APP_DEBUG: "${APP_DEBUG:-false}"
@@ -28,6 +30,12 @@ services:
       SESSION_LIFETIME: "${SESSION_LIFETIME:-3600}"
       CACHE_ENABLED: "${CACHE_ENABLED:-true}"
       CACHE_TTL: "${CACHE_TTL:-3600}"
+      REDIS_ENABLED: "${REDIS_ENABLED:-true}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      REDIS_DB: "${REDIS_DB:-0}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+      REDIS_TIMEOUT: "${REDIS_TIMEOUT:-1.5}"
     volumes:
       - qa_storage:/var/www/html/storage
 
@@ -70,6 +78,20 @@ services:
     volumes:
       - qa_mysql_data:/var/lib/mysql
 
+  redis:
+    image: redis:7-alpine
+    container_name: quantum-astrology-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - qa_redis_data:/data
+
 volumes:
   qa_storage:
   qa_mysql_data:
+  qa_redis_data:

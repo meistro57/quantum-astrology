@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html
 
@@ -17,6 +17,8 @@ RUN apt-get update \
         libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql mbstring intl zip gd \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && a2enmod rewrite headers expires \
     && ln -sf /usr/bin/swetest /usr/local/bin/swetest \
     && rm -rf /var/lib/apt/lists/*

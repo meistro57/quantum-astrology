@@ -7,6 +7,7 @@ use QuantumAstrology\Charts\Chart;
 use QuantumAstrology\Interpretations\ChartInterpretation;
 use QuantumAstrology\Core\Logger;
 use QuantumAstrology\Core\SystemSettings;
+use QuantumAstrology\Support\AIProviderResponse;
 
 class AIInterpreter
 {
@@ -15,6 +16,7 @@ class AIInterpreter
     private string $apiEndpoint;
     private string $apiKey;
     private string $provider;
+    private bool $allowMockResponses = false;
 
     // Supported AI providers
     private const PROVIDERS = [
@@ -70,9 +72,17 @@ class AIInterpreter
             $this->apiEndpoint = 'mock';
         }
 
-        // If no API key for cloud providers, fall back to mock
+        $allowMock = $this->aiConfig['allow_mock']
+            ?? $_ENV['AI_ALLOW_MOCK']
+            ?? (defined('APP_ENV') && APP_ENV !== 'production');
+        $this->allowMockResponses = filter_var($allowMock, FILTER_VALIDATE_BOOLEAN);
+
+        // Never silently downgrade to mock in production for cloud providers.
         if (empty($this->apiKey) && $this->provider !== 'ollama') {
-            $this->apiEndpoint = 'mock';
+            Logger::warning('AI provider configured without API key', [
+                'provider' => $this->provider,
+                'app_env' => defined('APP_ENV') ? APP_ENV : null,
+            ]);
         }
     }
 
@@ -224,6 +234,109 @@ class AIInterpreter
                 'chart_id' => $this->chart->getId(),
             ]);
             return $this->generateFallbackInterpretation();
+        }
+    }
+
+    /**
+     * Generate a full-featured AI horoscope for a specific period.
+     *
+     * @param array<int,string> $areas
+     * @return array<string,mixed>
+     */
+    public function generateHoroscope(
+        string $period = 'daily',
+        ?string $forDate = null,
+        array $areas = [],
+        string $focus = ''
+    ): array {
+        $period = strtolower(trim($period));
+        if (!in_array($period, ['daily', 'weekly', 'monthly', 'yearly'], true)) {
+            $period = 'daily';
+        }
+
+        $dateLabel = $forDate ?: date('Y-m-d');
+        $areas = array_values(array_unique(array_filter(array_map(
+            static fn ($v): string => strtolower(trim((string)$v)),
+            $areas
+        ), static fn ($v): bool => $v !== '')));
+        $allowedAreas = ['love', 'career', 'health', 'finance', 'spiritual', 'social', 'creativity', 'family', 'general'];
+        $areas = array_values(array_filter($areas, static fn ($v): bool => in_array($v, $allowedAreas, true)));
+        if ($areas === []) {
+            $areas = ['general', 'love', 'career', 'health', 'finance'];
+        }
+
+        try {
+            $interpreter = new ChartInterpretation($this->chart);
+            $structuredData = $interpreter->generateFullInterpretation();
+
+            $core = $structuredData['core_identity'] ?? [];
+            $sun = (string)($core['sun']['sign'] ?? 'Unknown');
+            $moon = (string)($core['moon']['sign'] ?? 'Unknown');
+            $rising = (string)($core['rising']['sign'] ?? 'Unknown');
+            $dominantElement = (string)($structuredData['elemental_balance']['dominant_element'] ?? 'balanced');
+            $dominantMode = (string)($structuredData['modal_balance']['dominant_mode'] ?? 'balanced');
+            $lifePurpose = (string)($structuredData['overall_themes']['life_purpose'] ?? '');
+
+            $scopeMap = [
+                'daily' => 'next 24 hours',
+                'weekly' => 'next 7 days',
+                'monthly' => 'current month window',
+                'yearly' => 'current year window',
+            ];
+            $scope = $scopeMap[$period] ?? 'upcoming period';
+            $focusText = trim($focus);
+
+            $prompt = "Create a {$period} horoscope for {$dateLabel} covering {$scope}.\n"
+                . "Chart facts: Sun {$sun}, Moon {$moon}, Rising {$rising}, dominant element {$dominantElement}, dominant mode {$dominantMode}.\n"
+                . ($lifePurpose !== '' ? "Life purpose anchor: {$lifePurpose}\n" : '')
+                . "Requested focus areas: " . implode(', ', $areas) . ".\n"
+                . ($focusText !== '' ? "User focus: {$focusText}\n" : '')
+                . "Return Markdown only using this structure:\n"
+                . "# {$period} Horoscope\n"
+                . "## Overview\n"
+                . "## Opportunities\n"
+                . "## Challenges\n"
+                . "## Love\n"
+                . "## Career\n"
+                . "## Health & Energy\n"
+                . "## Finance\n"
+                . "## Spiritual Guidance\n"
+                . "## Action Steps\n"
+                . "## Lucky Indicators\n"
+                . "Under each section, provide concise practical guidance, no fluff, no disclaimers.";
+
+            $text = $this->callAI($prompt, 'horoscope_' . $period);
+            if (!is_string($text) || trim($text) === '') {
+                return $this->generateFallbackHoroscope($period, $dateLabel, $areas);
+            }
+
+            $markdown = $this->cleanAIResponse($text);
+            if (!str_contains($markdown, '#') || !str_contains(strtolower($markdown), 'overview')) {
+                return $this->generateFallbackHoroscope($period, $dateLabel, $areas);
+            }
+
+            return [
+                'chart_id' => $this->chart->getId(),
+                'chart_name' => $this->chart->getName(),
+                'period' => $period,
+                'for_date' => $dateLabel,
+                'areas' => $areas,
+                'horoscope_markdown' => $markdown,
+                'confidence_score' => $this->calculateConfidenceScore($structuredData),
+                'interpretation_metadata' => [
+                    'generated_at' => date('c'),
+                    'ai_model' => $this->getModelInfo(),
+                    'processing_time' => 0,
+                    'word_count' => str_word_count($markdown),
+                ],
+            ];
+        } catch (\Throwable $e) {
+            Logger::error('AI horoscope generation failed', [
+                'error' => $e->getMessage(),
+                'chart_id' => $this->chart->getId(),
+                'period' => $period,
+            ]);
+            return $this->generateFallbackHoroscope($period, $dateLabel, $areas);
         }
     }
 
@@ -432,7 +545,14 @@ class AIInterpreter
             $prompt .= "\n\nAdditional user focus: " . $focus;
         }
 
-        if ($this->apiEndpoint === 'mock') {
+        if ($this->apiEndpoint === 'mock' || $this->provider === 'mock') {
+            if (!$this->allowMockResponses) {
+                Logger::warning('Mock AI response requested but mock mode is disabled', [
+                    'provider' => $this->provider,
+                    'category' => $category,
+                ]);
+                return null;
+            }
             return $this->getMockResponse($category);
         }
 
@@ -482,7 +602,7 @@ class AIInterpreter
      */
     private function callOllama(string $prompt): ?string
     {
-        $model = $this->aiConfig['model'] ?? $_ENV['OLLAMA_MODEL'] ?? 'llama3.1';
+        $model = $this->getModel();
         $endpoint = rtrim($this->apiEndpoint, '/') . '/api/generate';
 
         $payload = [
@@ -497,33 +617,18 @@ class AIInterpreter
             ]
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 120, // 2 minute timeout for generation
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error) {
-            Logger::warning("Ollama API connection failed", ['error' => $error]);
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            ['Content-Type: application/json'],
+            120
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('Ollama', $result, $model);
             return null;
         }
 
-        if ($httpCode !== 200) {
-            Logger::warning("Ollama API returned non-200 status", ['status' => $httpCode, 'response' => $response]);
-            return null;
-        }
-
-        $data = json_decode($response, true);
-        return $data['response'] ?? null;
+        return AIProviderResponse::extractText('ollama', $result['json']);
     }
 
     /**
@@ -536,7 +641,7 @@ class AIInterpreter
             return null;
         }
 
-        $model = $this->aiConfig['model'] ?? 'gpt-4o-mini';
+        $model = $this->getModel();
         $endpoint = 'https://api.openai.com/v1/chat/completions';
 
         $payload = [
@@ -555,31 +660,21 @@ class AIInterpreter
             'max_tokens' => 1024
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            [
                 'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey
+                'Authorization: Bearer ' . $this->apiKey,
             ],
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $httpCode !== 200) {
-            Logger::warning("OpenAI API call failed", ['error' => $error, 'status' => $httpCode]);
+            60
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('OpenAI', $result, $model);
             return null;
         }
 
-        $data = json_decode($response, true);
-        return $data['choices'][0]['message']['content'] ?? null;
+        return AIProviderResponse::extractText('openai', $result['json']);
     }
 
     /**
@@ -592,7 +687,7 @@ class AIInterpreter
             return null;
         }
 
-        $model = $this->aiConfig['model'] ?? 'claude-sonnet-4-20250514';
+        $model = $this->getModel();
         $endpoint = 'https://api.anthropic.com/v1/messages';
 
         $payload = [
@@ -607,32 +702,22 @@ class AIInterpreter
             ]
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            [
                 'Content-Type: application/json',
                 'x-api-key: ' . $this->apiKey,
-                'anthropic-version: 2023-06-01'
+                'anthropic-version: 2023-06-01',
             ],
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $httpCode !== 200) {
-            Logger::warning("Claude API call failed", ['error' => $error, 'status' => $httpCode]);
+            60
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('Anthropic', $result, $model);
             return null;
         }
 
-        $data = json_decode($response, true);
-        return $data['content'][0]['text'] ?? null;
+        return AIProviderResponse::extractText('anthropic', $result['json']);
     }
 
     /**
@@ -665,37 +750,23 @@ class AIInterpreter
             'max_tokens' => 1024
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            [
                 'Content-Type: application/json',
                 'Authorization: Bearer ' . $this->apiKey,
                 'HTTP-Referer: ' . ($_ENV['APP_URL'] ?? 'https://quantum-astrology.local'),
-                'X-Title: ' . (defined('APP_NAME') ? APP_NAME : 'Quantum Astrology')
+                'X-Title: ' . (defined('APP_NAME') ? APP_NAME : 'Quantum Astrology'),
             ],
-            CURLOPT_TIMEOUT => 90,
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $httpCode !== 200) {
-            Logger::warning("OpenRouter API call failed", [
-                'error' => $error,
-                'status' => $httpCode,
-                'model' => $model
-            ]);
+            90
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('OpenRouter', $result, $model);
             return null;
         }
 
-        $data = json_decode($response, true);
-        return $data['choices'][0]['message']['content'] ?? null;
+        return AIProviderResponse::extractText('openrouter', $result['json']);
     }
 
     /**
@@ -727,35 +798,21 @@ class AIInterpreter
             'max_tokens' => 1024
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            [
                 'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey
+                'Authorization: Bearer ' . $this->apiKey,
             ],
-            CURLOPT_TIMEOUT => 90,
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $httpCode !== 200) {
-            Logger::warning("DeepSeek API call failed", [
-                'error' => $error,
-                'status' => $httpCode,
-                'model' => $model
-            ]);
+            90
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('DeepSeek', $result, $model);
             return null;
         }
 
-        $data = json_decode($response, true);
-        return $data['choices'][0]['message']['content'] ?? null;
+        return AIProviderResponse::extractText('deepseek', $result['json']);
     }
 
     /**
@@ -769,7 +826,7 @@ class AIInterpreter
         }
 
         $model = $this->getModel();
-        $endpoint = rtrim($this->apiEndpoint, '/') . '/models/' . $model . ':generateContent?key=' . $this->apiKey;
+        $endpoint = rtrim($this->apiEndpoint, '/') . '/models/' . $model . ':generateContent';
 
         $payload = [
             'contents' => [
@@ -788,34 +845,120 @@ class AIInterpreter
             ]
         ];
 
-        $ch = curl_init($endpoint);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
+        $result = $this->postJsonWithRetry(
+            $endpoint,
+            $payload,
+            [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $this->apiKey,
             ],
-            CURLOPT_TIMEOUT => 90,
-            CURLOPT_CONNECTTIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error || $httpCode !== 200) {
-            Logger::warning("Gemini API call failed", [
-                'error' => $error,
-                'status' => $httpCode,
-                'model' => $model
-            ]);
+            90
+        );
+        if (!$result['ok']) {
+            $this->logProviderFailure('Gemini', $result, $model);
             return null;
         }
 
-        $data = json_decode($response, true);
-        return $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        return AIProviderResponse::extractText('gemini', $result['json']);
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     * @param array<int,string> $headers
+     * @return array{ok:bool,http_status:int,error:string,json:array<string,mixed>|null,retries:int}
+     */
+    private function postJsonWithRetry(
+        string $url,
+        array $payload,
+        array $headers,
+        int $timeoutSeconds = 90
+    ): array {
+        if (!function_exists('curl_init')) {
+            return [
+                'ok' => false,
+                'http_status' => 0,
+                'error' => 'cURL extension unavailable',
+                'json' => null,
+                'retries' => 0,
+            ];
+        }
+
+        $maxRetries = max(0, (int)($_ENV['AI_HTTP_RETRIES'] ?? 2));
+        $connectTimeout = max(3, (int)($_ENV['AI_HTTP_CONNECT_TIMEOUT'] ?? 10));
+        $sleepMsBase = max(100, (int)($_ENV['AI_HTTP_RETRY_DELAY_MS'] ?? 350));
+        $attempt = 0;
+
+        while (true) {
+            $attempt++;
+            $ch = curl_init($url);
+            if ($ch === false) {
+                return [
+                    'ok' => false,
+                    'http_status' => 0,
+                    'error' => 'Failed to initialize cURL',
+                    'json' => null,
+                    'retries' => $attempt - 1,
+                ];
+            }
+
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => max(10, $timeoutSeconds),
+                CURLOPT_CONNECTTIMEOUT => $connectTimeout,
+            ]);
+
+            $raw = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            $decoded = is_string($raw) ? json_decode($raw, true) : null;
+            $retryableHttp = in_array($httpCode, [408, 409, 425, 429, 500, 502, 503, 504], true);
+            $shouldRetry = ($curlError !== '' || $retryableHttp) && $attempt <= ($maxRetries + 1);
+
+            if ($curlError === '' && $httpCode >= 200 && $httpCode < 300 && is_array($decoded)) {
+                return [
+                    'ok' => true,
+                    'http_status' => $httpCode,
+                    'error' => '',
+                    'json' => $decoded,
+                    'retries' => $attempt - 1,
+                ];
+            }
+
+            if (!$shouldRetry || $attempt > ($maxRetries + 1)) {
+                $errorMessage = $curlError !== ''
+                    ? $curlError
+                    : AIProviderResponse::extractError(is_array($decoded) ? $decoded : null, $httpCode);
+
+                return [
+                    'ok' => false,
+                    'http_status' => $httpCode,
+                    'error' => $errorMessage,
+                    'json' => is_array($decoded) ? $decoded : null,
+                    'retries' => $attempt - 1,
+                ];
+            }
+
+            usleep(($sleepMsBase * $attempt) * 1000);
+        }
+    }
+
+    /**
+     * @param array{ok:bool,http_status:int,error:string,json:array<string,mixed>|null,retries:int} $result
+     */
+    private function logProviderFailure(string $providerName, array $result, string $model): void
+    {
+        Logger::warning($providerName . ' API call failed', [
+            'provider' => strtolower($providerName),
+            'model' => $model,
+            'status' => $result['http_status'],
+            'retries' => $result['retries'],
+            'error' => $result['error'],
+        ]);
     }
 
     /**
@@ -823,6 +966,21 @@ class AIInterpreter
      */
     private function getMockResponse(string $category): string
     {
+        if (str_starts_with($category, 'horoscope_')) {
+            $period = strtoupper(str_replace('horoscope_', '', $category));
+            return "# {$period} Horoscope\n\n"
+                . "## Overview\n\nMomentum is steady. Prioritize one major theme and avoid overcommitting.\n\n"
+                . "## Opportunities\n\nConnections and practical decisions support progress if you act early.\n\n"
+                . "## Challenges\n\nWatch impulsive responses and vague planning; details matter.\n\n"
+                . "## Love\n\nUse direct communication and avoid assumptions.\n\n"
+                . "## Career\n\nBest window for structured execution and follow-through.\n\n"
+                . "## Health & Energy\n\nProtect sleep consistency and reduce cognitive overload.\n\n"
+                . "## Finance\n\nFavor conservative moves and clear budgeting over speculation.\n\n"
+                . "## Spiritual Guidance\n\nPause daily for reflection before key decisions.\n\n"
+                . "## Action Steps\n\n- Pick top 3 priorities\n- Time-block deep work\n- Close one lingering obligation\n\n"
+                . "## Lucky Indicators\n\n- Numbers: 3, 8\n- Colors: gold, deep blue\n- Best time: early evening";
+        }
+
         $mockResponses = [
             'personality_analysis' => "Your personality is a fascinating blend of determination and creativity, shaped by the powerful combination of your core planetary placements. You approach life with natural confidence and possess an innate ability to inspire others through your authentic self-expression. Your emotional nature is both deep and intuitive, allowing you to connect with others on a profound level while maintaining your independent spirit.\n\nThere's a natural magnetism to your personality that draws people toward you, yet you value your personal freedom and space. You have excellent instincts about people and situations, often knowing things intuitively before they become obvious. Your approach to life tends to be both practical and idealistic, seeking to manifest your visions in tangible ways.\n\nYou express yourself with natural authority and creativity, often becoming a catalyst for positive change in your environment. While you can be quite focused and determined when pursuing your goals, you also possess the flexibility to adapt when circumstances require it. Others likely see you as someone who is both reliable and inspiring, capable of both leading and supporting as the situation demands.",
 
@@ -1007,6 +1165,42 @@ class AIInterpreter
                 'processing_time' => 0,
                 'word_count' => 100
             ]
+        ];
+    }
+
+    /**
+     * @param array<int,string> $areas
+     * @return array<string,mixed>
+     */
+    private function generateFallbackHoroscope(string $period, string $dateLabel, array $areas): array
+    {
+        $title = ucfirst($period) . ' Horoscope';
+        $markdown = "# {$title}\n\n"
+            . "## Overview\n\nA steady period for intentional action and disciplined choices.\n\n"
+            . "## Opportunities\n\nFocus on high-leverage tasks and transparent communication.\n\n"
+            . "## Challenges\n\nAvoid scattered attention and emotionally reactive decisions.\n\n"
+            . "## Love\n\nConsistency and clear expectations strengthen connection.\n\n"
+            . "## Career\n\nProgress comes through sequencing priorities and finishing what is started.\n\n"
+            . "## Health & Energy\n\nSimplify routines to preserve energy and reduce stress.\n\n"
+            . "## Finance\n\nUse conservative planning and track discretionary spending.\n\n"
+            . "## Spiritual Guidance\n\nReflect before major commitments; align action with values.\n\n"
+            . "## Action Steps\n\n- Define top priorities\n- Protect focus blocks\n- Review commitments at day end\n\n"
+            . "## Lucky Indicators\n\n- Numbers: 2, 7\n- Colors: navy, gold\n- Best time: morning";
+
+        return [
+            'chart_id' => $this->chart->getId(),
+            'chart_name' => $this->chart->getName(),
+            'period' => $period,
+            'for_date' => $dateLabel,
+            'areas' => $areas,
+            'horoscope_markdown' => $markdown,
+            'confidence_score' => 50,
+            'interpretation_metadata' => [
+                'generated_at' => date('c'),
+                'ai_model' => 'Fallback Template System',
+                'processing_time' => 0,
+                'word_count' => str_word_count($markdown),
+            ],
         ];
     }
 

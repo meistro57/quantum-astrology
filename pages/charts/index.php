@@ -425,21 +425,7 @@ $showAdminLink = AdminGate::canAccess($user);
 </head>
 <body>
     <div class="particles-container"></div>
-    <header class="portal-header">
-        <div class="portal-brand">
-            <div class="portal-brand-dot"></div>
-            Quantum Astrology
-            <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span>
-        </div>
-        <nav class="portal-nav">
-            <a href="/">Portal</a>
-            <a href="/charts" class="active">Charts</a>
-            <a href="/reports">Reports</a>
-            <?php if ($showAdminLink): ?><a href="/admin">Admin</a><?php endif; ?>
-            <a href="/profile">Profile</a>
-            <a href="/logout">Logout</a>
-        </nav>
-    </header>
+    <?php $activeNav = 'charts'; require __DIR__ . '/../_partials/portal_header.php'; ?>
 
     <div class="charts-container">
         <div class="page-actions">

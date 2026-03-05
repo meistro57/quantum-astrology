@@ -108,6 +108,77 @@ final class AISummaryReportApiTest extends TestCase
         }
     }
 
+    /** @runInSeparateProcess */
+    public function testUsesCacheForRepeatedRequestsWithSameInputs(): void
+    {
+        [$dbPath, $chartId, $ownerId] = $this->bootstrapDbWithChart();
+        $focus = 'cache-check-' . bin2hex(random_bytes(4));
+        $payload = [
+            'chart_id' => $chartId,
+            'report_type' => 'natal',
+            'format' => 'json',
+            'provider' => 'openai',
+            'model' => 'default',
+            'focus' => $focus,
+        ];
+        $session = [
+            'logged_in' => true,
+            'user_id' => $ownerId,
+        ];
+
+        try {
+            [$status1, $output1] = $this->runEndpoint($dbPath, $payload, $session);
+            $this->assertSame(200, $status1, $output1);
+            $body1 = json_decode($output1, true);
+            $this->assertIsArray($body1, $output1);
+            $this->assertFalse((bool)($body1['cache']['hit'] ?? true), $output1);
+
+            [$status2, $output2] = $this->runEndpoint($dbPath, $payload, $session);
+            $this->assertSame(200, $status2, $output2);
+            $body2 = json_decode($output2, true);
+            $this->assertIsArray($body2, $output2);
+            $this->assertTrue((bool)($body2['cache']['hit'] ?? false), $output2);
+
+            $this->assertSame($body1['markdown'] ?? null, $body2['markdown'] ?? null);
+        } finally {
+            @unlink($dbPath);
+        }
+    }
+
+    /** @runInSeparateProcess */
+    public function testGeneratesCombinedMasterDocument(): void
+    {
+        [$dbPath, $chartId, $ownerId] = $this->bootstrapDbWithChart();
+
+        try {
+            [$status, $output] = $this->runEndpoint(
+                $dbPath,
+                [
+                    'chart_id' => $chartId,
+                    'format' => 'json',
+                    'focus' => 'Comprehensive planning',
+                ],
+                [
+                    'logged_in' => true,
+                    'user_id' => $ownerId,
+                ],
+                'api/reports/ai_master_document.php'
+            );
+
+            $this->assertSame(200, $status, $output);
+            $payload = json_decode($output, true);
+            $this->assertIsArray($payload, $output);
+            $this->assertTrue($payload['success'] ?? false);
+            $this->assertStringContainsString('# Comprehensive Astrology Intelligence Dossier', $payload['markdown'] ?? '');
+            $this->assertStringContainsString('## Natal Report AI Summary', $payload['markdown'] ?? '');
+            $this->assertStringContainsString('## Transit Report AI Summary', $payload['markdown'] ?? '');
+            $this->assertStringContainsString('## Synastry Report AI Summary', $payload['markdown'] ?? '');
+            $this->assertStringContainsString('/api/reports/ai_master_document.php', $payload['download_url'] ?? '');
+        } finally {
+            @unlink($dbPath);
+        }
+    }
+
     private function bootstrapDbOnly(): string
     {
         $dbPath = tempnam(sys_get_temp_dir(), 'qa_ai_summary_');
@@ -160,7 +231,7 @@ final class AISummaryReportApiTest extends TestCase
         return [$dbPath, (int) $chart->getId(), $userId];
     }
 
-    private function runEndpoint(string $dbPath, array $payload, array $session): array
+    private function runEndpoint(string $dbPath, array $payload, array $session, string $entrypoint = 'api/reports/ai_summary.php'): array
     {
         $runnerPath = tempnam(sys_get_temp_dir(), 'qa_runner_');
         if ($runnerPath === false) {
@@ -181,7 +252,7 @@ $_GET = [];
 $_POST = [];
 $_SERVER = array_merge($_SERVER, [
     'REQUEST_METHOD' => 'POST',
-    'REQUEST_URI' => '/api/reports/ai_summary.php',
+    'REQUEST_URI' => %REQUEST_URI%,
     'HTTP_CONTENT_TYPE' => 'application/json',
 ]);
 session_id(%SESSION_ID%);
@@ -226,7 +297,8 @@ PHP;
             '%SESSION_ID%' => var_export($sessionId, true),
             '%SESSION_VARS%' => var_export($session, true),
             '%RAW_BODY%' => var_export(json_encode($payload), true),
-            '%ENTRYPOINT_PATH%' => var_export($this->projectPath('api/reports/ai_summary.php'), true),
+            '%REQUEST_URI%' => var_export('/' . ltrim($entrypoint, '/'), true),
+            '%ENTRYPOINT_PATH%' => var_export($this->projectPath($entrypoint), true),
         ]);
 
         file_put_contents($runnerPath, $code);

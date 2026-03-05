@@ -29,7 +29,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
         .admin-wrap { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .admin-title { font-size: 2.2rem; margin: 0 0 0.35rem; background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .admin-sub { color: rgba(255,255,255,0.72); margin-bottom: 1.5rem; }
-        .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+        .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
         .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 1rem; backdrop-filter: blur(12px); }
         .metric-label { color: rgba(255,255,255,0.65); font-size: 0.85rem; }
         .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--quantum-text); margin-top: 0.25rem; }
@@ -52,11 +52,28 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
         .status.error { color: #ff8e8e; }
         .log { background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.7rem; max-height: 260px; overflow: auto; font-family: ui-monospace,monospace; font-size: 0.82rem; line-height: 1.35; white-space: pre-wrap; }
         .ops-output { margin-top: 0.8rem; background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem; min-height: 70px; max-height: 320px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; }
+        .pill { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 0.2rem 0.55rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; border: 1px solid transparent; }
+        .pill-ok { background: rgba(22, 163, 74, 0.2); color: #86efac; border-color: rgba(22, 163, 74, 0.45); }
+        .pill-warn { background: rgba(202, 138, 4, 0.2); color: #fde68a; border-color: rgba(202, 138, 4, 0.45); }
+        .pill-danger { background: rgba(220, 38, 38, 0.2); color: #fca5a5; border-color: rgba(220, 38, 38, 0.45); }
+        .pill-neutral { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.45); }
+        @media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 1080px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) {
+            .admin-wrap { padding: 1rem; }
+            .grid { grid-template-columns: 1fr; }
+            .actions { gap: 0.5rem; }
+            .btn { width: 100%; }
+            .table-wrap { max-height: 300px; }
+            th, td { font-size: 0.78rem; padding: 0.45rem 0.5rem; }
+            .metric-value { font-size: 1.5rem; }
+            .kv-wrap td { white-space: normal; word-break: break-word; }
+        }
     </style>
 </head>
 <body>
     <div class="particles-container"></div>
+    <?php $showAdminLink = true; $activeNav = 'admin'; require __DIR__ . '/../_partials/portal_header.php'; ?>
     <div class="admin-wrap">
         <div class="page-actions">
             <button type="button" class="back-button" onclick="window.location.href='/dashboard'">
@@ -74,6 +91,10 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             <div class="card"><div class="metric-label">Charts</div><div class="metric-value" id="m-charts">-</div></div>
             <div class="card"><div class="metric-label">Public Charts</div><div class="metric-value" id="m-public">-</div></div>
             <div class="card"><div class="metric-label">Errors Today</div><div class="metric-value" id="m-errors">-</div></div>
+            <div class="card"><div class="metric-label">Redis Status</div><div class="metric-value" id="m-redis-status">-</div></div>
+            <div class="card"><div class="metric-label">Redis Keys</div><div class="metric-value" id="m-redis-keys">-</div></div>
+            <div class="card"><div class="metric-label">Redis Hit Rate</div><div class="metric-value" id="m-redis-hit">-</div></div>
+            <div class="card"><div class="metric-label">Redis Memory</div><div class="metric-value" id="m-redis-memory">-</div></div>
         </div>
 
         <div class="card">
@@ -132,6 +153,44 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             <div class="actions" style="margin-top:0.8rem;">
                 <button class="btn btn-primary" id="save-ai-master-config">Save AI Config</button>
                 <span id="ai-master-key-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title">OpenRouter Credits & Key Status</h3>
+            <div class="actions" style="margin-bottom: 0.6rem;">
+                <button class="btn" id="refresh-openrouter-status">Refresh OpenRouter Status</button>
+                <span id="openrouter-credit-badge" class="pill pill-neutral">Unknown</span>
+                <span id="openrouter-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+            </div>
+            <div class="table-wrap kv-wrap" style="max-height: 280px;">
+                <table>
+                    <thead>
+                        <tr><th>Field</th><th>Value</th></tr>
+                    </thead>
+                    <tbody id="openrouter-status-body">
+                        <tr><td colspan="2" style="opacity:0.75;">Loading OpenRouter status...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="section-title">Redis Dashboard</h3>
+            <div class="actions" style="margin-bottom: 0.6rem;">
+                <button class="btn" id="refresh-redis-status">Refresh Redis Status</button>
+                <span id="redis-health-badge" class="pill pill-neutral">Unknown</span>
+                <span id="redis-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+            </div>
+            <div class="table-wrap kv-wrap" style="max-height: 280px;">
+                <table>
+                    <thead>
+                        <tr><th>Field</th><th>Value</th></tr>
+                    </thead>
+                    <tbody id="redis-status-body">
+                        <tr><td colspan="2" style="opacity:0.75;">Loading Redis status...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -224,6 +283,15 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             actionStatus.classList.toggle('error', isError);
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         async function postAdminAction(action, payload = {}) {
             const response = await fetch('/api/admin/actions', {
                 method: 'POST',
@@ -247,6 +315,15 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 idx++;
             }
             return `${value.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+        }
+
+        function fmtNum(value, digits = 2) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) return 'N/A';
+            return n.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: digits,
+            });
         }
 
         function formatSystemTaskResult(data) {
@@ -274,6 +351,10 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             document.getElementById('m-charts').textContent = String(data.counts.charts ?? 0);
             document.getElementById('m-public').textContent = String(data.counts.public_charts ?? 0);
             document.getElementById('m-errors').textContent = String(data.errors_today ?? 0);
+            document.getElementById('m-redis-status').textContent = String((data.redis?.status || 'unknown')).toUpperCase();
+            document.getElementById('m-redis-keys').textContent = data.redis?.dbsize == null ? 'N/A' : fmtNum(data.redis.dbsize, 0);
+            document.getElementById('m-redis-hit').textContent = data.redis?.hit_rate_percent == null ? 'N/A' : `${fmtNum(data.redis.hit_rate_percent, 1)}%`;
+            document.getElementById('m-redis-memory').textContent = data.redis?.used_memory_human || 'N/A';
 
             const logText = (data.log_tail || []).join('\n');
             document.getElementById('log-tail').textContent =
@@ -322,6 +403,151 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             keyState.textContent = configResp.api_key_set
                 ? `Master key set${configResp.updated_at ? ` (updated ${configResp.updated_at})` : ''}`
                 : 'No master key saved';
+        }
+
+        async function loadOpenRouterStatus() {
+            const tbody = document.getElementById('openrouter-status-body');
+            const state = document.getElementById('openrouter-state');
+            const badge = document.getElementById('openrouter-credit-badge');
+            if (!tbody || !state || !badge) return;
+
+            function setBadge(label, cls) {
+                badge.className = `pill ${cls}`;
+                badge.textContent = label;
+            }
+
+            tbody.innerHTML = '<tr><td colspan="2" style="opacity:0.75;">Loading OpenRouter status...</td></tr>';
+            state.textContent = '';
+            setBadge('Loading', 'pill-neutral');
+
+            try {
+                const data = await postAdminAction('get_openrouter_key_status');
+
+                if (data.status === 'provider_not_openrouter') {
+                    tbody.innerHTML = '<tr><td colspan="2" style="opacity:0.8;">Master AI provider is not set to OpenRouter.</td></tr>';
+                    state.textContent = 'Provider mismatch';
+                    setBadge('N/A', 'pill-neutral');
+                    return;
+                }
+
+                if (data.status === 'key_missing') {
+                    tbody.innerHTML = '<tr><td colspan="2" style="opacity:0.8;">No OpenRouter API key saved in master config.</td></tr>';
+                    state.textContent = 'Key missing';
+                    setBadge('No Key', 'pill-neutral');
+                    return;
+                }
+
+                const creditsLeft = Number(data.credits?.credits_left);
+                if (!Number.isFinite(creditsLeft)) {
+                    setBadge('Unknown', 'pill-neutral');
+                } else if (creditsLeft < 5) {
+                    setBadge('Critical', 'pill-danger');
+                } else if (creditsLeft < 20) {
+                    setBadge('Low', 'pill-warn');
+                } else {
+                    setBadge('Healthy', 'pill-ok');
+                }
+
+                const rows = [
+                    ['Credits Left', data.credits?.credits_left == null ? 'N/A' : `$${fmtNum(data.credits.credits_left, 4)}`],
+                    ['Total Credits', data.credits?.total_credits == null ? 'N/A' : `$${fmtNum(data.credits.total_credits, 4)}`],
+                    ['Total Usage', data.credits?.total_usage == null ? 'N/A' : `$${fmtNum(data.credits.total_usage, 4)}`],
+                    ['Utilization', data.credits?.utilization_percent == null ? 'N/A' : `${fmtNum(data.credits.utilization_percent, 2)}%`],
+                    ['Key Label', data.key_info?.label || 'N/A'],
+                    ['Free Tier', data.key_info?.is_free_tier == null ? 'N/A' : (data.key_info.is_free_tier ? 'Yes' : 'No')],
+                    ['Limit', data.key_info?.limit == null ? 'N/A' : `$${fmtNum(data.key_info.limit, 4)}`],
+                    ['Limit Remaining', data.key_info?.limit_remaining == null ? 'N/A' : `$${fmtNum(data.key_info.limit_remaining, 4)}`],
+                    ['Limit Reset', data.key_info?.limit_reset || 'N/A'],
+                    ['Usage (Current)', data.key_info?.usage == null ? 'N/A' : `$${fmtNum(data.key_info.usage, 4)}`],
+                    ['Usage Daily', data.key_info?.usage_daily == null ? 'N/A' : `$${fmtNum(data.key_info.usage_daily, 4)}`],
+                    ['Usage Weekly', data.key_info?.usage_weekly == null ? 'N/A' : `$${fmtNum(data.key_info.usage_weekly, 4)}`],
+                    ['Usage Monthly', data.key_info?.usage_monthly == null ? 'N/A' : `$${fmtNum(data.key_info.usage_monthly, 4)}`],
+                    ['BYOK Usage', data.key_info?.byok_usage == null ? 'N/A' : `$${fmtNum(data.key_info.byok_usage, 4)}`],
+                    ['Include BYOK In Limit', data.key_info?.include_byok_in_limit == null ? 'N/A' : (data.key_info.include_byok_in_limit ? 'Yes' : 'No')],
+                    ['Rate Limit', data.rate_limit ? escapeHtml(JSON.stringify(data.rate_limit)) : 'N/A'],
+                    ['Fetched At', data.fetched_at || 'N/A'],
+                ];
+
+                tbody.innerHTML = rows.map(([label, value]) => (
+                    `<tr><td>${escapeHtml(label)}</td><td class="mono">${escapeHtml(value)}</td></tr>`
+                )).join('');
+                state.textContent = 'Live status loaded';
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="2" style="color:#ff8e8e;">${escapeHtml(error.message || 'Failed to load OpenRouter status')}</td></tr>`;
+                state.textContent = 'Load failed';
+                setBadge('Error', 'pill-danger');
+            }
+        }
+
+        async function loadRedisStatus() {
+            const tbody = document.getElementById('redis-status-body');
+            const state = document.getElementById('redis-state');
+            const badge = document.getElementById('redis-health-badge');
+            if (!tbody || !state || !badge) return;
+
+            function setBadge(label, cls) {
+                badge.className = `pill ${cls}`;
+                badge.textContent = label;
+            }
+
+            tbody.innerHTML = '<tr><td colspan="2" style="opacity:0.75;">Loading Redis status...</td></tr>';
+            state.textContent = '';
+            setBadge('Loading', 'pill-neutral');
+
+            try {
+                const data = await postAdminAction('get_redis_dashboard');
+                const status = String(data.status || '').toLowerCase();
+                const hitRate = Number(data.metrics?.hit_rate_percent);
+                const memFrag = Number(data.metrics?.mem_fragmentation_ratio);
+
+                if (status === 'ok') {
+                    if ((Number.isFinite(hitRate) && hitRate < 70) || (Number.isFinite(memFrag) && memFrag > 1.8)) {
+                        setBadge('Degraded', 'pill-warn');
+                    } else {
+                        setBadge('Healthy', 'pill-ok');
+                    }
+                } else if (status === 'unavailable') {
+                    setBadge('Offline', 'pill-danger');
+                } else {
+                    setBadge('Error', 'pill-danger');
+                }
+
+                const rows = [
+                    ['Status', data.status || 'unknown'],
+                    ['Message', data.message || 'N/A'],
+                    ['Driver', data.driver || 'N/A'],
+                    ['Host', data.connection?.host || 'N/A'],
+                    ['Port', data.connection?.port == null ? 'N/A' : String(data.connection.port)],
+                    ['DB Index', data.connection?.db == null ? 'N/A' : String(data.connection.db)],
+                    ['Password Set', data.connection?.password_set ? 'Yes' : 'No'],
+                    ['Redis Version', data.metrics?.redis_version || 'N/A'],
+                    ['Redis Mode', data.metrics?.redis_mode || 'N/A'],
+                    ['Uptime Seconds', data.metrics?.uptime_seconds == null ? 'N/A' : fmtNum(data.metrics.uptime_seconds, 0)],
+                    ['Connected Clients', data.metrics?.connected_clients == null ? 'N/A' : fmtNum(data.metrics.connected_clients, 0)],
+                    ['DB Size (Keys)', data.metrics?.dbsize == null ? 'N/A' : fmtNum(data.metrics.dbsize, 0)],
+                    ['Used Memory', data.metrics?.used_memory_human || 'N/A'],
+                    ['Peak Memory', data.metrics?.used_memory_peak_human || 'N/A'],
+                    ['Mem Fragmentation', data.metrics?.mem_fragmentation_ratio == null ? 'N/A' : fmtNum(data.metrics.mem_fragmentation_ratio, 3)],
+                    ['Ops / Sec', data.metrics?.instantaneous_ops_per_sec == null ? 'N/A' : fmtNum(data.metrics.instantaneous_ops_per_sec, 0)],
+                    ['Total Commands', data.metrics?.total_commands_processed == null ? 'N/A' : fmtNum(data.metrics.total_commands_processed, 0)],
+                    ['Keyspace Hits', data.metrics?.keyspace_hits == null ? 'N/A' : fmtNum(data.metrics.keyspace_hits, 0)],
+                    ['Keyspace Misses', data.metrics?.keyspace_misses == null ? 'N/A' : fmtNum(data.metrics.keyspace_misses, 0)],
+                    ['Hit Rate', data.metrics?.hit_rate_percent == null ? 'N/A' : `${fmtNum(data.metrics.hit_rate_percent, 2)}%`],
+                    ['Expired Keys', data.metrics?.expired_keys == null ? 'N/A' : fmtNum(data.metrics.expired_keys, 0)],
+                    ['Evicted Keys', data.metrics?.evicted_keys == null ? 'N/A' : fmtNum(data.metrics.evicted_keys, 0)],
+                    ['Keyspace', data.metrics?.keyspace || 'N/A'],
+                    ['Fetched At', data.fetched_at || 'N/A'],
+                ];
+
+                tbody.innerHTML = rows.map(([label, value]) => (
+                    `<tr><td>${escapeHtml(label)}</td><td class="mono">${escapeHtml(value)}</td></tr>`
+                )).join('');
+                state.textContent = status === 'ok' ? 'Live status loaded' : 'Redis requires attention';
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="2" style="color:#ff8e8e;">${escapeHtml(error.message || 'Failed to load Redis status')}</td></tr>`;
+                state.textContent = 'Load failed';
+                setBadge('Error', 'pill-danger');
+            }
         }
 
         async function loadAiSummaryConfig() {
@@ -442,7 +668,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
 
         document.getElementById('reload-overview').addEventListener('click', async () => {
             try {
-                await Promise.all([loadOverview(), loadUsers()]);
+                await Promise.all([loadOverview(), loadUsers(), loadRedisStatus()]);
                 setStatus('Overview refreshed.');
             } catch (error) {
                 setStatus(error.message || 'Failed to refresh', true);
@@ -490,8 +716,27 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 const result = await postAdminAction('set_ai_master_config', payload);
                 setStatus(result.message || 'Master AI configuration saved.');
                 await loadAiMasterConfig();
+                await loadOpenRouterStatus();
             } catch (error) {
                 setStatus(error.message || 'Failed to save AI configuration', true);
+            }
+        });
+
+        document.getElementById('refresh-openrouter-status').addEventListener('click', async () => {
+            try {
+                await loadOpenRouterStatus();
+                setStatus('OpenRouter status refreshed.');
+            } catch (error) {
+                setStatus(error.message || 'Failed to refresh OpenRouter status', true);
+            }
+        });
+
+        document.getElementById('refresh-redis-status').addEventListener('click', async () => {
+            try {
+                await loadRedisStatus();
+                setStatus('Redis status refreshed.');
+            } catch (error) {
+                setStatus(error.message || 'Failed to refresh Redis status', true);
             }
         });
 
@@ -552,7 +797,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
 
         (async () => {
             try {
-                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig(), loadDbBackups()]);
+                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig(), loadDbBackups(), loadOpenRouterStatus(), loadRedisStatus()]);
                 setStatus('Admin panel ready.');
             } catch (error) {
                 setStatus(error.message || 'Failed to load admin panel', true);

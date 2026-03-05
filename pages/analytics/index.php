@@ -199,15 +199,7 @@ $showAdminLink = AdminGate::canAccess($user);
 <body>
     <div class="particles-container"></div>
 
-    <header style="padding: 1rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-weight: bold; color: var(--quantum-gold);">QUANTUM ASTROLOGY</div>
-        <nav style="display: flex; gap: 1.5rem;">
-            <a href="/" style="color: white; text-decoration: none;">Dashboard</a>
-            <a href="/charts" style="color: white; text-decoration: none;">Charts</a>
-            <a href="/analytics" style="color: var(--quantum-gold); text-decoration: none;">Analytics</a>
-            <?php if ($showAdminLink): ?><a href="/admin" style="color: white; text-decoration: none;">Admin</a><?php endif; ?>
-        </nav>
-    </header>
+    <?php $activeNav = 'analytics'; require __DIR__ . '/../_partials/portal_header.php'; ?>
 
     <div class="analytics-container">
         <div class="page-actions">

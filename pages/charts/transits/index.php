@@ -2,12 +2,14 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../_bootstrap.php';
 use QuantumAstrology\Core\Auth;
+use QuantumAstrology\Core\AdminGate;
 use QuantumAstrology\Charts\Chart;
 
 Auth::requireLogin();
 $user = Auth::user();
 $userCharts = Chart::findByUserId($user->getId(), 100);
 $creatorLabel = trim((string)($user?->getUsername() ?? 'Unknown'));
+$showAdminLink = AdminGate::canAccess($user);
 $pageTitle = 'Cosmic Weather Forecast';
 ?>
 <!DOCTYPE html>
@@ -41,6 +43,7 @@ $pageTitle = 'Cosmic Weather Forecast';
     </style>
 </head>
 <body>
+    <?php $activeNav = 'charts'; require __DIR__ . '/../../_partials/portal_header.php'; ?>
     <div class="weather-station">
         <div class="page-actions">
             <button type="button" class="back-button" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/charts'">

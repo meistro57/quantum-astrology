@@ -9,6 +9,7 @@ use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\Logger;
 use QuantumAstrology\Core\User;
 use QuantumAstrology\Reports\ReportArchive;
+use QuantumAstrology\Support\ApiResponse;
 
 @ini_set('display_errors', '0');
 @ini_set('html_errors', '0');
@@ -19,40 +20,27 @@ if (ob_get_level() === 0) {
 }
 
 Auth::requireLogin();
-header('Content-Type: application/json');
 
 try {
     $user = Auth::user();
     if (!$user) {
-        http_response_code(401);
-        if (ob_get_length() > 0) {
-            ob_clean();
-        }
-        echo json_encode(['error' => 'Authentication required.']);
-        exit;
+        ApiResponse::sendError('Authentication required.', 'AUTH_REQUIRED', 401);
+        return;
     }
 
     $historyId = (int)($_GET['id'] ?? 0);
     if ($historyId > 0) {
         $row = ReportArchive::findByIdForUser($historyId, (int) $user->getId());
         if (!$row) {
-            http_response_code(404);
-            if (ob_get_length() > 0) {
-                ob_clean();
-            }
-            echo json_encode(['error' => 'Report history item not found.']);
-            exit;
+            ApiResponse::sendError('Report history item not found.', 'REPORT_NOT_FOUND', 404);
+            return;
         }
 
         $relPath = (string)($row['file_path'] ?? '');
         $absPath = ROOT_PATH . '/' . ltrim($relPath, '/');
         if (!is_file($absPath)) {
-            http_response_code(404);
-            if (ob_get_length() > 0) {
-                ob_clean();
-            }
-            echo json_encode(['error' => 'Report file is missing from storage.']);
-            exit;
+            ApiResponse::sendError('Report file is missing from storage.', 'REPORT_FILE_MISSING', 404);
+            return;
         }
 
         $mode = strtolower(trim((string)($_GET['mode'] ?? 'download')));
@@ -109,10 +97,13 @@ try {
     if (ob_get_length() > 0) {
         ob_clean();
     }
-    echo json_encode([
-        'success' => true,
-        'items' => $items,
-    ]);
+    ApiResponse::sendSuccess(
+        ['items' => $items],
+        ['count' => count($items)],
+        200,
+        // Keep existing top-level shape for current frontend usage.
+        ['items' => $items]
+    );
 } catch (Throwable $e) {
     $bufferedOutput = '';
     if (ob_get_length() > 0) {
@@ -123,6 +114,5 @@ try {
         'error' => $e->getMessage(),
         'buffered_output' => $bufferedOutput !== '' ? mb_substr($bufferedOutput, 0, 1200) : null,
     ]);
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to load report history.']);
+    ApiResponse::sendError('Failed to load report history.', 'REPORT_HISTORY_FAILED', 500);
 }

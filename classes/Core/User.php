@@ -27,6 +27,8 @@ class User
     private bool $isAdmin = false;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+    /** @var array<string,bool>|null */
+    private static ?array $usersColumnMap = null;
 
     /**
      * Create a new user record.
@@ -167,11 +169,12 @@ class User
             'show_birth_location_in_reports',
             'is_admin',
         ];
+        $existingColumns = self::getUsersColumnMap();
         $updateFields = [];
         $params = ['id' => $this->id];
 
         foreach ($allowedFields as $field) {
-            if (array_key_exists($field, $data)) {
+            if (array_key_exists($field, $data) && isset($existingColumns[$field])) {
                 $updateFields[] = "{$field} = :{$field}";
                 $params[$field] = $data[$field];
             }
@@ -234,6 +237,63 @@ class User
         $user->updatedAt = $data['updated_at'];
 
         return $user;
+    }
+
+    /**
+     * @return array<string,bool>
+     */
+    private static function getUsersColumnMap(): array
+    {
+        if (is_array(self::$usersColumnMap)) {
+            return self::$usersColumnMap;
+        }
+
+        $columns = [];
+
+        try {
+            if (Connection::isMySql()) {
+                $rows = Connection::query('SHOW COLUMNS FROM users')->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $row) {
+                    $name = (string)($row['Field'] ?? '');
+                    if ($name !== '') {
+                        $columns[$name] = true;
+                    }
+                }
+            } else {
+                $rows = Connection::query('PRAGMA table_info(users)')->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $row) {
+                    $name = (string)($row['name'] ?? '');
+                    if ($name !== '') {
+                        $columns[$name] = true;
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            // Fallback to allow known fields; query failures should not block profile saves.
+            $columns = [];
+        }
+
+        if ($columns === []) {
+            $columns = [
+                'username' => true,
+                'email' => true,
+                'first_name' => true,
+                'last_name' => true,
+                'timezone' => true,
+                'birth_date' => true,
+                'birth_time' => true,
+                'birth_timezone' => true,
+                'birth_latitude' => true,
+                'birth_longitude' => true,
+                'birth_location_name' => true,
+                'show_birth_date_in_reports' => true,
+                'show_birth_location_in_reports' => true,
+                'is_admin' => true,
+            ];
+        }
+
+        self::$usersColumnMap = $columns;
+        return self::$usersColumnMap;
     }
 
     public function getId(): ?int

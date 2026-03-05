@@ -200,6 +200,8 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         html, body {
             min-height: 100%;
             overflow-y: auto;
+            background-color: #0a0e13;
+            color: #e2e8f0;
         }
 
         .profile-container {
