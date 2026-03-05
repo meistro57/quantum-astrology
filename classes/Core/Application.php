@@ -264,7 +264,7 @@ class Application
         // Basic API routing - expand as needed
         switch ($path) {
             case '/api/health':
-                $this->sendJson(['status' => 'ok', 'timestamp' => time()]);
+                require __DIR__ . '/../../api/health.php';
                 break;
 
             case '/api/ephemeris/planets':

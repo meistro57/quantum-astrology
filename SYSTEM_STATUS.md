@@ -2,7 +2,7 @@
 
 **Version:** 1.3.0-alpha
 **Status:** 🚧 Core platform under active development
-**Last Updated:** March 1, 2026
+**Last Updated:** March 5, 2026
 
 ## 📌 Overview
 - The project is in early alpha with core chart generation, authentication, and API scaffolding in place.
@@ -16,6 +16,9 @@
 - **Natal chart pipeline** (`Chart::generateNatalChart`) storing planets, houses, aspects, and metadata in the `charts` table.
 - **Authentication & chart CRUD** flows covering registration, login, chart creation/listing/deletion (`api/chart_create.php`, `api/charts_list.php`, `api/chart_delete.php`, `classes/Charts/Chart.php`).
 - **REST endpoints** for health checks, chart retrieval, SVG export, and chart listing within the authenticated API surface.
+- **Health API normalization**: `/api/health.php` and routed `/api/health` now share a single payload contract and status semantics.
+- **Health status resilience**: missing `swetest` now reports as warning (with explicit warning text) instead of forcing global health failure when DB is healthy.
+- **Conversation orchestration fallback**: `app/Services/ConversationService.php` adds bounded retries and safe fallback metadata when tool-enabled generations stay empty.
 - **Chart list pagination** in API and web chart library UI.
 - **Profile workflow upgrades** including city/state coordinate auto-fill and in-profile password changes.
 - **Profile report privacy controls** to toggle birth date/time and birth location visibility in generated reports.
@@ -41,6 +44,7 @@
 
 ## 🧪 Test Coverage
 - Automated PHPUnit suite available (`composer test`) covering configuration and session helpers; domain logic lacks dedicated tests.
+- Added integration tests for health endpoint behavior consistency and conversation-service empty-iteration fallback handling.
 - Manual verification still required for chart math, transit accuracy, and PDF exports.
 
 ## 🚀 Next Immediate Focus

@@ -120,6 +120,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Conversation Service Safety Guard**
+  - Added `app/Services/ConversationService.php` with bounded tool-enabled generation retries (default 5 iterations).
+  - Added non-throw fallback behavior when tool-enabled rounds remain empty, returning structured fallback metadata instead of a hard failure.
+  - Added optional strict mode to preserve legacy throw behavior (`Tool-enabled generation remained empty after N iterations.`) when needed.
 - **Profile Report Privacy Settings**
   - Added user-level profile checkboxes to control whether birth date/time and birth location are shown in generated PDF reports.
   - Added migration `010_add_report_birth_privacy_to_users.php` introducing `show_birth_date_in_reports` and `show_birth_location_in_reports` (default enabled).
@@ -127,8 +131,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Integration Test Coverage (Reports + Admin Redis)**
   - Added `tests/Integration/ReportGenerateApiTest.php` to lock `/api/reports/generate.php` response contract to a canonical envelope (`success`, `data`, `meta`) without duplicated top-level report fields.
   - Added `tests/Integration/AdminRedisDashboardApiTest.php` to verify admin Redis dashboard action (`get_redis_dashboard`) auth/CSRF flow and payload structure.
+- **Health API Regression Tests**
+  - Added `tests/Integration/HealthApiTest.php` covering both direct `/api/health.php` and routed `/api/health` behavior.
+- **Conversation Service Regression Tests**
+  - Added `tests/Integration/ConversationServiceTest.php` covering success, tool-call continuation, fallback path, and strict-mode exception path.
 
 ### Changed
+- **Health Endpoint Semantics**
+  - Updated `/api/health.php` to treat missing Swiss Ephemeris CLI (`swetest`) as a warning instead of a fatal error because runtime analytical fallback exists.
+  - Added richer health payload fields (`db.status`, `swetest.status`, `warnings`) and support for both SQLite and MySQL connectivity checks.
+  - Routed `/api/health` through the same health script for consistent response shape and status code semantics.
 - **Report Generation Response Contract**
   - Updated `/api/reports/generate.php` to return the canonical `ApiResponse::sendSuccess()` envelope without duplicating report fields at the top level.
   - Updated reports page JSON parsing to normalize envelope-style responses while preserving existing UI behavior.

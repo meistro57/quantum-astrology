@@ -21,7 +21,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         .relationships-container {
             max-width: 1400px;
@@ -446,8 +446,15 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             </div>
             
             <div id="loading-state" class="loading-state">
-                <div class="loading-spinner"></div>
-                <p>Calculating astrological compatibility...</p>
+                <div class="ai-loader">
+                    <div class="ai-loader-orb" aria-hidden="true">
+                        <div class="ai-loader-ring outer"></div>
+                        <div class="ai-loader-ring inner"></div>
+                        <div class="ai-loader-core"></div>
+                        <div class="ai-loader-dot"></div>
+                    </div>
+                    <div class="ai-loader-text">Calculating astrological compatibility...</div>
+                </div>
             </div>
             
             <div id="results-content" class="results-content" style="display: none;">
@@ -462,16 +469,23 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         let selectedChart1 = null;
         let selectedChart2 = null;
         
-        // Chart selection handlers
-        document.getElementById('chart1-select').addEventListener('change', function() {
-            selectedChart1 = this.value ? parseInt(this.value) : null;
-            updateAnalysisButtons();
-        });
+        // Chart selection handlers (selectors are not rendered when fewer than two charts exist)
+        const chart1Select = document.getElementById('chart1-select');
+        const chart2Select = document.getElementById('chart2-select');
+
+        if (chart1Select) {
+            chart1Select.addEventListener('change', function() {
+                selectedChart1 = this.value ? parseInt(this.value, 10) : null;
+                updateAnalysisButtons();
+            });
+        }
         
-        document.getElementById('chart2-select').addEventListener('change', function() {
-            selectedChart2 = this.value ? parseInt(this.value) : null;
-            updateAnalysisButtons();
-        });
+        if (chart2Select) {
+            chart2Select.addEventListener('change', function() {
+                selectedChart2 = this.value ? parseInt(this.value, 10) : null;
+                updateAnalysisButtons();
+            });
+        }
         
         function updateAnalysisButtons() {
             const hasValidSelection = selectedChart1 && selectedChart2 && selectedChart1 !== selectedChart2;
@@ -569,6 +583,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         }
         
         function showLoading(analysisType) {
+            hideError();
             document.getElementById('analysis-results').style.display = 'block';
             document.getElementById('analysis-title').textContent = analysisType;
             document.getElementById('loading-state').style.display = 'block';
@@ -778,12 +793,37 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         
         function showError(message) {
             const results = document.getElementById('analysis-results');
+            const loadingState = document.getElementById('loading-state');
+            const resultsContent = document.getElementById('results-content');
+            const compatibilityScore = document.getElementById('compatibility-score');
+            let errorMessage = document.getElementById('analysis-error');
+
             results.style.display = 'block';
-            results.innerHTML = `<div class="error-message">${message}</div>`;
+            if (loadingState) {
+                loadingState.style.display = 'none';
+            }
+            if (resultsContent) {
+                resultsContent.style.display = 'none';
+            }
+            if (compatibilityScore) {
+                compatibilityScore.style.display = 'none';
+            }
+
+            if (!errorMessage) {
+                errorMessage = document.createElement('div');
+                errorMessage.id = 'analysis-error';
+                errorMessage.className = 'error-message';
+                results.prepend(errorMessage);
+            }
+
+            errorMessage.textContent = message;
         }
         
         function hideError() {
-            // Clear any existing error messages
+            const errorMessage = document.getElementById('analysis-error');
+            if (errorMessage) {
+                errorMessage.remove();
+            }
         }
         
         function getStrengthClass(strength) {
