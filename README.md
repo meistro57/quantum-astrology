@@ -110,6 +110,12 @@ bash startup.sh
 bash shutdown.sh
 ```
 
+After `php tools/migrate.php`, the default seeded admin login is:
+
+- Username: `admin`
+- Email: `admin@local.test`
+- Password: `password`
+
 ### Production Docker Setup (Explicit)
 
 Use this checklist for a production-safe deployment:
