@@ -228,7 +228,7 @@ $showAdminLink = AdminGate::canAccess($user);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         body {
             background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);

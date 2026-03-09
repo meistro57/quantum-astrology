@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace QuantumAstrology\Core;
 
 use PDO;
+use QuantumAstrology\Database\Connection;
 
 /**
  * API Rate Limiter with usage tracking and analytics
@@ -49,6 +50,14 @@ class RateLimiter
         $this->logRequest($userId, $endpoint, $count < $limit);
 
         return $count < $limit;
+    }
+
+    /**
+     * Record an API request without enforcing rate-limit blocking.
+     */
+    public function recordRequest(int $userId, string $endpoint, bool $allowed = true): void
+    {
+        $this->logRequest($userId, $endpoint, $allowed);
     }
 
     /**
@@ -145,6 +154,29 @@ class RateLimiter
     private function updateAnalytics(int $userId, string $endpoint, bool $allowed): void
     {
         $today = date('Y-m-d');
+        $allowedValue = $allowed ? 1 : 0;
+        $blockedValue = $allowed ? 0 : 1;
+
+        if (Connection::isMySql()) {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO api_usage_analytics
+                (user_id, endpoint, date, total_requests, allowed_requests, blocked_requests)
+                VALUES (:user_id, :endpoint, :date, 1, :allowed, :blocked)
+                ON DUPLICATE KEY UPDATE
+                    total_requests = total_requests + 1,
+                    allowed_requests = allowed_requests + VALUES(allowed_requests),
+                    blocked_requests = blocked_requests + VALUES(blocked_requests)
+            ");
+
+            $stmt->execute([
+                ':user_id' => $userId,
+                ':endpoint' => $endpoint,
+                ':date' => $today,
+                ':allowed' => $allowedValue,
+                ':blocked' => $blockedValue
+            ]);
+            return;
+        }
 
         $stmt = $this->pdo->prepare("
             INSERT INTO api_usage_analytics
@@ -152,16 +184,16 @@ class RateLimiter
             VALUES (:user_id, :endpoint, :date, 1, :allowed, :blocked)
             ON CONFLICT(user_id, endpoint, date) DO UPDATE SET
                 total_requests = total_requests + 1,
-                allowed_requests = allowed_requests + :allowed,
-                blocked_requests = blocked_requests + :blocked
+                allowed_requests = allowed_requests + excluded.allowed_requests,
+                blocked_requests = blocked_requests + excluded.blocked_requests
         ");
 
         $stmt->execute([
             ':user_id' => $userId,
             ':endpoint' => $endpoint,
             ':date' => $today,
-            ':allowed' => $allowed ? 1 : 0,
-            ':blocked' => $allowed ? 0 : 1
+            ':allowed' => $allowedValue,
+            ':blocked' => $blockedValue
         ]);
     }
 
@@ -198,6 +230,8 @@ class RateLimiter
      */
     public function getTopEndpoints(int $userId, int $limit = 10): array
     {
+        $startDate = date('Y-m-d', strtotime('-30 days'));
+
         $stmt = $this->pdo->prepare("
             SELECT
                 endpoint,
@@ -206,13 +240,14 @@ class RateLimiter
                 SUM(blocked_requests) as blocked_requests
             FROM api_usage_analytics
             WHERE user_id = :user_id
-            AND date >= date('now', '-30 days')
+            AND date >= :start_date
             GROUP BY endpoint
             ORDER BY total_requests DESC
             LIMIT :limit
         ");
 
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':start_date', $startDate, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -224,6 +259,8 @@ class RateLimiter
      */
     public function getUsageSummary(int $userId): array
     {
+        $startDate = date('Y-m-d', strtotime('-30 days'));
+
         $stmt = $this->pdo->prepare("
             SELECT
                 SUM(total_requests) as total_requests,
@@ -233,10 +270,13 @@ class RateLimiter
                 COUNT(DISTINCT date) as active_days
             FROM api_usage_analytics
             WHERE user_id = :user_id
-            AND date >= date('now', '-30 days')
+            AND date >= :start_date
         ");
 
-        $stmt->execute([':user_id' => $userId]);
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':start_date' => $startDate
+        ]);
 
         $summary = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -290,7 +330,37 @@ class RateLimiter
      */
     private function ensureTablesExist(): void
     {
-        // Rate limit log table
+        if (Connection::isMySql()) {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS api_rate_limit_log (
+                    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    user_id BIGINT UNSIGNED NOT NULL,
+                    endpoint VARCHAR(255) NOT NULL,
+                    timestamp INT UNSIGNED NOT NULL,
+                    allowed TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_rate_limit_user_endpoint (user_id, endpoint, timestamp)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS api_usage_analytics (
+                    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    user_id BIGINT UNSIGNED NOT NULL,
+                    endpoint VARCHAR(255) NOT NULL,
+                    date DATE NOT NULL,
+                    total_requests INT UNSIGNED DEFAULT 0,
+                    allowed_requests INT UNSIGNED DEFAULT 0,
+                    blocked_requests INT UNSIGNED DEFAULT 0,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_user_endpoint_date (user_id, endpoint, date),
+                    INDEX idx_analytics_user_date (user_id, date)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            return;
+        }
+
+        // SQLite
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS api_rate_limit_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -307,7 +377,6 @@ class RateLimiter
             ON api_rate_limit_log(user_id, endpoint, timestamp)
         ");
 
-        // Analytics aggregation table
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS api_usage_analytics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

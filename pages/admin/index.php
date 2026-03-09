@@ -24,7 +24,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         .admin-wrap { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .admin-title { font-size: 2.2rem; margin: 0 0 0.35rem; background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }

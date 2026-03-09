@@ -18,8 +18,49 @@ $showAdminLink = AdminGate::canAccess($user);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
+        .portal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            background: rgba(10, 13, 20, 0.65);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .portal-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--quantum-text);
+        }
+        .portal-brand-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--quantum-purple), var(--quantum-blue));
+        }
+        .portal-nav {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+        }
+        .portal-nav a {
+            color: var(--quantum-text);
+            opacity: 0.85;
+            text-decoration: none;
+            margin-left: 0;
+        }
+        .portal-nav a:hover {
+            opacity: 1;
+        }
+        .portal-nav a.active {
+            border-bottom: 2px solid var(--quantum-blue);
+            padding-bottom: 4px;
+        }
+
         .analytics-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -182,6 +223,18 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         @media (max-width: 768px) {
+            .portal-header {
+                padding: 12px 14px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .portal-nav a {
+                margin-left: 0;
+            }
+            .portal-brand > span:last-child {
+                display: none;
+            }
             .stats-grid {
                 grid-template-columns: 1fr;
             }
@@ -216,8 +269,15 @@ $showAdminLink = AdminGate::canAccess($user);
         </div>
 
         <div id="loading" class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>Loading analytics data...</p>
+            <div class="ai-loader">
+                <div class="ai-loader-orb" aria-hidden="true">
+                    <div class="ai-loader-ring outer"></div>
+                    <div class="ai-loader-ring inner"></div>
+                    <div class="ai-loader-core"></div>
+                    <div class="ai-loader-dot"></div>
+                </div>
+                <div class="ai-loader-text">Loading analytics data...</div>
+            </div>
         </div>
 
         <div id="analytics-content" style="display: none;">

@@ -76,49 +76,44 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quantum Astrology — Portal</title>
 <meta name="csrf-token" content="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
+<link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
 <style>
   :root{
-    --bg:#0b0e14; --panel:#121725; --panel2:#161b2b; --accent1:#7b5cff; --accent2:#5cc8ff;
-    --text:#e6e8ef; --muted:#98a0b3; --border:#232a40; --success:#2ecc71; --danger:#ff5c73; --warn:#f5c542;
+    --bg:#0a0e13; --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.04);
+    --accent1:var(--quantum-primary); --accent2:var(--quantum-purple);
+    --text:var(--quantum-text); --muted:rgba(255,255,255,.7); --border:rgba(255,255,255,.1);
+    --success:#2ecc71; --danger:#ff5c73; --warn:#f5c542;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:radial-gradient(1200px 800px at 30% -10%,#0f1530 0%,#0b0e14 60%), #0b0e14;
+  body{margin:0;background:linear-gradient(135deg,var(--quantum-darker) 0%, var(--quantum-dark) 100%);
        color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
-  header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);background:rgba(10,13,20,.65);backdrop-filter:blur(6px);position:sticky;top:0;z-index:10}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
-  .brand .dot{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2))}
-  nav a{color:var(--text);opacity:.85;text-decoration:none;margin-left:16px}
-  nav a:hover{opacity:1}
-  .active{border-bottom:2px solid var(--accent2);padding-bottom:4px}
-  .container{max-width:1200px;margin:24px auto;padding:0 20px}
-  h1{font-size:42px;letter-spacing:.3px;margin:10px 0 6px}
-  .subtitle{color:var(--muted);max-width:900px;line-height:1.5;margin-bottom:22px}
+  .container{max-width:1400px;margin:0 auto;padding:2rem}
+  .page-header{text-align:center;margin-bottom:3rem}
+  h1{font-size:2.5rem;letter-spacing:.2px;margin:0 0 .5rem;background:linear-gradient(135deg,var(--quantum-primary),var(--quantum-gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .subtitle{color:var(--muted);max-width:900px;line-height:1.5;margin:0 auto}
   .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:14px 0 26px}
-  .stat{background:linear-gradient(180deg,var(--panel),#0f1424);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .stat{background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:14px}
   .stat b{display:block;font-size:28px;margin-top:2px}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  .card{background:linear-gradient(180deg,var(--panel),#0f1424);border:1px solid var(--border);border-radius:16px;padding:18px;min-height:150px}
+  .card{background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:18px;min-height:150px}
   .card h3{margin:0 0 6px}
   .card p{color:var(--muted);margin:4px 0 14px}
-  .btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;color:#0b0e14;background:linear-gradient(135deg,var(--accent1),var(--accent2));font-weight:600}
-  .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--border)}
+  .btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;color:#fff;background:linear-gradient(135deg,var(--accent1),var(--accent2));font-weight:600}
+  .btn.secondary{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
   .row{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:22px}
   ul.list{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:12px;max-height:62vh;overflow:auto;background:var(--panel2)}
   ul.list li{padding:11px 12px;border-bottom:1px solid var(--border);cursor:pointer}
-  ul.list li:hover{background:#0f1424}
-  ul.list li.active{background:linear-gradient(90deg,rgba(123,92,255,.18),rgba(92,200,255,.18));}
+  ul.list li:hover{background:rgba(255,255,255,.06)}
+  ul.list li.active{background:linear-gradient(90deg,rgba(74,144,226,.18),rgba(139,92,246,.18));}
   .muted{color:var(--muted)}
-  .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#0f1424}
+  .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--panel2)}
   .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
   .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}
   .pill.danger{border-color:#6e2231;background:rgba(255,92,115,.1);color:#ffb3bf}
   .note{background:#241d0b;border:1px solid #3a2f0a;color:#ffd166;padding:10px 12px;border-radius:10px;margin-bottom:14px}
   footer{margin:40px 0 20px;color:var(--muted);text-align:center}
   @media (max-width:980px){
-    header{padding:12px 14px;flex-direction:column;align-items:flex-start;gap:10px}
-    nav{display:flex;flex-wrap:wrap;gap:8px 12px}
-    nav a{margin-left:0}
-    .brand span{display:none}
+    .container{padding:1rem}
     .grid{grid-template-columns:1fr}
     .row{grid-template-columns:1fr}
     .stats{grid-template-columns:1fr 1fr;row-gap:10px}
@@ -127,21 +122,13 @@ try {
 </head>
 <body>
 
-<header>
-  <div class="brand"><div class="dot"></div> Quantum Astrology <span style="opacity:.6;font-weight:500;margin-left:8px">· Quantum Minds United</span></div>
-  <nav>
-    <a class="active" href="/">Portal</a>
-    <a href="/charts">Charts</a>
-    <a href="/reports">Reports</a>
-    <?php if ($isAdminUser): ?><a href="/admin">Admin</a><?php endif; ?>
-    <a href="/profile">Profile</a>
-    <a href="/logout">Logout</a>
-  </nav>
-</header>
+<?php $showAdminLink = $isAdminUser; $activeNav = 'portal'; require __DIR__ . '/pages/_partials/portal_header.php'; ?>
 
 <div class="container">
-  <h1>Enter the Portal</h1>
-  <div class="subtitle">Your command deck of cosmic awakening. Welcome, <b><?= htmlspecialchars($uname, ENT_QUOTES) ?></b>. One map to your astrological multiverse: charts, transits, calculations, and insights.</div>
+  <div class="page-header">
+    <h1>Enter the Portal</h1>
+    <div class="subtitle">Your command deck of cosmic awakening. Welcome, <b><?= htmlspecialchars($uname, ENT_QUOTES) ?></b>. One map to your astrological multiverse: charts, transits, calculations, and insights.</div>
+  </div>
 
   <?php if (!empty($schemaWarning)): ?>
     <div class="note"><?= htmlspecialchars($schemaWarning, ENT_QUOTES) ?></div>

@@ -532,7 +532,7 @@ class AIInterpreter
             . "Chart facts: Sun {$sun}, Moon {$moon}, Rising {$rising}, dominant element {$dominantElement}, dominant mode {$dominantMode}.\n"
             . ($lifePurpose !== '' ? "Life purpose signal: {$lifePurpose}\n" : '')
             . $styleInstruction . "\n"
-            . "Requirements: non-generic, no bullet lists, no markdown headers.";
+            . "Requirements: non-generic, grounded in concrete placements/aspects/houses, no bullet lists, no markdown headers.";
     }
 
     /**
@@ -544,6 +544,10 @@ class AIInterpreter
         if ($focus !== '') {
             $prompt .= "\n\nAdditional user focus: " . $focus;
         }
+
+        // Always include concrete chart context so the model has enough signal.
+        $prompt .= "\n\nChart context (use these specifics; avoid generic output):\n"
+            . $this->buildRawChartContext();
 
         if ($this->apiEndpoint === 'mock' || $this->provider === 'mock') {
             if (!$this->allowMockResponses) {
@@ -567,6 +571,237 @@ class AIInterpreter
             ]);
             return null;
         }
+    }
+
+    /**
+     * Build compact but concrete context from raw chart data.
+     */
+    private function buildRawChartContext(): string
+    {
+        $lines = [];
+
+        $chartName = trim((string)($this->chart->getName() ?? ''));
+        if ($chartName !== '') {
+            $lines[] = 'Chart: ' . $chartName;
+        }
+
+        $birth = $this->chart->getBirthDatetime();
+        if ($birth instanceof \DateTimeInterface) {
+            $lines[] = 'Birth datetime: ' . $birth->format('Y-m-d H:i');
+        }
+
+        $timezone = trim((string)($this->chart->getBirthTimezone() ?? ''));
+        if ($timezone !== '') {
+            $lines[] = 'Birth timezone: ' . $timezone;
+        }
+
+        $location = trim((string)($this->chart->getBirthLocationName() ?? ''));
+        if ($location !== '') {
+            $lines[] = 'Birth location: ' . $location;
+        }
+
+        $cusps = $this->extractHouseCusps($this->chart->getHousePositions());
+        if (isset($cusps[1])) {
+            $lines[] = 'Ascendant: ' . $this->longitudeToSignDeg($cusps[1]);
+        }
+        if (isset($cusps[10])) {
+            $lines[] = 'Midheaven: ' . $this->longitudeToSignDeg($cusps[10]);
+        }
+        if ($cusps !== []) {
+            $houseBits = [];
+            for ($i = 1; $i <= 12; $i++) {
+                if (isset($cusps[$i])) {
+                    $houseBits[] = 'H' . $i . '=' . $this->longitudeToSignDeg($cusps[$i]);
+                }
+            }
+            if ($houseBits !== []) {
+                $lines[] = 'House cusps: ' . implode('; ', $houseBits);
+            }
+        }
+
+        $planets = $this->normalizePlanets($this->chart->getPlanetaryPositions());
+        if ($planets !== []) {
+            $planetBits = [];
+            foreach ($planets as $planet => $lon) {
+                $house = $this->findHouseForLongitude($lon, $cusps);
+                $planetBits[] = ucfirst($planet) . ' ' . $this->longitudeToSignDeg($lon) . ' H' . $house;
+            }
+            $lines[] = 'Planet placements: ' . implode('; ', $planetBits);
+        }
+
+        $aspects = $this->normalizeAspects($this->chart->getAspects());
+        if ($aspects !== []) {
+            usort($aspects, static function (array $a, array $b): int {
+                return $a['orb'] <=> $b['orb'];
+            });
+            $top = array_slice($aspects, 0, 14);
+            $aspectBits = [];
+            foreach ($top as $aspect) {
+                $aspectBits[] = ucfirst($aspect['planet1']) . ' ' . ucfirst($aspect['aspect']) . ' ' . ucfirst($aspect['planet2']) . ' (orb ' . number_format($aspect['orb'], 2) . ')';
+            }
+            if ($aspectBits !== []) {
+                $lines[] = 'Key aspects: ' . implode('; ', $aspectBits);
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param mixed $houseRaw
+     * @return array<int,float>
+     */
+    private function extractHouseCusps(mixed $houseRaw): array
+    {
+        if (!is_array($houseRaw)) {
+            return [];
+        }
+
+        $cusps = [];
+        if (isset($houseRaw['cusps']) && is_array($houseRaw['cusps'])) {
+            foreach ($houseRaw['cusps'] as $house => $cusp) {
+                if (is_numeric($house) && is_numeric($cusp)) {
+                    $cusps[(int)$house] = (float)$cusp;
+                }
+            }
+            ksort($cusps);
+            return $cusps;
+        }
+
+        foreach ($houseRaw as $house => $row) {
+            if (!is_numeric($house)) {
+                continue;
+            }
+            if (is_array($row) && isset($row['cusp']) && is_numeric($row['cusp'])) {
+                $cusps[(int)$house] = (float)$row['cusp'];
+            } elseif (is_numeric($row)) {
+                $cusps[(int)$house] = (float)$row;
+            }
+        }
+
+        ksort($cusps);
+        return $cusps;
+    }
+
+    /**
+     * @param mixed $planetRaw
+     * @return array<string,float>
+     */
+    private function normalizePlanets(mixed $planetRaw): array
+    {
+        if (!is_array($planetRaw)) {
+            return [];
+        }
+
+        $planets = [];
+        foreach ($planetRaw as $key => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $name = is_string($key) && !is_numeric($key)
+                ? strtolower(trim($key))
+                : strtolower(trim((string)($row['planet'] ?? $row['name'] ?? '')));
+            $lon = $row['longitude'] ?? $row['lon'] ?? null;
+            if ($name === '' || !is_numeric($lon)) {
+                continue;
+            }
+            $planets[$name] = $this->normalizeLongitude((float)$lon);
+        }
+
+        $order = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'north_node', 'south_node', 'chiron'];
+        uksort($planets, static function (string $a, string $b) use ($order): int {
+            $ia = array_search($a, $order, true);
+            $ib = array_search($b, $order, true);
+            $ia = $ia === false ? 999 : $ia;
+            $ib = $ib === false ? 999 : $ib;
+            return $ia <=> $ib;
+        });
+
+        return $planets;
+    }
+
+    /**
+     * @param mixed $aspectRaw
+     * @return array<int,array{planet1:string,planet2:string,aspect:string,orb:float}>
+     */
+    private function normalizeAspects(mixed $aspectRaw): array
+    {
+        if (!is_array($aspectRaw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($aspectRaw as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $p1 = strtolower(trim((string)($row['planet1'] ?? '')));
+            $p2 = strtolower(trim((string)($row['planet2'] ?? '')));
+            $type = strtolower(trim((string)($row['aspect'] ?? $row['type'] ?? '')));
+            if ($p1 === '' || $p2 === '' || $type === '') {
+                continue;
+            }
+            $orbRaw = $row['orb'] ?? $row['difference'] ?? null;
+            $orb = is_numeric($orbRaw) ? abs((float)$orbRaw) : 99.0;
+            $out[] = [
+                'planet1' => $p1,
+                'planet2' => $p2,
+                'aspect' => $type,
+                'orb' => $orb,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function findHouseForLongitude(float $longitude, array $cusps): int
+    {
+        if ($cusps === []) {
+            return 1;
+        }
+
+        $value = $this->normalizeLongitude($longitude);
+        for ($house = 1; $house <= 12; $house++) {
+            if (!isset($cusps[$house])) {
+                continue;
+            }
+            $next = $house === 12 ? 1 : $house + 1;
+            $start = $this->normalizeLongitude($cusps[$house]);
+            $end = isset($cusps[$next]) ? $this->normalizeLongitude($cusps[$next]) : $this->normalizeLongitude($start + 30.0);
+
+            $test = $value;
+            if ($end < $start) {
+                $end += 360.0;
+                if ($test < $start) {
+                    $test += 360.0;
+                }
+            }
+
+            if ($test >= $start && $test < $end) {
+                return $house;
+            }
+        }
+
+        return 1;
+    }
+
+    private function normalizeLongitude(float $value): float
+    {
+        $normalized = fmod($value, 360.0);
+        if ($normalized < 0) {
+            $normalized += 360.0;
+        }
+        return $normalized;
+    }
+
+    private function longitudeToSignDeg(float $longitude): string
+    {
+        $value = $this->normalizeLongitude($longitude);
+        $signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+        $signIndex = (int) floor($value / 30.0);
+        $sign = $signs[$signIndex] ?? 'Aries';
+        $deg = $value - ($signIndex * 30.0);
+        return number_format($deg, 2) . '° ' . $sign;
     }
 
     /**

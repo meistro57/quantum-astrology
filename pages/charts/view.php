@@ -85,7 +85,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         .chart-viewer {
             max-width: 1600px;
@@ -675,7 +675,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <div id="transits-tab" class="tab-content active">
                 <h3 class="info-card-title">Current Transits</h3>
                 <div id="transit-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-                    Loading current transits...
+                    <div class="ai-loader">
+                        <div class="ai-loader-orb" aria-hidden="true">
+                            <div class="ai-loader-ring outer"></div>
+                            <div class="ai-loader-ring inner"></div>
+                            <div class="ai-loader-core"></div>
+                            <div class="ai-loader-dot"></div>
+                        </div>
+                        <div class="ai-loader-text">Loading current transits...</div>
+                    </div>
                 </div>
                 <div id="transit-content" style="display: none;"></div>
                 <div style="text-align: center; margin-top: 1rem;">
@@ -688,7 +696,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <div id="progressions-tab" class="tab-content">
                 <h3 class="info-card-title">Secondary Progressions</h3>
                 <div id="progression-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-                    Loading progressions...
+                    <div class="ai-loader">
+                        <div class="ai-loader-orb" aria-hidden="true">
+                            <div class="ai-loader-ring outer"></div>
+                            <div class="ai-loader-ring inner"></div>
+                            <div class="ai-loader-core"></div>
+                            <div class="ai-loader-dot"></div>
+                        </div>
+                        <div class="ai-loader-text">Loading progressions...</div>
+                    </div>
                 </div>
                 <div id="progression-content" style="display: none;"></div>
                 <div style="text-align: center; margin-top: 1rem;">
@@ -701,7 +717,15 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <div id="solar-returns-tab" class="tab-content">
                 <h3 class="info-card-title">Solar Returns</h3>
                 <div id="solar-return-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-                    Loading solar returns...
+                    <div class="ai-loader">
+                        <div class="ai-loader-orb" aria-hidden="true">
+                            <div class="ai-loader-ring outer"></div>
+                            <div class="ai-loader-ring inner"></div>
+                            <div class="ai-loader-core"></div>
+                            <div class="ai-loader-dot"></div>
+                        </div>
+                        <div class="ai-loader-text">Loading solar returns...</div>
+                    </div>
                 </div>
                 <div id="solar-return-content" style="display: none;"></div>
                 <div style="text-align: center; margin-top: 1rem;">

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../classes/autoload.php';
+require_once __DIR__ . '/../../config.php';
 
 use QuantumAstrology\Core\Auth;
 use QuantumAstrology\Core\RateLimiter;
@@ -17,6 +17,8 @@ try {
 
     $action = $_GET['action'] ?? 'summary';
     $rateLimiter = new RateLimiter();
+    $requestPath = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/api/analytics/usage.php', PHP_URL_PATH) ?? '/api/analytics/usage.php');
+    $rateLimiter->recordRequest($userId, $requestPath, true);
 
     $response = match ($action) {
         'summary' => [

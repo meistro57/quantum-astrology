@@ -92,6 +92,11 @@ class Application
                 $this->servePage('forecasting/index.php');
                 exit;
 
+            case $path === '/analytics':
+            case $path === '/analytics/':
+                $this->servePage('analytics/index.php');
+                exit;
+
             case str_starts_with($path, '/charts/'):
                 $this->servePage('charts/index.php');
                 exit;
@@ -153,6 +158,8 @@ class Application
 
     private function handleApiRequest(string $path, string $method): void
     {
+        $this->trackApiUsage($path);
+
         // Check for chart wheel SVG requests
         if (preg_match('/^\/api\/charts\/(\d+)\/wheel$/', $path, $matches)) {
             $this->serveChartWheel((int) $matches[1]);
@@ -261,6 +268,21 @@ class Application
             return;
         }
 
+        // Legacy API passthrough for file-based endpoints like /api/analytics/usage.php
+        if (str_starts_with($path, '/api/') && str_ends_with($path, '.php')) {
+            $apiRoot = realpath(__DIR__ . '/../../api');
+            $candidate = realpath(__DIR__ . '/../../' . ltrim($path, '/'));
+            if (
+                $apiRoot !== false &&
+                $candidate !== false &&
+                str_starts_with($candidate, $apiRoot . DIRECTORY_SEPARATOR) &&
+                is_file($candidate)
+            ) {
+                require $candidate;
+                return;
+            }
+        }
+
         // Basic API routing - expand as needed
         switch ($path) {
             case '/api/health':
@@ -273,6 +295,24 @@ class Application
 
             default:
                 $this->sendJson(['error' => 'API endpoint not found'], 404);
+        }
+    }
+
+    /**
+     * Record API usage for authenticated users without enforcing limits.
+     */
+    private function trackApiUsage(string $path): void
+    {
+        try {
+            $currentUser = \QuantumAstrology\Core\Auth::user();
+            if (!$currentUser) {
+                return;
+            }
+
+            $limiter = new \QuantumAstrology\Core\RateLimiter();
+            $limiter->recordRequest((int) $currentUser->getId(), $path, true);
+        } catch (\Throwable $e) {
+            // Usage tracking must never break API responses.
         }
     }
 

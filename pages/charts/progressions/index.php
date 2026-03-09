@@ -22,7 +22,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         .progressions-container {
             max-width: 1400px;
@@ -391,8 +391,15 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         </div>
 
         <div id="loading" class="loading-state" style="display: none;">
-            <div class="loading-spinner"></div>
-            <p>Calculating your progressed chart...</p>
+            <div class="ai-loader">
+                <div class="ai-loader-orb" aria-hidden="true">
+                    <div class="ai-loader-ring outer"></div>
+                    <div class="ai-loader-ring inner"></div>
+                    <div class="ai-loader-core"></div>
+                    <div class="ai-loader-dot"></div>
+                </div>
+                <div class="ai-loader-text">Calculating your progressed chart...</div>
+            </div>
         </div>
 
         <div id="error" class="error-message" style="display: none;"></div>

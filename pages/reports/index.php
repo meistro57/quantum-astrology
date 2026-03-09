@@ -22,7 +22,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
-    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css">
+    <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         html {
             background-color: #0a0e13;
@@ -270,6 +270,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             padding: 2rem;
             margin-top: 2rem;
             display: none;
+            position: relative;
         }
 
         .preview-title {
@@ -277,6 +278,48 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             font-weight: 600;
             color: var(--quantum-gold);
             margin-bottom: 1rem;
+            padding-right: 2.25rem;
+        }
+        .preview-tools {
+            position: absolute;
+            top: 0.9rem;
+            right: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .copy-report-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .copy-report-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .copy-report-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .copy-report-btn svg {
+            width: 14px;
+            height: 14px;
+            display: block;
+            fill: currentColor;
+        }
+        .copy-report-btn.copied {
+            color: #86efac;
+            border-color: rgba(134, 239, 172, 0.65);
+            background: rgba(22, 163, 74, 0.2);
         }
         .ai-preview-body {
             background: rgba(255, 255, 255, 0.04);
@@ -528,8 +571,15 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         </div>
 
         <div id="loading" class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>Generating your professional report...</p>
+            <div class="ai-loader">
+                <div class="ai-loader-orb" aria-hidden="true">
+                    <div class="ai-loader-ring outer"></div>
+                    <div class="ai-loader-ring inner"></div>
+                    <div class="ai-loader-core"></div>
+                    <div class="ai-loader-dot"></div>
+                </div>
+                <div class="ai-loader-text">Generating your professional report...</div>
+            </div>
         </div>
 
         <div id="pdf-preview" class="pdf-preview">
@@ -538,6 +588,13 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         </div>
 
         <div id="ai-preview" class="pdf-preview">
+            <div class="preview-tools">
+                <button type="button" id="copy-ai-report-btn" class="copy-report-btn" title="Copy report text" aria-label="Copy report text" style="display:none;">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 1H5c-1.1 0-2 .9-2 2v13h2V3h11V1zm3 4H9c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 17H9V7h10v15z"></path>
+                    </svg>
+                </button>
+            </div>
             <h2 class="preview-title">AI Summary Preview</h2>
             <div id="ai-preview-body" class="ai-preview-body"></div>
         </div>
@@ -562,6 +619,13 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                 </table>
             </div>
             <div id="history-inline-preview" class="pdf-preview" style="display:none; margin-top:1rem;">
+                <div class="preview-tools">
+                    <button type="button" id="copy-history-report-btn" class="copy-report-btn" title="Copy report text" aria-label="Copy report text" style="display:none;">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M16 1H5c-1.1 0-2 .9-2 2v13h2V3h11V1zm3 4H9c-1.1 0-2 .9-2 2v15c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 17H9V7h10v15z"></path>
+                        </svg>
+                    </button>
+                </div>
                 <h2 class="preview-title">Saved Report View</h2>
                 <div id="history-inline-title" style="margin-bottom:0.8rem;color:rgba(255,255,255,0.75);font-size:0.9rem;font-weight:600;"></div>
                 <div id="history-inline-markdown" class="ai-preview-body" style="display:none;"></div>
@@ -585,6 +649,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         let currentAiMasterDownloadUrl = null;
         let currentAiMasterMarkdown = null;
         let currentAiMasterFilename = null;
+        let currentAiPreviewCopyText = '';
+        let currentHistoryPreviewCopyText = '';
 
         const chartSelect = document.getElementById('chart-select');
         const generateBtn = document.getElementById('generate-btn');
@@ -612,6 +678,52 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         const historyInlineTitle = document.getElementById('history-inline-title');
         const historyInlineMarkdown = document.getElementById('history-inline-markdown');
         const historyInlineFrame = document.getElementById('history-inline-frame');
+        const copyAiReportBtn = document.getElementById('copy-ai-report-btn');
+        const copyHistoryReportBtn = document.getElementById('copy-history-report-btn');
+
+        function setCopyButtonState(button, enabled) {
+            if (!(button instanceof HTMLButtonElement)) return;
+            button.style.display = enabled ? 'inline-flex' : 'none';
+            button.disabled = !enabled;
+            button.classList.remove('copied');
+            button.title = enabled ? 'Copy report text' : 'No copyable report text';
+        }
+
+        function pulseCopiedState(button) {
+            if (!(button instanceof HTMLButtonElement)) return;
+            button.classList.add('copied');
+            button.title = 'Copied';
+            window.setTimeout(() => {
+                button.classList.remove('copied');
+                button.title = 'Copy report text';
+            }, 1300);
+        }
+
+        async function copyTextToClipboard(text) {
+            const value = String(text || '');
+            if (!value.trim()) {
+                throw new Error('No report text available to copy.');
+            }
+
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                await navigator.clipboard.writeText(value);
+                return;
+            }
+
+            const fallback = document.createElement('textarea');
+            fallback.value = value;
+            fallback.setAttribute('readonly', 'readonly');
+            fallback.style.position = 'fixed';
+            fallback.style.opacity = '0';
+            fallback.style.pointerEvents = 'none';
+            document.body.appendChild(fallback);
+            fallback.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(fallback);
+            if (!ok) {
+                throw new Error('Clipboard copy failed.');
+            }
+        }
 
         // Chart selection
         chartSelect?.addEventListener('change', function() {
@@ -644,6 +756,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             pdfPreview.style.display = 'none';
             aiPreview.style.display = 'none';
             downloadBtn.style.display = 'none';
+            currentAiPreviewCopyText = '';
+            setCopyButtonState(copyAiReportBtn, false);
 
             try {
                 const response = await fetch('/api/reports/generate.php', {
@@ -698,6 +812,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             downloadAiSummaryBtn.style.display = 'none';
             currentAiSummaryMarkdown = null;
             currentAiSummaryFilename = null;
+            currentAiPreviewCopyText = '';
+            setCopyButtonState(copyAiReportBtn, false);
 
             try {
                 const response = await fetch('/api/reports/ai_summary.php', {
@@ -722,6 +838,9 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                 currentAiSummaryFilename = typeof data.filename === 'string' && data.filename.trim() !== ''
                     ? data.filename
                     : null;
+                currentAiPreviewCopyText = currentAiSummaryMarkdown
+                    || String(aiPreviewBody.textContent || '').trim();
+                setCopyButtonState(copyAiReportBtn, Boolean(currentAiPreviewCopyText));
                 if (currentAiSummaryDownloadUrl) {
                     downloadAiSummaryBtn.style.display = 'inline-block';
                     downloadAiSummaryBtn.disabled = false;
@@ -751,6 +870,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             currentAiHoroscopeDownloadUrl = null;
             currentAiHoroscopeMarkdown = null;
             currentAiHoroscopeFilename = null;
+            currentAiPreviewCopyText = '';
+            setCopyButtonState(copyAiReportBtn, false);
 
             try {
                 const response = await fetch('/api/reports/horoscope.php', {
@@ -778,6 +899,9 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                 currentAiHoroscopeFilename = typeof data.filename === 'string' && data.filename.trim() !== ''
                     ? data.filename
                     : null;
+                currentAiPreviewCopyText = currentAiHoroscopeMarkdown
+                    || String(aiPreviewBody.textContent || '').trim();
+                setCopyButtonState(copyAiReportBtn, Boolean(currentAiPreviewCopyText));
                 if (currentAiHoroscopeDownloadUrl) {
                     downloadAiHoroscopeBtn.style.display = 'inline-block';
                     downloadAiHoroscopeBtn.disabled = false;
@@ -844,6 +968,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             currentAiMasterMarkdown = null;
             currentAiMasterFilename = null;
             currentAiMasterDownloadUrl = null;
+            currentAiPreviewCopyText = '';
+            setCopyButtonState(copyAiReportBtn, false);
 
             try {
                 const response = await fetch('/api/reports/ai_master_document.php', {
@@ -867,6 +993,9 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                 currentAiMasterFilename = typeof data.filename === 'string' && data.filename.trim() !== ''
                     ? data.filename
                     : null;
+                currentAiPreviewCopyText = currentAiMasterMarkdown
+                    || String(aiPreviewBody.textContent || '').trim();
+                setCopyButtonState(copyAiReportBtn, Boolean(currentAiPreviewCopyText));
                 if (currentAiMasterDownloadUrl) {
                     downloadAiMasterBtn.style.display = 'inline-block';
                     downloadAiMasterBtn.disabled = false;
@@ -1071,6 +1200,26 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             return html;
         }
 
+        copyAiReportBtn?.addEventListener('click', async () => {
+            try {
+                await copyTextToClipboard(currentAiPreviewCopyText);
+                pulseCopiedState(copyAiReportBtn);
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Failed to copy report text.';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        copyHistoryReportBtn?.addEventListener('click', async () => {
+            try {
+                await copyTextToClipboard(currentHistoryPreviewCopyText);
+                pulseCopiedState(copyHistoryReportBtn);
+            } catch (error) {
+                historyStatus.textContent = error.message || 'Failed to copy report text.';
+                historyStatus.className = 'history-error';
+            }
+        });
+
         async function viewHistoryItem(id) {
             const item = historyItemsById.get(Number(id));
             if (!item) {
@@ -1096,6 +1245,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                     }
                     const markdown = await response.text();
                     const html = renderSimpleMarkdown(markdown);
+                    currentHistoryPreviewCopyText = markdown;
+                    setCopyButtonState(copyHistoryReportBtn, Boolean(markdown.trim()));
                     if (historyInlineMarkdown) {
                         historyInlineMarkdown.innerHTML = html || '<p>No content.</p>';
                         historyInlineMarkdown.style.display = 'block';
@@ -1116,6 +1267,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                     historyInlineMarkdown.style.display = 'none';
                     historyInlineMarkdown.innerHTML = '';
                 }
+                currentHistoryPreviewCopyText = '';
+                setCopyButtonState(copyHistoryReportBtn, false);
                 if (historyInlineFrame) {
                     historyInlineFrame.src = viewUrl;
                     historyInlineFrame.style.display = 'block';
