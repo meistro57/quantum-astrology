@@ -110,52 +110,52 @@ bash startup.sh
 bash shutdown.sh
 ```
 
-### Production HTTPS
+### Production Docker Setup (Explicit)
 
-Production Docker mode now runs behind an HTTPS reverse proxy (`nginx`) by default.
+Use this checklist for a production-safe deployment:
 
-- `startup.sh` checks `docker/certs/${TLS_CERT_FILE}` and `docker/certs/${TLS_KEY_FILE}`.
-- `TLS_MODE=self-signed` auto-generates a certificate if files are missing.
-- `TLS_MODE=real` requires your existing CA-issued cert/key files.
-- Port `80` redirects to `443`.
+1. Copy and edit environment settings:
+   ```bash
+   cp .env.example .env
+   ```
+2. Set secure production values in `.env` (minimum):
+   ```env
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://your-domain.example
+   SERVER_NAME=your-domain.example
+   DB_DRIVER=mysql
+   DB_HOST=db
+   DB_PORT=3306
+   DB_NAME=quantum_astrology
+   DB_USER=quantum_app
+   DB_PASS=replace_with_strong_password
+   MYSQL_ROOT_PASSWORD=replace_with_strong_root_password
+   HTTP_PORT=80
+   HTTPS_PORT=443
+   TLS_MODE=real
+   TLS_CERT_FILE=server.crt
+   TLS_KEY_FILE=server.key
+   ```
+3. Provide TLS material:
+   - `TLS_MODE=self-signed`: `startup.sh` auto-generates cert/key in `docker/certs/`.
+   - `TLS_MODE=real`: place cert/key files at `docker/certs/${TLS_CERT_FILE}` and `docker/certs/${TLS_KEY_FILE}`.
+4. Start the stack:
+   ```bash
+   bash startup.sh
+   ```
+5. Verify containers and app health:
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   curl -k https://your-domain.example/api/health.php
+   ```
+6. Stop services when needed:
+   ```bash
+   bash shutdown.sh
+   ```
 
-Recommended `.env` production values:
-
-```env
-APP_ENV=production
-APP_DEBUG=false
-APP_NAME=Quantum Astrology
-APP_URL=https://your-domain.example
-SERVER_NAME=your-domain.example
-HTTP_PORT=80
-HTTPS_PORT=443
-TLS_CERT_FILE=server.crt
-TLS_KEY_FILE=server.key
-TLS_MODE=real
-```
-
-Option A (Self-signed, quick start):
-
-```env
-TLS_MODE=self-signed
-SERVER_NAME=localhost
-```
-
-Option B (Trusted public cert):
-
-```env
-TLS_MODE=real
-SERVER_NAME=your-domain.example
-TLS_CERT_FILE=server.crt
-TLS_KEY_FILE=server.key
-```
-
-Then place cert files in `docker/certs/`:
-
-```bash
-docker/certs/server.crt
-docker/certs/server.key
-```
+`startup.sh` enforces TLS mode checks and the Nginx proxy redirects HTTP (`80`) to HTTPS (`443`).
+For full details and troubleshooting, see [`docs/production-docker.md`](docs/production-docker.md).
 
 ### Pre-Push Documentation Guard
 
@@ -174,8 +174,8 @@ If you need a one-off bypass:
 SKIP_DOCS_CHECK=1 git push
 ```
 
-Production note: `docker-compose.prod.yml` is included and uses default MySQL credentials for first boot.
-Set at least `DB_PASS` and `MYSQL_ROOT_PASSWORD` in your `.env` before exposing the stack publicly.
+Production note: `docker-compose.prod.yml` includes default credentials for first boot only.
+Always rotate `DB_PASS` and `MYSQL_ROOT_PASSWORD` before exposing the stack publicly.
 
 ### Admin Panel Access
 

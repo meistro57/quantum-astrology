@@ -3,6 +3,8 @@
 !/storage/cache/.gitkeep
 /storage/logs/*
 !/storage/logs/.gitkeep
+/storage/reports/*
+!/storage/reports/.gitkeep
 /storage/*.sqlite
 .env
 composer.lock

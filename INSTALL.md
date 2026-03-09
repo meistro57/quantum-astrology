@@ -102,6 +102,8 @@ Stop production containers with:
 bash shutdown.sh
 ```
 
+For a complete step-by-step production deployment checklist (TLS modes, verification, and security hardening), see `docs/production-docker.md`.
+
 ### 5. (Optional) Use an Existing MySQL/MariaDB Server
 
 If you already run MySQL on the host and want Quantum Astrology to live alongside other databases without bundling a new server:
