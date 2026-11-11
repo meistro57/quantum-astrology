@@ -158,7 +158,7 @@ class Application
 
     private function handleApiRequest(string $path, string $method): void
     {
-        $this->trackApiUsage($path);
+        $this->enforceApiRateLimit($path);
 
         // Check for chart wheel SVG requests
         if (preg_match('/^\/api\/charts\/(\d+)\/wheel$/', $path, $matches)) {
@@ -299,21 +299,14 @@ class Application
     }
 
     /**
-     * Record API usage for authenticated users without enforcing limits.
+     * Enforce API rate limits before dispatching a request.
+     *
+     * Non-routed endpoints enforce from config.php, so this call is a no-op
+     * when the request was already checked.
      */
-    private function trackApiUsage(string $path): void
+    private function enforceApiRateLimit(string $path): void
     {
-        try {
-            $currentUser = \QuantumAstrology\Core\Auth::user();
-            if (!$currentUser) {
-                return;
-            }
-
-            $limiter = new \QuantumAstrology\Core\RateLimiter();
-            $limiter->recordRequest((int) $currentUser->getId(), $path, true);
-        } catch (\Throwable $e) {
-            // Usage tracking must never break API responses.
-        }
+        \QuantumAstrology\Core\Middleware::enforceApiRequest($path);
     }
 
     private function serveChartWheel(int $chartId): void
@@ -1156,6 +1149,8 @@ class Application
                 'get_redis_dashboard' => $this->adminGetRedisDashboard(),
                 'get_ai_summary_config' => $this->adminGetAiSummaryConfig(),
                 'set_ai_summary_config' => $this->adminSetAiSummaryConfig($input),
+                'get_rate_limit_config' => $this->adminGetRateLimitConfig(),
+                'set_rate_limit_config' => $this->adminSetRateLimitConfig($input),
                 'create_user' => $this->adminCreateUser($input),
                 'reset_user_password' => $this->adminResetUserPassword($input),
                 'set_user_admin' => $this->adminSetUserAdmin($input),
@@ -2059,6 +2054,56 @@ class Application
             'focus_template' => (string) ($cfg['focus_template'] ?? ''),
             'updated_at' => $cfg['updated_at'] ?? null,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminGetRateLimitConfig(): array
+    {
+        $limiter = new \QuantumAstrology\Core\RateLimiter();
+
+        return [
+            'limits' => $limiter->getLimitConfig(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function adminSetRateLimitConfig(array $input): array
+    {
+        $free = $this->positiveIntInput($input, 'free_per_hour', 'Free tier limit', 1000000);
+        $pro = $this->positiveIntInput($input, 'pro_per_hour', 'Pro tier limit', 1000000);
+        $enterprise = $this->positiveIntInput($input, 'enterprise_per_hour', 'Enterprise tier limit', 1000000);
+        $ai = $this->positiveIntInput($input, 'ai_per_hour', 'AI limit', 1000000);
+        $window = $this->positiveIntInput($input, 'window_seconds', 'Window', 604800);
+
+        if ($pro < $free || $enterprise < $pro) {
+            throw new \RuntimeException('Tier limits must increase from free to pro to enterprise.');
+        }
+
+        \QuantumAstrology\Core\SystemSettings::setRateLimitConfig($free, $pro, $enterprise, $ai, $window);
+        $limiter = new \QuantumAstrology\Core\RateLimiter();
+
+        return [
+            'message' => 'Rate limit settings saved.',
+            'limits' => $limiter->getLimitConfig(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     */
+    private function positiveIntInput(array $input, string $key, string $label, int $max): int
+    {
+        $value = filter_var($input[$key] ?? null, FILTER_VALIDATE_INT);
+        if ($value === false || $value < 1 || $value > $max) {
+            throw new \RuntimeException($label . ' must be a whole number between 1 and ' . $max . '.');
+        }
+
+        return (int) $value;
     }
 
     /**

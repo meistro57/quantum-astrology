@@ -71,6 +71,20 @@ The database user should have the following privileges on the target schema: `SE
 
 In addition to environment variables, PHP session cookies inherit secure defaults (`HttpOnly`, optional `Secure`, `SameSite=Lax`) and are refreshed on activity. Ensure the application is served via HTTPS to take full advantage of these protections.
 
+## API Rate Limits
+
+Rate limits are enforced per authenticated user, or per IP address for anonymous API clients. Admin requests use the enterprise tier. `/api/health` is exempt so uptime monitors are never locked out.
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `RATE_LIMIT_FREE_PER_HOUR` | No | `100` | Requests per endpoint per window for the free tier. |
+| `RATE_LIMIT_PRO_PER_HOUR` | No | `1000` | Requests per endpoint per window for the pro tier. |
+| `RATE_LIMIT_ENTERPRISE_PER_HOUR` | No | `10000` | Requests per endpoint per window for the enterprise tier (used for admins). |
+| `RATE_LIMIT_AI_PER_HOUR` | No | `20` | Stricter ceiling applied to AI endpoints, in addition to the tier limit. |
+| `RATE_LIMIT_WINDOW_SECONDS` | No | `3600` | Sliding window length in seconds. |
+
+Values saved from `/admin` (API Rate Limits card) take precedence over these environment variables. Over-limit requests receive `429` with `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `X-RateLimit-Window` headers.
+
 ## Example `.env`
 
 ```dotenv
@@ -108,6 +122,13 @@ AI_CACHE_TTL=21600
 # Sessions
 SESSION_LIFETIME=2592000
 SESSION_COOKIE_LIFETIME=2592000
+
+# API rate limits
+RATE_LIMIT_FREE_PER_HOUR=100
+RATE_LIMIT_PRO_PER_HOUR=1000
+RATE_LIMIT_ENTERPRISE_PER_HOUR=10000
+RATE_LIMIT_AI_PER_HOUR=20
+RATE_LIMIT_WINDOW_SECONDS=3600
 
 # Optional admin allowlist
 ADMIN_EMAILS="admin@example.com,ops@example.com"

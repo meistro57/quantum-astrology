@@ -132,6 +132,48 @@ final class SystemSettings
         }
     }
 
+    /**
+     * @param array{free_per_hour:int,pro_per_hour:int,enterprise_per_hour:int,ai_per_hour:int,window_seconds:int} $defaults
+     * @return array{free_per_hour:int,pro_per_hour:int,enterprise_per_hour:int,ai_per_hour:int,window_seconds:int}
+     */
+    public static function getRateLimitConfig(array $defaults): array
+    {
+        self::ensureTable();
+        $pdo = DB::conn();
+
+        $stmt = $pdo->query("SELECT setting_key, setting_value FROM " . self::TABLE . " WHERE setting_key LIKE 'rate_limit_%'");
+        $stored = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $row) {
+            $stored[(string) ($row['setting_key'] ?? '')] = (string) ($row['setting_value'] ?? '');
+        }
+
+        $config = $defaults;
+        foreach (['free_per_hour', 'pro_per_hour', 'enterprise_per_hour', 'ai_per_hour', 'window_seconds'] as $key) {
+            $value = $stored['rate_limit_' . $key] ?? null;
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $parsed = filter_var($value, FILTER_VALIDATE_INT);
+            if ($parsed !== false && $parsed >= 1) {
+                $config[$key] = (int) $parsed;
+            }
+        }
+
+        return $config;
+    }
+
+    public static function setRateLimitConfig(int $free, int $pro, int $enterprise, int $ai, int $windowSeconds): void
+    {
+        self::ensureTable();
+
+        self::set('rate_limit_free_per_hour', (string) $free);
+        self::set('rate_limit_pro_per_hour', (string) $pro);
+        self::set('rate_limit_enterprise_per_hour', (string) $enterprise);
+        self::set('rate_limit_ai_per_hour', (string) $ai);
+        self::set('rate_limit_window_seconds', (string) $windowSeconds);
+    }
+
     private static function getUpdatedAt(string $key): ?string
     {
         self::ensureTable();

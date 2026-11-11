@@ -4,130 +4,301 @@ declare(strict_types=1);
 namespace QuantumAstrology\Core;
 
 use PDO;
-use QuantumAstrology\Database\Connection;
+use QuantumAstrology\Support\ApiResponse;
 
 /**
- * API Rate Limiter with usage tracking and analytics
+ * API rate limiter with usage tracking and analytics.
+ *
+ * Limits are resolved in this order: constructor overrides, admin settings
+ * (system_settings), environment variables, then built-in defaults.
  */
 class RateLimiter
 {
     private PDO $pdo;
     private int $defaultLimit;
     private int $windowSeconds;
+    private int $aiLimit;
+
+    /** @var array<string,int> */
+    private array $tierLimits;
 
     // Rate limit tiers
     public const TIER_FREE = 'free';
     public const TIER_PRO = 'pro';
     public const TIER_ENTERPRISE = 'enterprise';
 
-    private const TIER_LIMITS = [
-        self::TIER_FREE => 100,        // 100 requests per hour
-        self::TIER_PRO => 1000,        // 1000 requests per hour
-        self::TIER_ENTERPRISE => 10000 // 10000 requests per hour
+    private const DEFAULT_LIMITS = [
+        'free_per_hour' => 100,
+        'pro_per_hour' => 1000,
+        'enterprise_per_hour' => 10000,
+        'ai_per_hour' => 20,
+        'window_seconds' => 3600,
     ];
 
-    public function __construct(?PDO $pdo = null, int $defaultLimit = 100, int $windowSeconds = 3600)
-    {
+    public function __construct(
+        ?PDO $pdo = null,
+        ?int $defaultLimit = null,
+        ?int $windowSeconds = null,
+        ?int $aiLimit = null
+    ) {
+        $config = self::resolveConfig($pdo === null);
+
         $this->pdo = $pdo ?? DB::conn();
-        $this->defaultLimit = $defaultLimit;
-        $this->windowSeconds = $windowSeconds;
+        $this->windowSeconds = max(1, $windowSeconds ?? (int) $config['window_seconds']);
+        $this->aiLimit = max(1, $aiLimit ?? (int) $config['ai_per_hour']);
+
+        $free = max(1, $defaultLimit ?? (int) $config['free_per_hour']);
+        $this->defaultLimit = $free;
+        $this->tierLimits = [
+            self::TIER_FREE => $free,
+            self::TIER_PRO => max($free, (int) $config['pro_per_hour']),
+            self::TIER_ENTERPRISE => max($free, (int) $config['enterprise_per_hour']),
+        ];
 
         $this->ensureTablesExist();
     }
 
     /**
-     * Check if request is allowed under rate limit
+     * @return array{free_per_hour:int,pro_per_hour:int,enterprise_per_hour:int,ai_per_hour:int,window_seconds:int}
+     */
+    public static function defaults(): array
+    {
+        return [
+            'free_per_hour' => self::envInt('RATE_LIMIT_FREE_PER_HOUR', self::DEFAULT_LIMITS['free_per_hour']),
+            'pro_per_hour' => self::envInt('RATE_LIMIT_PRO_PER_HOUR', self::DEFAULT_LIMITS['pro_per_hour']),
+            'enterprise_per_hour' => self::envInt('RATE_LIMIT_ENTERPRISE_PER_HOUR', self::DEFAULT_LIMITS['enterprise_per_hour']),
+            'ai_per_hour' => self::envInt('RATE_LIMIT_AI_PER_HOUR', self::DEFAULT_LIMITS['ai_per_hour']),
+            'window_seconds' => self::envInt('RATE_LIMIT_WINDOW_SECONDS', self::DEFAULT_LIMITS['window_seconds']),
+        ];
+    }
+
+    /**
+     * @return array{free_per_hour:int,pro_per_hour:int,enterprise_per_hour:int,ai_per_hour:int,window_seconds:int}
+     */
+    public static function resolveConfig(bool $includeStored = true): array
+    {
+        $config = self::defaults();
+
+        if ($includeStored && class_exists(SystemSettings::class)) {
+            try {
+                $config = SystemSettings::getRateLimitConfig($config);
+            } catch (\Throwable) {
+                // Fall back to environment/defaults when settings cannot be read.
+            }
+        }
+
+        return $config;
+    }
+
+    /**
+     * @return array{free_per_hour:int,pro_per_hour:int,enterprise_per_hour:int,ai_per_hour:int,window_seconds:int}
+     */
+    public function getLimitConfig(): array
+    {
+        return [
+            'free_per_hour' => $this->tierLimits[self::TIER_FREE] ?? $this->defaultLimit,
+            'pro_per_hour' => $this->tierLimits[self::TIER_PRO] ?? $this->defaultLimit,
+            'enterprise_per_hour' => $this->tierLimits[self::TIER_ENTERPRISE] ?? $this->defaultLimit,
+            'ai_per_hour' => $this->aiLimit,
+            'window_seconds' => $this->windowSeconds,
+        ];
+    }
+
+    /**
+     * Evaluate a request against the applicable limit without recording it.
+     *
+     * @return array{
+     *   allowed:bool,
+     *   limit:int,
+     *   used:int,
+     *   remaining:int,
+     *   reset_in:int,
+     *   window_seconds:int,
+     *   endpoint:string,
+     *   tier:string,
+     *   is_ai:bool
+     * }
+     */
+    public function evaluate(int $userId, string $endpoint, ?string $tier = null): array
+    {
+        $endpoint = $this->normalizeEndpoint($endpoint);
+        $tier = $tier ?? self::TIER_FREE;
+        $limit = $this->limitFor($endpoint, $tier);
+
+        $stats = $this->windowStats($userId, $endpoint);
+        $used = $stats['count'];
+        $allowed = $used < $limit;
+
+        $resetIn = $stats['first'] === null
+            ? $this->windowSeconds
+            : max(0, $stats['first'] + $this->windowSeconds - time());
+
+        return [
+            'allowed' => $allowed,
+            'limit' => $limit,
+            'used' => $used,
+            'remaining' => max(0, $limit - $used - ($allowed ? 1 : 0)),
+            'reset_in' => $resetIn,
+            'window_seconds' => $this->windowSeconds,
+            'endpoint' => $endpoint,
+            'tier' => $tier,
+            'is_ai' => $this->isAiEndpoint($endpoint),
+        ];
+    }
+
+    /**
+     * Check if request is allowed under rate limit.
+     *
+     * The evaluated request is recorded either way so analytics reflects
+     * blocked attempts.
      */
     public function isAllowed(int $userId, string $endpoint, ?string $tier = null): bool
     {
-        $tier = $tier ?? self::TIER_FREE;
-        $limit = self::TIER_LIMITS[$tier] ?? $this->defaultLimit;
+        $decision = $this->evaluate($userId, $endpoint, $tier);
+        $this->recordRequest($userId, $decision['endpoint'], $decision['allowed']);
 
-        // Get current request count in the time window
-        $count = $this->getRequestCount($userId, $endpoint);
-
-        // Log the request
-        $this->logRequest($userId, $endpoint, $count < $limit);
-
-        return $count < $limit;
+        return $decision['allowed'];
     }
 
     /**
-     * Record an API request without enforcing rate-limit blocking.
+     * Record an API request.
      */
     public function recordRequest(int $userId, string $endpoint, bool $allowed = true): void
     {
-        $this->logRequest($userId, $endpoint, $allowed);
+        $this->logRequest($userId, $this->normalizeEndpoint($endpoint), $allowed);
+    }
+
+    public function getWindowSeconds(): int
+    {
+        return $this->windowSeconds;
     }
 
     /**
-     * Get current request count for user/endpoint in time window
+     * Resolve the effective limit for an endpoint and tier.
+     */
+    public function limitFor(string $endpoint, ?string $tier = null): int
+    {
+        $tier = $tier ?? self::TIER_FREE;
+        $tierLimit = $this->tierLimits[$tier] ?? $this->defaultLimit;
+
+        if ($this->isAiEndpoint($this->normalizeEndpoint($endpoint))) {
+            return min($tierLimit, $this->aiLimit);
+        }
+
+        return $tierLimit;
+    }
+
+    /**
+     * Normalize an endpoint so path identifiers share one bucket.
+     *
+     * Example: /api/charts/42/interpretation/ai -> /api/charts/{id}/interpretation/ai
+     */
+    public function normalizeEndpoint(string $endpoint): string
+    {
+        $path = parse_url($endpoint, PHP_URL_PATH);
+        $path = is_string($path) && $path !== '' ? $path : $endpoint;
+
+        $normalized = preg_replace('#/\d+(?=/|$)#', '/{id}', $path);
+        if (!is_string($normalized) || $normalized === '') {
+            return '/';
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * AI endpoints are more expensive, so they get a stricter limit.
+     */
+    public function isAiEndpoint(string $endpoint): bool
+    {
+        $path = $this->normalizeEndpoint($endpoint);
+
+        if (preg_match('#/api/reports/(ai_summary|ai_master_document|horoscope)(?:\.php)?$#', $path) === 1) {
+            return true;
+        }
+
+        return str_contains($path, '/interpretation/ai');
+    }
+
+    /**
+     * Stable synthetic identifier for unauthenticated clients.
+     *
+     * Values live in the 2^30..2^31 range so they never collide with
+     * auto-increment user ids while still fitting every supported column type.
+     */
+    public static function anonymousKey(string $ipAddress): int
+    {
+        $hash = crc32('qa-anon:' . $ipAddress) & 0x7FFFFFFF;
+
+        return 0x40000000 + ($hash % 0x40000000);
+    }
+
+    /**
+     * Get current request count for user/endpoint in the time window.
      */
     public function getRequestCount(int $userId, string $endpoint): int
     {
-        $windowStart = time() - $this->windowSeconds;
+        $stats = $this->windowStats($userId, $this->normalizeEndpoint($endpoint));
 
-        $stmt = $this->pdo->prepare("
-            SELECT COUNT(*)
-            FROM api_rate_limit_log
-            WHERE user_id = :user_id
-            AND endpoint = :endpoint
-            AND timestamp >= :window_start
-        ");
-
-        $stmt->execute([
-            ':user_id' => $userId,
-            ':endpoint' => $endpoint,
-            ':window_start' => $windowStart
-        ]);
-
-        return (int) $stmt->fetchColumn();
+        return $stats['count'];
     }
 
     /**
-     * Get remaining requests in current window
+     * Get remaining requests in current window.
      */
     public function getRemainingRequests(int $userId, string $endpoint, ?string $tier = null): int
     {
-        $tier = $tier ?? self::TIER_FREE;
-        $limit = self::TIER_LIMITS[$tier] ?? $this->defaultLimit;
-        $count = $this->getRequestCount($userId, $endpoint);
+        $endpoint = $this->normalizeEndpoint($endpoint);
+        $limit = $this->limitFor($endpoint, $tier);
 
-        return max(0, $limit - $count);
+        return max(0, $limit - $this->getRequestCount($userId, $endpoint));
     }
 
     /**
-     * Get time until window resets (in seconds)
+     * Get time until window resets (in seconds).
      */
     public function getResetTime(int $userId, string $endpoint): int
     {
+        $stats = $this->windowStats($userId, $this->normalizeEndpoint($endpoint));
+
+        if ($stats['first'] === null) {
+            return $this->windowSeconds;
+        }
+
+        return max(0, $stats['first'] + $this->windowSeconds - time());
+    }
+
+    /**
+     * @return array{count:int,first:?int}
+     */
+    private function windowStats(int $userId, string $endpoint): array
+    {
+        $windowStart = time() - $this->windowSeconds;
+
         $stmt = $this->pdo->prepare("
-            SELECT MIN(timestamp)
+            SELECT COUNT(*) AS total, MIN(timestamp) AS first_ts
             FROM api_rate_limit_log
             WHERE user_id = :user_id
             AND endpoint = :endpoint
             AND timestamp >= :window_start
         ");
 
-        $windowStart = time() - $this->windowSeconds;
         $stmt->execute([
             ':user_id' => $userId,
             ':endpoint' => $endpoint,
-            ':window_start' => $windowStart
+            ':window_start' => $windowStart,
         ]);
 
-        $firstRequestTime = $stmt->fetchColumn();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-        if (!$firstRequestTime) {
-            return $this->windowSeconds;
-        }
-
-        $resetTime = (int)$firstRequestTime + $this->windowSeconds;
-        return max(0, $resetTime - time());
+        return [
+            'count' => (int) ($row['total'] ?? 0),
+            'first' => isset($row['first_ts']) && $row['first_ts'] !== null ? (int) $row['first_ts'] : null,
+        ];
     }
 
     /**
-     * Log API request for analytics
+     * Log API request for analytics.
      */
     private function logRequest(int $userId, string $endpoint, bool $allowed): void
     {
@@ -141,15 +312,14 @@ class RateLimiter
             ':user_id' => $userId,
             ':endpoint' => $endpoint,
             ':timestamp' => time(),
-            ':allowed' => $allowed ? 1 : 0
+            ':allowed' => $allowed ? 1 : 0,
         ]);
 
-        // Update usage analytics
         $this->updateAnalytics($userId, $endpoint, $allowed);
     }
 
     /**
-     * Update usage analytics aggregates
+     * Update usage analytics aggregates.
      */
     private function updateAnalytics(int $userId, string $endpoint, bool $allowed): void
     {
@@ -157,7 +327,7 @@ class RateLimiter
         $allowedValue = $allowed ? 1 : 0;
         $blockedValue = $allowed ? 0 : 1;
 
-        if (Connection::isMySql()) {
+        if ($this->isMySql()) {
             $stmt = $this->pdo->prepare("
                 INSERT INTO api_usage_analytics
                 (user_id, endpoint, date, total_requests, allowed_requests, blocked_requests)
@@ -173,7 +343,7 @@ class RateLimiter
                 ':endpoint' => $endpoint,
                 ':date' => $today,
                 ':allowed' => $allowedValue,
-                ':blocked' => $blockedValue
+                ':blocked' => $blockedValue,
             ]);
             return;
         }
@@ -193,12 +363,12 @@ class RateLimiter
             ':endpoint' => $endpoint,
             ':date' => $today,
             ':allowed' => $allowedValue,
-            ':blocked' => $blockedValue
+            ':blocked' => $blockedValue,
         ]);
     }
 
     /**
-     * Get usage analytics for user
+     * Get usage analytics for user.
      */
     public function getAnalytics(int $userId, int $days = 30): array
     {
@@ -219,14 +389,14 @@ class RateLimiter
 
         $stmt->execute([
             ':user_id' => $userId,
-            ':start_date' => $startDate
+            ':start_date' => $startDate,
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Get top endpoints by usage
+     * Get top endpoints by usage.
      */
     public function getTopEndpoints(int $userId, int $limit = 10): array
     {
@@ -255,7 +425,7 @@ class RateLimiter
     }
 
     /**
-     * Get usage summary for user
+     * Get usage summary for user.
      */
     public function getUsageSummary(int $userId): array
     {
@@ -275,10 +445,10 @@ class RateLimiter
 
         $stmt->execute([
             ':user_id' => $userId,
-            ':start_date' => $startDate
+            ':start_date' => $startDate,
         ]);
 
-        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
         // Add current window stats
         $summary['current_hour_requests'] = $this->getCurrentHourRequests($userId);
@@ -287,7 +457,7 @@ class RateLimiter
     }
 
     /**
-     * Get request count for current hour
+     * Get request count for current hour.
      */
     private function getCurrentHourRequests(int $userId): int
     {
@@ -302,14 +472,14 @@ class RateLimiter
 
         $stmt->execute([
             ':user_id' => $userId,
-            ':hour_start' => $hourStart
+            ':hour_start' => $hourStart,
         ]);
 
         return (int) $stmt->fetchColumn();
     }
 
     /**
-     * Clean old log entries (older than 7 days)
+     * Clean old log entries (older than 7 days).
      */
     public function cleanOldLogs(): int
     {
@@ -326,11 +496,82 @@ class RateLimiter
     }
 
     /**
-     * Ensure database tables exist
+     * Build the rate limit headers for a decision.
+     *
+     * @param array{limit:int,remaining:int,reset_in:int,window_seconds:int} $decision
+     * @return array<string,string>
+     */
+    public function buildRateLimitHeaders(array $decision): array
+    {
+        return [
+            'X-RateLimit-Limit' => (string) (int) $decision['limit'],
+            'X-RateLimit-Remaining' => (string) max(0, (int) $decision['remaining']),
+            'X-RateLimit-Reset' => (string) (time() + max(0, (int) $decision['reset_in'])),
+            'X-RateLimit-Window' => (string) (int) $decision['window_seconds'],
+        ];
+    }
+
+    /**
+     * @param array{limit:int,remaining:int,reset_in:int,window_seconds:int} $decision
+     */
+    public function emitRateLimitHeaders(array $decision): void
+    {
+        foreach ($this->buildRateLimitHeaders($decision) as $name => $value) {
+            header($name . ': ' . $value);
+        }
+    }
+
+    /**
+     * Set HTTP headers for rate limit info.
+     */
+    public function setRateLimitHeaders(int $userId, string $endpoint, ?string $tier = null): void
+    {
+        $this->emitRateLimitHeaders($this->evaluate($userId, $endpoint, $tier));
+    }
+
+    /**
+     * Send rate limit exceeded response.
+     *
+     * @param array{limit:int,used:int,remaining:int,reset_in:int,window_seconds:int,endpoint:string}|null $decision
+     */
+    public function sendRateLimitExceededResponse(
+        int $userId,
+        string $endpoint,
+        ?string $tier = null,
+        ?array $decision = null
+    ): void {
+        $decision = $decision ?? $this->evaluate($userId, $endpoint, $tier);
+        $retryAfter = max(1, (int) $decision['reset_in']);
+
+        $this->emitRateLimitHeaders($decision);
+        header('Retry-After: ' . $retryAfter);
+
+        ApiResponse::sendError(
+            'Rate limit exceeded. Please try again later.',
+            'RATE_LIMITED',
+            429,
+            [
+                'limit' => (int) $decision['limit'],
+                'used' => (int) $decision['used'],
+                'window_seconds' => (int) $decision['window_seconds'],
+                'retry_after' => $retryAfter,
+                'endpoint' => (string) $decision['endpoint'],
+            ],
+            ['retry_after' => $retryAfter]
+        );
+    }
+
+    private function isMySql(): bool
+    {
+        return strtolower((string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME)) === 'mysql';
+    }
+
+    /**
+     * Ensure database tables exist.
      */
     private function ensureTablesExist(): void
     {
-        if (Connection::isMySql()) {
+        if ($this->isMySql()) {
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS api_rate_limit_log (
                     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -397,38 +638,18 @@ class RateLimiter
         ");
     }
 
-    /**
-     * Set HTTP headers for rate limit info
-     */
-    public function setRateLimitHeaders(int $userId, string $endpoint, ?string $tier = null): void
+    private static function envInt(string $key, int $default): int
     {
-        $tier = $tier ?? self::TIER_FREE;
-        $limit = self::TIER_LIMITS[$tier] ?? $this->defaultLimit;
-        $remaining = $this->getRemainingRequests($userId, $endpoint, $tier);
-        $reset = time() + $this->getResetTime($userId, $endpoint);
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        if ($value === false || $value === null || $value === '') {
+            return $default;
+        }
 
-        header("X-RateLimit-Limit: $limit");
-        header("X-RateLimit-Remaining: $remaining");
-        header("X-RateLimit-Reset: $reset");
-        header("X-RateLimit-Window: {$this->windowSeconds}");
-    }
+        $parsed = filter_var($value, FILTER_VALIDATE_INT);
+        if ($parsed === false || $parsed < 1) {
+            return $default;
+        }
 
-    /**
-     * Send rate limit exceeded response
-     */
-    public function sendRateLimitExceededResponse(int $userId, string $endpoint, ?string $tier = null): void
-    {
-        $resetTime = $this->getResetTime($userId, $endpoint);
-
-        http_response_code(429);
-        header('Content-Type: application/json');
-        $this->setRateLimitHeaders($userId, $endpoint, $tier);
-
-        echo json_encode([
-            'error' => 'Rate limit exceeded',
-            'message' => 'Too many requests. Please try again later.',
-            'retry_after' => $resetTime,
-            'reset_time' => date('Y-m-d H:i:s', time() + $resetTime)
-        ]);
+        return (int) $parsed;
     }
 }

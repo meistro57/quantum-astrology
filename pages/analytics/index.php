@@ -309,7 +309,7 @@ $showAdminLink = AdminGate::canAccess($user);
                 <div class="stat-card">
                     <div class="stat-label">Current Hour Usage</div>
                     <div class="stat-value" id="current-hour">--</div>
-                    <div class="stat-subtext">Limit: <span id="hour-limit">100</span>/hour</div>
+                    <div class="stat-subtext">Limit: <span id="hour-limit">100</span> per window</div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="hour-progress" style="width: 0%"></div>
                     </div>
@@ -348,7 +348,7 @@ $showAdminLink = AdminGate::canAccess($user);
                     throw new Error(data.error || 'Failed to load analytics');
                 }
 
-                displaySummary(data.summary);
+                displaySummary(data.summary, data.limits || {});
                 displayTopEndpoints(data.top_endpoints);
 
                 document.getElementById('loading').style.display = 'none';
@@ -362,7 +362,7 @@ $showAdminLink = AdminGate::canAccess($user);
             }
         }
 
-        function displaySummary(summary) {
+        function displaySummary(summary, limits) {
             const total = parseInt(summary.total_requests) || 0;
             const allowed = parseInt(summary.allowed_requests) || 0;
             const blocked = parseInt(summary.blocked_requests) || 0;
@@ -379,7 +379,8 @@ $showAdminLink = AdminGate::canAccess($user);
 
             document.getElementById('current-hour').textContent = currentHour;
 
-            const hourLimit = 100; // TODO: Get from user tier
+            const hourLimit = parseInt(limits.requests_per_window) || 100;
+            document.getElementById('hour-limit').textContent = String(hourLimit);
             const hourProgress = Math.min((currentHour / hourLimit) * 100, 100);
             document.getElementById('hour-progress').style.width = hourProgress + '%';
         }

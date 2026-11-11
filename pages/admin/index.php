@@ -221,6 +221,24 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
         </div>
 
         <div class="card">
+            <h3 class="section-title">API Rate Limits</h3>
+            <div class="form-grid">
+                <input id="rate-limit-free" class="input" type="number" min="1" placeholder="Free tier requests per window">
+                <input id="rate-limit-pro" class="input" type="number" min="1" placeholder="Pro tier requests per window">
+                <input id="rate-limit-enterprise" class="input" type="number" min="1" placeholder="Enterprise tier requests per window">
+                <input id="rate-limit-ai" class="input" type="number" min="1" placeholder="AI requests per window">
+                <input id="rate-limit-window" class="input" type="number" min="1" placeholder="Window (seconds)">
+            </div>
+            <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.6rem 0 0;">
+                Requests per window per endpoint. AI endpoints use the lower of the tier limit and the AI limit.
+            </p>
+            <div class="actions" style="margin-top:0.8rem;">
+                <button class="btn btn-primary" id="save-rate-limit-config">Save Rate Limits</button>
+                <span id="rate-limit-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+            </div>
+        </div>
+
+        <div class="card">
             <h3 class="section-title">Create User</h3>
             <div class="form-grid">
                 <input id="new-username" class="input" placeholder="Username">
@@ -561,6 +579,17 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 : 'Using defaults';
         }
 
+        async function loadRateLimitConfig() {
+            const data = await postAdminAction('get_rate_limit_config');
+            const limits = data.limits || {};
+            document.getElementById('rate-limit-free').value = limits.free_per_hour ?? 100;
+            document.getElementById('rate-limit-pro').value = limits.pro_per_hour ?? 1000;
+            document.getElementById('rate-limit-enterprise').value = limits.enterprise_per_hour ?? 10000;
+            document.getElementById('rate-limit-ai').value = limits.ai_per_hour ?? 20;
+            document.getElementById('rate-limit-window').value = limits.window_seconds ?? 3600;
+            document.getElementById('rate-limit-state').textContent = 'Loaded';
+        }
+
         async function loadUsers() {
             const data = await postAdminAction('list_users');
             const tbody = document.getElementById('users-tbody');
@@ -756,6 +785,25 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             }
         });
 
+        document.getElementById('save-rate-limit-config').addEventListener('click', async () => {
+            const payload = {
+                free_per_hour: Number(document.getElementById('rate-limit-free').value),
+                pro_per_hour: Number(document.getElementById('rate-limit-pro').value),
+                enterprise_per_hour: Number(document.getElementById('rate-limit-enterprise').value),
+                ai_per_hour: Number(document.getElementById('rate-limit-ai').value),
+                window_seconds: Number(document.getElementById('rate-limit-window').value),
+            };
+            try {
+                const result = await postAdminAction('set_rate_limit_config', payload);
+                document.getElementById('rate-limit-state').textContent = result.message || 'Rate limits saved.';
+                setStatus(result.message || 'Rate limits saved.');
+                await loadRateLimitConfig();
+            } catch (error) {
+                setStatus(error.message || 'Failed to save rate limits', true);
+                document.getElementById('rate-limit-state').textContent = error.message || 'Save failed';
+            }
+        });
+
         document.getElementById('create-db-backup').addEventListener('click', async () => {
             try {
                 const result = await postAdminAction('create_db_backup');
@@ -797,7 +845,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
 
         (async () => {
             try {
-                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig(), loadDbBackups(), loadOpenRouterStatus(), loadRedisStatus()]);
+                await Promise.all([loadOverview(), loadUsers(), loadAiMasterConfig(), loadAiSummaryConfig(), loadRateLimitConfig(), loadDbBackups(), loadOpenRouterStatus(), loadRedisStatus()]);
                 setStatus('Admin panel ready.');
             } catch (error) {
                 setStatus(error.message || 'Failed to load admin panel', true);

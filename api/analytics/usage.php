@@ -17,13 +17,17 @@ try {
 
     $action = $_GET['action'] ?? 'summary';
     $rateLimiter = new RateLimiter();
-    $requestPath = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/api/analytics/usage.php', PHP_URL_PATH) ?? '/api/analytics/usage.php');
-    $rateLimiter->recordRequest($userId, $requestPath, true);
+    $limitConfig = $rateLimiter->getLimitConfig();
 
     $response = match ($action) {
         'summary' => [
             'summary' => $rateLimiter->getUsageSummary($userId),
-            'top_endpoints' => $rateLimiter->getTopEndpoints($userId, 5)
+            'top_endpoints' => $rateLimiter->getTopEndpoints($userId, 5),
+            'limits' => [
+                'requests_per_window' => $limitConfig['free_per_hour'],
+                'ai_per_window' => $limitConfig['ai_per_hour'],
+                'window_seconds' => $limitConfig['window_seconds'],
+            ],
         ],
         'analytics' => [
             'daily_usage' => $rateLimiter->getAnalytics($userId, 30)

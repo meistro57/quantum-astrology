@@ -23,7 +23,9 @@ if (class_exists(Dotenv::class)) {
 if (!function_exists('env')) {
     function env(string $key, mixed $default = null): mixed
     {
-        return $_ENV[$key] ?? $_SERVER[$key] ?? $default;
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+
+        return $value === false || $value === null || $value === '' ? $default : $value;
     }
 }
 
@@ -99,4 +101,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // Set default timezone
 if (function_exists('date_default_timezone_set')) {
     date_default_timezone_set(APP_TIMEZONE);
+}
+
+// Enforce API rate limits for every entry point, including endpoints that
+// web servers execute directly instead of routing through index.php.
+if (PHP_SAPI !== 'cli' && isset($_SERVER['REQUEST_URI'])) {
+    $rateLimitPath = (string) (parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '');
+    if (str_starts_with($rateLimitPath, '/api/')) {
+        \QuantumAstrology\Core\Middleware::enforceApiRequest($rateLimitPath);
+    }
 }

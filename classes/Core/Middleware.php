@@ -9,22 +9,90 @@ namespace QuantumAstrology\Core;
 class Middleware
 {
     private static ?RateLimiter $rateLimiter = null;
+    private static bool $apiRequestChecked = false;
 
     /**
-     * Apply rate limiting to API request
+     * Enforce the rate limit for the current API request exactly once.
+     *
+     * This is called from config.php so that endpoints executed directly
+     * (bypassing the front controller) are limited too, and again from the
+     * router as a safety net.
+     */
+    public static function enforceApiRequest(string $path): void
+    {
+        if (self::$apiRequestChecked || self::isRateLimitExempt($path)) {
+            self::$apiRequestChecked = true;
+            return;
+        }
+        self::$apiRequestChecked = true;
+
+        try {
+            $currentUser = Auth::user();
+            $isAdmin = $currentUser !== null && AdminGate::canAccess($currentUser);
+
+            $identifier = $currentUser !== null
+                ? (int) $currentUser->getId()
+                : RateLimiter::anonymousKey(self::clientIpAddress());
+
+            $tier = $isAdmin ? RateLimiter::TIER_ENTERPRISE : RateLimiter::TIER_FREE;
+
+            self::applyRateLimit($identifier, $path, $tier);
+        } catch (\Throwable $e) {
+            // Rate limiting must never take the API down if the store fails.
+            Logger::warning('Rate limit check skipped', [
+                'error' => $e->getMessage(),
+                'path' => $path,
+            ]);
+        }
+    }
+
+    /**
+     * Best-effort client IP for anonymous limits. Authenticated requests are
+     * keyed by user id, so proxy headers only affect public endpoints.
+     */
+    private static function clientIpAddress(): string
+    {
+        $forwarded = (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+        if ($forwarded !== '') {
+            $first = trim(explode(',', $forwarded)[0]);
+            if (filter_var($first, FILTER_VALIDATE_IP) !== false) {
+                return $first;
+            }
+        }
+
+        $realIp = (string) ($_SERVER['HTTP_X_REAL_IP'] ?? '');
+        if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false) {
+            return $realIp;
+        }
+
+        return (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    }
+
+    public static function isRateLimitExempt(string $path): bool
+    {
+        return $path === '/api/health'
+            || $path === '/api/health.php'
+            || str_starts_with($path, '/api/health/');
+    }
+
+    /**
+     * Apply rate limiting to API request.
+     *
+     * Emits rate limit headers, records the attempt, and sends a 429
+     * response when the limit is exceeded.
      */
     public static function applyRateLimit(int $userId, string $endpoint, ?string $tier = null): bool
     {
         $limiter = self::getRateLimiter();
+        $decision = $limiter->evaluate($userId, $endpoint, $tier);
 
-        // Check if request is allowed
-        if (!$limiter->isAllowed($userId, $endpoint, $tier)) {
-            $limiter->sendRateLimitExceededResponse($userId, $endpoint, $tier);
+        $limiter->recordRequest($userId, $decision['endpoint'], $decision['allowed']);
+        $limiter->emitRateLimitHeaders($decision);
+
+        if (!$decision['allowed']) {
+            $limiter->sendRateLimitExceededResponse($userId, $decision['endpoint'], $tier, $decision);
             exit;
         }
-
-        // Set rate limit headers
-        $limiter->setRateLimitHeaders($userId, $endpoint, $tier);
 
         return true;
     }
