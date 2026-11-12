@@ -79,9 +79,9 @@ try {
 <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
 <style>
   :root{
-    --bg:#0a0e13; --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.04);
+    --bg:#120c07; --panel:rgba(246, 233, 210,.05); --panel2:rgba(246, 233, 210,.04);
     --accent1:var(--quantum-primary); --accent2:var(--quantum-purple);
-    --text:var(--quantum-text); --muted:rgba(255,255,255,.7); --border:rgba(255,255,255,.1);
+    --text:var(--quantum-text); --muted:rgba(246, 233, 210,.7); --border:rgba(246, 233, 210,.1);
     --success:#2ecc71; --danger:#ff5c73; --warn:#f5c542;
   }
   *{box-sizing:border-box}
@@ -99,16 +99,16 @@ try {
   .card h3{margin:0 0 6px}
   .card p{color:var(--muted);margin:4px 0 14px}
   .btn{display:inline-block;padding:10px 14px;border-radius:12px;text-decoration:none;color:#fff;background:linear-gradient(135deg,var(--accent1),var(--accent2));font-weight:600}
-  .btn.secondary{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border)}
+  .btn.secondary{background:rgba(246, 233, 210,.06);color:var(--text);border:1px solid var(--border)}
   .row{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:22px}
   ul.list{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:12px;max-height:62vh;overflow:auto;background:var(--panel2)}
   ul.list li{padding:11px 12px;border-bottom:1px solid var(--border);cursor:pointer}
-  ul.list li:hover{background:rgba(255,255,255,.06)}
-  ul.list li.active{background:linear-gradient(90deg,rgba(74,144,226,.18),rgba(139,92,246,.18));}
+  ul.list li:hover{background:rgba(246, 233, 210,.06)}
+  ul.list li.active{background:linear-gradient(90deg,rgba(242, 169, 59,.18),rgba(155, 123, 234,.18));}
   .muted{color:var(--muted)}
   .imgwrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--panel2)}
   .quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
-  .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}
+  .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(246, 233, 210,.04);color:var(--text);text-decoration:none}
   .pill.danger{border-color:#6e2231;background:rgba(255,92,115,.1);color:#ffb3bf}
   .note{background:#241d0b;border:1px solid #3a2f0a;color:#ffd166;padding:10px 12px;border-radius:10px;margin-bottom:14px}
   footer{margin:40px 0 20px;color:var(--muted);text-align:center}

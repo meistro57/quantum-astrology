@@ -329,17 +329,24 @@ RESTful endpoints follow this pattern:
 
 ### Color Scheme
 
+Quantum Hive theme (matches quantummindsunited.com): warm honey, a hint of violet, honeycomb.
+Defined in `assets/css/quantum-dashboard.css`; the variable names are kept, the values changed.
+
 ```css
 :root {
-    --quantum-primary: #4A90E2;
-    --quantum-gold: #FFD700;
-    --quantum-dark: #1a1a2e;
-    --quantum-darker: #070709;
-    --quantum-text: #ffffff;
-    --quantum-blue: #00d4ff;
-    --quantum-purple: #8b5cf6;
+    --quantum-primary: #f2a93b;   /* honey (was blue) */
+    --quantum-blue: #f2a93b;      /* legacy name, now honey */
+    --quantum-gold: #ffd27a;      /* light honey */
+    --quantum-purple: #9b7bea;    /* hive violet */
+    --quantum-dark: #1f160d;
+    --quantum-darker: #120c07;
+    --quantum-text: #f6e9d2;      /* wax */
+    --quantum-text-muted: #c9b595;
 }
 ```
+
+Fonts: Fraunces (headings), Inter (body), JetBrains Mono (data/labels).
+Use these variables instead of hardcoding colors in new pages.
 
 ### Component Patterns
 

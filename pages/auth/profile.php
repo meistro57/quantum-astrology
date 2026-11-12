@@ -200,8 +200,8 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         html, body {
             min-height: 100%;
             overflow-y: auto;
-            background-color: #0a0e13;
-            color: #e2e8f0;
+            background-color: #120c07;
+            color: #f6e9d2;
         }
 
         .profile-container {
@@ -227,14 +227,14 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         }
 
         .profile-subtitle {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
         }
 
         .profile-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 20px;
             padding: 2.5rem;
             margin-bottom: 2rem;
@@ -254,7 +254,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         .form-section {
             margin-top: 2rem;
             padding-top: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(246, 233, 210, 0.1);
         }
 
         .section-title {
@@ -265,12 +265,12 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         }
 
         .helper-text {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 0.95rem;
             margin-bottom: 1rem;
         }
         .section-subtitle {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 0.9rem;
             margin-top: -0.35rem;
             margin-bottom: 0.75rem;
@@ -278,10 +278,10 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         .coords-summary {
             margin-bottom: 0.75rem;
             padding: 0.65rem 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(246, 233, 210, 0.12);
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
-            color: rgba(255, 255, 255, 0.85);
+            background: rgba(246, 233, 210, 0.04);
+            color: rgba(246, 233, 210, 0.85);
             font-size: 0.9rem;
         }
         .location-status {
@@ -309,8 +309,8 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         .form-input, .form-select {
             width: 100%;
             padding: 0.875rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(246, 233, 210, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.2);
             border-radius: 10px;
             color: var(--quantum-text);
             font-size: 1rem;
@@ -320,7 +320,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
         .form-input:focus, .form-select:focus {
             outline: none;
             border-color: var(--quantum-primary);
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.1);
         }
 
         .form-select option {
@@ -355,17 +355,17 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.1);
             color: var(--quantum-text);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(246, 233, 210, 0.2);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(246, 233, 210, 0.2);
         }
 
         .success-message {
@@ -398,9 +398,9 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
             align-items: center;
             padding-top: 1.5rem;
             margin-top: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(246, 233, 210, 0.1);
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         @media (max-width: 768px) {
@@ -639,11 +639,11 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                             : $user->shouldShowBirthLocationInReports();
                     ?>
                     <div class="form-group" style="margin-top:0.35rem;">
-                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(255,255,255,0.88);margin-bottom:0.55rem;">
+                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(246, 233, 210,0.88);margin-bottom:0.55rem;">
                             <input type="checkbox" name="show_birth_date_in_reports" value="1" <?= $showDateChecked ? 'checked' : '' ?>>
                             <span>Show birth date/time in reports</span>
                         </label>
-                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(255,255,255,0.88);">
+                        <label style="display:flex;gap:0.55rem;align-items:flex-start;color:rgba(246, 233, 210,0.88);">
                             <input type="checkbox" name="show_birth_location_in_reports" value="1" <?= $showLocationChecked ? 'checked' : '' ?>>
                             <span>Show birth location in reports</span>
                         </label>
@@ -672,7 +672,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    class="form-input"
                                    minlength="8"
                                    autocomplete="new-password">
-                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(255,255,255,0.75);font-size:0.85rem;">
+                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(246, 233, 210,0.75);font-size:0.85rem;">
                                 <input type="checkbox" id="toggle_new_password"> Show
                             </label>
                         </div>
@@ -685,7 +685,7 @@ $pageTitle = 'Profile Settings - Quantum Astrology';
                                    class="form-input"
                                    minlength="8"
                                    autocomplete="new-password">
-                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(255,255,255,0.75);font-size:0.85rem;">
+                            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.55rem;color:rgba(246, 233, 210,0.75);font-size:0.85rem;">
                                 <input type="checkbox" id="toggle_confirm_password"> Show
                             </label>
                         </div>

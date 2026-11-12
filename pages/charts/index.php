@@ -59,17 +59,17 @@ $showAdminLink = AdminGate::canAccess($user);
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         html, body {
-            background: #0a0e13 !important;
-            background-image: linear-gradient(135deg, #0a0e13 0%, #0f1419 100%) !important;
-            color: #e2e8f0 !important;
+            background: #120c07 !important;
+            background-image: linear-gradient(135deg, #120c07 0%, #1f160d 100%) !important;
+            color: #f6e9d2 !important;
         }
         .portal-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -122,9 +122,9 @@ $showAdminLink = AdminGate::canAccess($user);
             flex-wrap: wrap;
             margin-bottom: 1.5rem;
             padding: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(246, 233, 210, 0.04);
         }
         .control-group {
             min-width: 180px;
@@ -134,14 +134,14 @@ $showAdminLink = AdminGate::canAccess($user);
             display: block;
             font-size: 0.8rem;
             margin-bottom: 0.35rem;
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(246, 233, 210, 0.75);
         }
         .control-input, .control-select {
             width: 100%;
             padding: 0.6rem 0.75rem;
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.2);
+            background: rgba(246, 233, 210, 0.1);
             color: var(--quantum-text);
         }
         .control-select option {
@@ -171,9 +171,9 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .chart-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.5rem;
             transition: all 0.3s ease;
@@ -184,7 +184,7 @@ $showAdminLink = AdminGate::canAccess($user);
 
         .chart-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(74, 144, 226, 0.2);
+            box-shadow: 0 10px 30px rgba(242, 169, 59, 0.2);
             border-color: var(--quantum-primary);
         }
 
@@ -217,7 +217,7 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .status-private {
-            background: rgba(139, 92, 246, 0.2);
+            background: rgba(155, 123, 234, 0.2);
             color: #a78bfa;
         }
 
@@ -235,7 +235,7 @@ $showAdminLink = AdminGate::canAccess($user);
             align-items: center;
             margin-bottom: 0.5rem;
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .chart-detail-icon {
@@ -270,17 +270,17 @@ $showAdminLink = AdminGate::canAccess($user);
 
         .btn-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 4px 12px rgba(242, 169, 59, 0.3);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.1);
             color: var(--quantum-text);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(246, 233, 210, 0.2);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(246, 233, 210, 0.2);
         }
         .btn-danger {
             background: rgba(220, 53, 69, 0.2);
@@ -292,8 +292,8 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .create-chart-card {
-            background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(139, 92, 246, 0.1));
-            border: 2px dashed rgba(74, 144, 226, 0.3);
+            background: linear-gradient(135deg, rgba(242, 169, 59, 0.1), rgba(155, 123, 234, 0.1));
+            border: 2px dashed rgba(242, 169, 59, 0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -305,7 +305,7 @@ $showAdminLink = AdminGate::canAccess($user);
 
         .create-chart-card:hover {
             border-color: var(--quantum-primary);
-            background: linear-gradient(135deg, rgba(74, 144, 226, 0.2), rgba(139, 92, 246, 0.2));
+            background: linear-gradient(135deg, rgba(242, 169, 59, 0.2), rgba(155, 123, 234, 0.2));
         }
 
         .create-icon {
@@ -322,14 +322,14 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .create-subtitle {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
             font-size: 0.9rem;
         }
 
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .empty-icon {
@@ -362,7 +362,7 @@ $showAdminLink = AdminGate::canAccess($user);
         }
         .pagination-summary {
             text-align: center;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
         }

@@ -49,9 +49,9 @@ $pageTitle = 'Sign In - Quantum Astrology';
         }
 
         .auth-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 20px;
             padding: 3rem;
             width: 100%;
@@ -72,7 +72,7 @@ $pageTitle = 'Sign In - Quantum Astrology';
 
         .auth-subtitle {
             text-align: center;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             margin-bottom: 2rem;
         }
 
@@ -90,8 +90,8 @@ $pageTitle = 'Sign In - Quantum Astrology';
         .form-input {
             width: 100%;
             padding: 0.875rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(246, 233, 210, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.2);
             border-radius: 10px;
             color: var(--quantum-text);
             font-size: 1rem;
@@ -101,11 +101,11 @@ $pageTitle = 'Sign In - Quantum Astrology';
         .form-input:focus {
             outline: none;
             border-color: var(--quantum-primary);
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.1);
         }
 
         .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(246, 233, 210, 0.5);
         }
 
         .auth-button {
@@ -124,7 +124,7 @@ $pageTitle = 'Sign In - Quantum Astrology';
 
         .auth-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         .auth-links {

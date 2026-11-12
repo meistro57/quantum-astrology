@@ -239,8 +239,8 @@ $showAdminLink = AdminGate::canAccess($user);
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -277,36 +277,36 @@ $showAdminLink = AdminGate::canAccess($user);
         .chart-creator { max-width: 900px; margin: 0 auto; padding: 2rem; }
         .creator-header { text-align: center; margin-bottom: 3rem; }
         .creator-title { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
-        .creator-subtitle { color: rgba(255, 255, 255, 0.7); font-size: 1.1rem; }
-        .chart-form { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 2.5rem; }
+        .creator-subtitle { color: rgba(246, 233, 210, 0.7); font-size: 1.1rem; }
+        .chart-form { background: rgba(246, 233, 210, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(246, 233, 210, 0.1); border-radius: 20px; padding: 2.5rem; }
         .form-section { margin-bottom: 2.5rem; }
-        .section-title { font-size: 1.3rem; font-weight: 600; color: var(--quantum-gold); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(255, 215, 0, 0.2); }
+        .section-title { font-size: 1.3rem; font-weight: 600; color: var(--quantum-gold); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(255, 210, 122, 0.2); }
         .form-row { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; }
         .form-group { flex: 1; }
         .form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--quantum-text); }
         .required { color: var(--quantum-gold); }
-        .form-input, .form-select, .form-textarea { width: 100%; padding: 0.875rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: var(--quantum-text); font-size: 1rem; transition: all 0.3s ease; }
-        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--quantum-primary); box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1); }
-        .form-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 0.875rem; background: rgba(246, 233, 210, 0.1); border: 1px solid rgba(246, 233, 210, 0.2); border-radius: 10px; color: var(--quantum-text); font-size: 1rem; transition: all 0.3s ease; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--quantum-primary); box-shadow: 0 0 0 3px rgba(242, 169, 59, 0.1); }
+        .form-input::placeholder { color: rgba(246, 233, 210, 0.5); }
         .form-select option { background: var(--quantum-dark); color: var(--quantum-text); }
         .coordinate-inputs { display: flex; gap: 1rem; }
         .coordinate-group { flex: 1; position: relative; }
-        .coordinate-label { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; }
+        .coordinate-label { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: rgba(246, 233, 210, 0.5); font-size: 0.85rem; }
         .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
         .form-checkbox { width: 18px; height: 18px; accent-color: var(--quantum-primary); }
-        .location-helper { background: rgba(74, 144, 226, 0.1); border: 1px solid rgba(74, 144, 226, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.8); }
+        .location-helper { background: rgba(242, 169, 59, 0.1); border: 1px solid rgba(242, 169, 59, 0.3); border-radius: 10px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; color: rgba(246, 233, 210, 0.8); }
         .map-link-row { display: flex; gap: 0.75rem; align-items: center; }
         .map-link-row .form-input { flex: 1; }
         .map-link-row .btn { padding: 0.75rem 1.25rem; white-space: nowrap; }
-        .map-link-status { margin-top: 0.35rem; color: rgba(255, 255, 255, 0.75); }
+        .map-link-status { margin-top: 0.35rem; color: rgba(246, 233, 210, 0.75); }
         .map-link-status.success { color: #7dd87d; }
         .map-link-status.error { color: #ff6b6b; }
         .button-group { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
         .btn { padding: 0.875rem 2rem; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-block; text-align: center; }
         .btn-primary { background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-purple)); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3); }
-        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: var(--quantum-text); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3); }
+        .btn-secondary { background: rgba(246, 233, 210, 0.1); color: var(--quantum-text); border: 1px solid rgba(246, 233, 210, 0.2); }
+        .btn-secondary:hover { background: rgba(246, 233, 210, 0.2); }
         .error-messages { background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); color: #ff6b6b; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; }
         .error-messages ul { margin: 0; padding-left: 1.5rem; }
         @media (max-width: 768px) {
@@ -390,7 +390,7 @@ $showAdminLink = AdminGate::canAccess($user);
                                <?= $hasProfileBirthData ? '' : 'disabled' ?>>
                         <label for="use_profile_birth" class="form-label">Use my saved profile birth details</label>
                     </div>
-                    <small style="color: rgba(255, 255, 255, 0.6);">
+                    <small style="color: rgba(246, 233, 210, 0.6);">
                         <?= $hasProfileBirthData
                             ? 'We will auto-fill your birth date, time, timezone, and coordinates from your profile when checked.'
                             : 'Save birth details in your Profile settings to enable quick auto-fill.' ?>
@@ -550,7 +550,7 @@ $showAdminLink = AdminGate::canAccess($user);
                                    <?= (!empty($formData['is_public'])) ? 'checked' : '' ?>>
                             <label for="is_public" class="form-label">Make this chart public</label>
                         </div>
-                        <small style="color: rgba(255, 255, 255, 0.6);">
+                        <small style="color: rgba(246, 233, 210, 0.6);">
                             Public charts can be viewed by other users (birth data remains private)
                         </small>
                     </div>

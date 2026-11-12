@@ -28,35 +28,35 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
     <style>
         .admin-wrap { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .admin-title { font-size: 2.2rem; margin: 0 0 0.35rem; background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .admin-sub { color: rgba(255,255,255,0.72); margin-bottom: 1.5rem; }
+        .admin-sub { color: rgba(246, 233, 210,0.72); margin-bottom: 1.5rem; }
         .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 1rem; backdrop-filter: blur(12px); }
-        .metric-label { color: rgba(255,255,255,0.65); font-size: 0.85rem; }
+        .card { background: rgba(246, 233, 210,0.05); border: 1px solid rgba(246, 233, 210,0.1); border-radius: 14px; padding: 1rem; backdrop-filter: blur(12px); }
+        .metric-label { color: rgba(246, 233, 210,0.65); font-size: 0.85rem; }
         .metric-value { font-size: 1.8rem; font-weight: 700; color: var(--quantum-text); margin-top: 0.25rem; }
         .section-title { color: var(--quantum-gold); margin: 0 0 0.8rem; }
         .actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
-        .btn { padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: var(--quantum-text); cursor: pointer; }
+        .btn { padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid rgba(246, 233, 210,0.25); background: rgba(246, 233, 210,0.08); color: var(--quantum-text); cursor: pointer; }
         .btn-primary { background: linear-gradient(135deg, var(--quantum-primary), var(--quantum-purple)); border: none; color: #fff; }
         .btn-link { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
         .form-row { margin-bottom: 0.7rem; }
-        .input { width: 100%; padding: 0.7rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.09); color: #fff; }
+        .input { width: 100%; padding: 0.7rem; border-radius: 10px; border: 1px solid rgba(246, 233, 210,0.2); background: rgba(246, 233, 210,0.09); color: #fff; }
         textarea.input { min-height: 130px; resize: vertical; }
-        .input::placeholder { color: rgba(255,255,255,0.45); }
-        .table-wrap { overflow: auto; max-height: 420px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .input::placeholder { color: rgba(246, 233, 210,0.45); }
+        .table-wrap { overflow: auto; max-height: 420px; border-radius: 10px; border: 1px solid rgba(246, 233, 210,0.1); }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 0.55rem 0.65rem; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; white-space: nowrap; }
+        th, td { padding: 0.55rem 0.65rem; border-bottom: 1px solid rgba(246, 233, 210,0.08); text-align: left; white-space: nowrap; }
         th { position: sticky; top: 0; background: #131826; z-index: 1; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.83rem; }
         .status { margin-top: 0.8rem; color: #86efac; min-height: 1.1rem; }
         .status.error { color: #ff8e8e; }
-        .log { background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.7rem; max-height: 260px; overflow: auto; font-family: ui-monospace,monospace; font-size: 0.82rem; line-height: 1.35; white-space: pre-wrap; }
-        .ops-output { margin-top: 0.8rem; background: #0c121d; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.75rem; min-height: 70px; max-height: 320px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; }
+        .log { background: #0c121d; border: 1px solid rgba(246, 233, 210,0.1); border-radius: 10px; padding: 0.7rem; max-height: 260px; overflow: auto; font-family: ui-monospace,monospace; font-size: 0.82rem; line-height: 1.35; white-space: pre-wrap; }
+        .ops-output { margin-top: 0.8rem; background: #0c121d; border: 1px solid rgba(246, 233, 210,0.1); border-radius: 10px; padding: 0.75rem; min-height: 70px; max-height: 320px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre-wrap; }
         .pill { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 0.2rem 0.55rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; border: 1px solid transparent; }
         .pill-ok { background: rgba(22, 163, 74, 0.2); color: #86efac; border-color: rgba(22, 163, 74, 0.45); }
         .pill-warn { background: rgba(202, 138, 4, 0.2); color: #fde68a; border-color: rgba(202, 138, 4, 0.45); }
         .pill-danger { background: rgba(220, 38, 38, 0.2); color: #fca5a5; border-color: rgba(220, 38, 38, 0.45); }
-        .pill-neutral { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.45); }
+        .pill-neutral { background: rgba(242, 169, 59, 0.2); color: #e6d6ba; border-color: rgba(242, 169, 59, 0.45); }
         @media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 1080px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid { grid-template-columns: 1fr; } }
         @media (max-width: 640px) {
@@ -146,13 +146,13 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 <input id="ai-master-key" class="input" type="password" placeholder="Master API key (leave blank to keep current)">
             </div>
             <div class="form-row" style="margin-top:0.55rem;">
-                <label style="display:inline-flex;align-items:center;gap:0.45rem;color:rgba(255,255,255,0.8);">
+                <label style="display:inline-flex;align-items:center;gap:0.45rem;color:rgba(246, 233, 210,0.8);">
                     <input id="ai-master-clear-key" type="checkbox"> Clear stored master API key
                 </label>
             </div>
             <div class="actions" style="margin-top:0.8rem;">
                 <button class="btn btn-primary" id="save-ai-master-config">Save AI Config</button>
-                <span id="ai-master-key-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+                <span id="ai-master-key-state" style="color: rgba(246, 233, 210,0.75); font-size: 0.9rem;"></span>
             </div>
         </div>
 
@@ -161,7 +161,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             <div class="actions" style="margin-bottom: 0.6rem;">
                 <button class="btn" id="refresh-openrouter-status">Refresh OpenRouter Status</button>
                 <span id="openrouter-credit-badge" class="pill pill-neutral">Unknown</span>
-                <span id="openrouter-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+                <span id="openrouter-state" style="color: rgba(246, 233, 210,0.75); font-size: 0.9rem;"></span>
             </div>
             <div class="table-wrap kv-wrap" style="max-height: 280px;">
                 <table>
@@ -180,7 +180,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             <div class="actions" style="margin-bottom: 0.6rem;">
                 <button class="btn" id="refresh-redis-status">Refresh Redis Status</button>
                 <span id="redis-health-badge" class="pill pill-neutral">Unknown</span>
-                <span id="redis-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+                <span id="redis-state" style="color: rgba(246, 233, 210,0.75); font-size: 0.9rem;"></span>
             </div>
             <div class="table-wrap kv-wrap" style="max-height: 280px;">
                 <table>
@@ -197,7 +197,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
         <div class="card">
             <h3 class="section-title">AI Summary Settings</h3>
             <div class="form-row">
-                <label style="display:block;color:rgba(255,255,255,0.8);margin-bottom:0.4rem;">System Prompt</label>
+                <label style="display:block;color:rgba(246, 233, 210,0.8);margin-bottom:0.4rem;">System Prompt</label>
                 <textarea id="ai-summary-system-prompt" class="input" placeholder="System instructions for AI summary generation"></textarea>
             </div>
             <div class="form-grid">
@@ -216,7 +216,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
             </div>
             <div class="actions" style="margin-top:0.8rem;">
                 <button class="btn btn-primary" id="save-ai-summary-config">Save Summary Settings</button>
-                <span id="ai-summary-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+                <span id="ai-summary-state" style="color: rgba(246, 233, 210,0.75); font-size: 0.9rem;"></span>
             </div>
         </div>
 
@@ -229,12 +229,12 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 <input id="rate-limit-ai" class="input" type="number" min="1" placeholder="AI requests per window">
                 <input id="rate-limit-window" class="input" type="number" min="1" placeholder="Window (seconds)">
             </div>
-            <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.6rem 0 0;">
+            <p style="color: rgba(246, 233, 210,0.6); font-size: 0.85rem; margin: 0.6rem 0 0;">
                 Requests per window per endpoint. AI endpoints use the lower of the tier limit and the AI limit.
             </p>
             <div class="actions" style="margin-top:0.8rem;">
                 <button class="btn btn-primary" id="save-rate-limit-config">Save Rate Limits</button>
-                <span id="rate-limit-state" style="color: rgba(255,255,255,0.75); font-size: 0.9rem;"></span>
+                <span id="rate-limit-state" style="color: rgba(246, 233, 210,0.75); font-size: 0.9rem;"></span>
             </div>
         </div>
 
@@ -249,7 +249,7 @@ $issuesUrl = defined('GITHUB_ISSUES_URL') ? (string) GITHUB_ISSUES_URL : 'https:
                 <input id="new-timezone" class="input" placeholder="Timezone (default UTC)" value="UTC">
             </div>
             <div class="form-row" style="margin-top:0.55rem;">
-                <label style="display:inline-flex;align-items:center;gap:0.45rem;color:rgba(255,255,255,0.8);">
+                <label style="display:inline-flex;align-items:center;gap:0.45rem;color:rgba(246, 233, 210,0.8);">
                     <input id="new-is-admin" type="checkbox"> Create as admin user
                 </label>
             </div>

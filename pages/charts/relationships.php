@@ -45,15 +45,15 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             margin-bottom: 2rem;
         }
 
         .chart-selection {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -89,8 +89,8 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         .chart-dropdown {
             padding: 1rem;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.3);
+            background: rgba(246, 233, 210, 0.1);
             color: white;
             font-size: 1rem;
             outline: none;
@@ -99,7 +99,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
 
         .chart-dropdown:focus {
             border-color: var(--quantum-primary);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(246, 233, 210, 0.15);
         }
 
         .chart-dropdown option {
@@ -113,7 +113,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             color: var(--quantum-gold);
             text-align: center;
             padding: 1rem;
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255, 210, 122, 0.1) 0%, transparent 70%);
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -161,23 +161,23 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
 
         .btn-composite:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         .btn-insights {
-            background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+            background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
             color: var(--quantum-darker);
         }
 
         .btn-insights:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(255, 210, 122, 0.3);
         }
 
         .analysis-results {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             display: none;
@@ -200,7 +200,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         }
 
         .compatibility-score {
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255, 210, 122, 0.2) 0%, transparent 70%);
             border: 2px solid var(--quantum-gold);
             border-radius: 50%;
             width: 80px;
@@ -219,7 +219,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
 
         .score-label {
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .results-content {
@@ -229,7 +229,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         }
 
         .result-section {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(246, 233, 210, 0.03);
             border-radius: 10px;
             padding: 1.5rem;
         }
@@ -240,7 +240,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             color: var(--quantum-primary);
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+            border-bottom: 1px solid rgba(242, 169, 59, 0.3);
         }
 
         .aspect-list, .theme-list {
@@ -254,7 +254,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             justify-content: space-between;
             align-items: center;
             padding: 0.75rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
 
         .aspect-item:last-child, .theme-item:last-child {
@@ -273,20 +273,20 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             font-weight: 500;
         }
 
-        .strength-high { background: rgba(255, 215, 0, 0.2); color: #FFD700; }
-        .strength-medium { background: rgba(74, 144, 226, 0.2); color: #4A90E2; }
-        .strength-low { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7); }
+        .strength-high { background: rgba(255, 210, 122, 0.2); color: #ffd27a; }
+        .strength-medium { background: rgba(242, 169, 59, 0.2); color: #f2a93b; }
+        .strength-low { background: rgba(246, 233, 210, 0.1); color: rgba(246, 233, 210, 0.7); }
 
         .loading-state {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .loading-spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(246, 233, 210, 0.1);
             border-top: 3px solid var(--quantum-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -310,7 +310,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
         .no-charts-message {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .no-charts-message h3 {
@@ -334,7 +334,7 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
 
         .btn-create:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         @media (max-width: 968px) {
@@ -779,9 +779,9 @@ $pageTitle = 'Relationship Analysis - Quantum Astrology';
             if (score >= 80) {
                 scoreElement.style.color = '#00ff00';
             } else if (score >= 60) {
-                scoreElement.style.color = '#FFD700';
+                scoreElement.style.color = '#ffd27a';
             } else if (score >= 40) {
-                scoreElement.style.color = '#FFA500';
+                scoreElement.style.color = '#e0921f';
             } else {
                 scoreElement.style.color = '#FF6B6B';
             }
