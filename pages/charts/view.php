@@ -193,7 +193,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             overflow: auto;
             border-radius: 14px;
             border: 1px solid rgba(246, 233, 210, 0.12);
-            background: radial-gradient(circle at center, rgba(242, 169, 59, 0.1) 0%, rgba(10, 14, 20, 0.65) 65%);
+            background: radial-gradient(circle at center, rgba(242, 169, 59, 0.1) 0%, rgba(18, 12, 7, 0.65) 65%);
             display: flex;
             align-items: flex-start;
             justify-content: center;

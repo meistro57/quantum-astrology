@@ -22,7 +22,7 @@ $pageTitle = 'Cosmic Weather Forecast';
     <style>
         .weather-station { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .control-deck {
-            background: rgba(22, 27, 43, 0.8); border: 1px solid rgba(246, 233, 210,0.1); 
+            background: rgba(40, 27, 15, 0.8); border: 1px solid rgba(246, 233, 210,0.1); 
             backdrop-filter: blur(10px); padding: 1.5rem; border-radius: 16px; 
             display: flex; gap: 1.5rem; align-items: flex-end; margin-bottom: 2rem;
         }
