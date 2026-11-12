@@ -25,10 +25,10 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         html {
-            background-color: #0a0e13;
+            background-color: #120c07;
         }
         body {
-            background-color: #0a0e13;
+            background-color: #120c07;
             background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
             color: var(--quantum-text);
         }
@@ -37,8 +37,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -94,16 +94,16 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
         }
 
         .report-builder {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -137,8 +137,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         .form-select {
             padding: 0.875rem;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.3);
+            background: rgba(246, 233, 210, 0.1);
             color: white;
             font-size: 1rem;
             outline: none;
@@ -147,7 +147,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 
         .form-select:focus {
             border-color: var(--quantum-primary);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(246, 233, 210, 0.15);
         }
 
         .form-select option {
@@ -163,8 +163,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         }
 
         .report-type-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.03);
+            border: 2px solid rgba(246, 233, 210, 0.1);
             border-radius: 10px;
             padding: 1.5rem;
             cursor: pointer;
@@ -179,7 +179,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 
         .report-type-card.selected {
             border-color: var(--quantum-gold);
-            background: rgba(255, 215, 0, 0.1);
+            background: rgba(255, 210, 122, 0.1);
         }
 
         .report-type-icon {
@@ -194,7 +194,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 
         .report-type-desc {
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .action-buttons {
@@ -223,17 +223,17 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
 
         .btn-generate:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         .btn-download {
-            background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+            background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
             color: var(--quantum-darker);
         }
 
         .btn-download:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(255, 210, 122, 0.3);
         }
 
         .btn:disabled {
@@ -244,14 +244,14 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         .loading-state {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
             display: none;
         }
 
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(246, 233, 210, 0.1);
             border-top: 3px solid var(--quantum-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -264,8 +264,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         }
 
         .pdf-preview {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.05);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-top: 2rem;
@@ -292,9 +292,9 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             width: 30px;
             height: 30px;
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            background: rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(246, 233, 210, 0.22);
+            background: rgba(246, 233, 210, 0.08);
+            color: rgba(246, 233, 210, 0.9);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -302,8 +302,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             transition: all 0.2s ease;
         }
         .copy-report-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.16);
-            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(246, 233, 210, 0.16);
+            border-color: rgba(246, 233, 210, 0.4);
             transform: translateY(-1px);
         }
         .copy-report-btn:disabled {
@@ -322,17 +322,17 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             background: rgba(22, 163, 74, 0.2);
         }
         .ai-preview-body {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(246, 233, 210, 0.04);
+            border: 1px solid rgba(246, 233, 210, 0.12);
             border-radius: 10px;
             padding: 1rem 1.25rem;
-            color: rgba(255, 255, 255, 0.92);
+            color: rgba(246, 233, 210, 0.92);
         }
 
         .pdf-embed {
             width: 100%;
             height: 800px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(246, 233, 210, 0.2);
             border-radius: 10px;
             background: var(--quantum-darker);
         }
@@ -351,7 +351,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         .no-charts {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .no-charts h3 {
@@ -373,8 +373,8 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             margin-top: 1rem;
         }
         .history-panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.05);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.25rem;
             margin-top: 1.5rem;
@@ -391,13 +391,13 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
         .history-table td {
             text-align: left;
             padding: 0.7rem 0.6rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            color: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.08);
+            color: rgba(246, 233, 210, 0.9);
             font-size: 0.95rem;
             vertical-align: middle;
         }
         .history-table th {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-weight: 600;
             letter-spacing: 0.02em;
         }
@@ -410,7 +410,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(246, 233, 210, 0.2);
             color: var(--quantum-gold);
         }
         .history-actions {
@@ -428,7 +428,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
             text-decoration: underline;
         }
         .history-empty {
-            color: rgba(255, 255, 255, 0.65);
+            color: rgba(246, 233, 210, 0.65);
             margin: 0.2rem 0 0;
         }
         .history-error {
@@ -627,7 +627,7 @@ $pageTitle = 'Professional Reports - Quantum Astrology';
                     </button>
                 </div>
                 <h2 class="preview-title">Saved Report View</h2>
-                <div id="history-inline-title" style="margin-bottom:0.8rem;color:rgba(255,255,255,0.75);font-size:0.9rem;font-weight:600;"></div>
+                <div id="history-inline-title" style="margin-bottom:0.8rem;color:rgba(246, 233, 210,0.75);font-size:0.9rem;font-weight:600;"></div>
                 <div id="history-inline-markdown" class="ai-preview-body" style="display:none;"></div>
                 <iframe id="history-inline-frame" class="pdf-embed" style="display:none;"></iframe>
             </div>

@@ -22,19 +22,19 @@ $pageTitle = 'Cosmic Weather Forecast';
     <style>
         .weather-station { max-width: 1400px; margin: 0 auto; padding: 2rem; }
         .control-deck {
-            background: rgba(22, 27, 43, 0.8); border: 1px solid rgba(255,255,255,0.1); 
+            background: rgba(40, 27, 15, 0.8); border: 1px solid rgba(246, 233, 210,0.1); 
             backdrop-filter: blur(10px); padding: 1.5rem; border-radius: 16px; 
             display: flex; gap: 1.5rem; align-items: flex-end; margin-bottom: 2rem;
         }
         .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
         label { color: #a0aec0; font-size: 0.85rem; text-transform: uppercase; font-weight: bold; }
-        select { background: #0f1424; border: 1px solid #2d3748; color: #fff; padding: 0.8rem; border-radius: 8px; }
+        select { background: #1f160d; border: 1px solid #2d3748; color: #fff; padding: 0.8rem; border-radius: 8px; }
         .btn-forecast {
             background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; 
             padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-weight: bold;
         }
         .monitor-frame {
-            background: #0f1424; border: 1px solid #232a40; border-radius: 12px;
+            background: #1f160d; border: 1px solid #232a40; border-radius: 12px;
             padding: 1rem; min-height: 400px; display: flex; justify-content: center; align-items: center;
         }
         .monitor-frame img { width: 100%; height: auto; max-height: 600px; display: none; }

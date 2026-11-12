@@ -39,7 +39,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         .page-title {
             font-size: 2.5rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+            background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -47,16 +47,16 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
         }
 
         .controls-panel {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -84,8 +84,8 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         .form-input, .form-select {
             padding: 0.875rem;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.2);
+            background: rgba(246, 233, 210, 0.1);
             color: white;
             font-size: 1rem;
             outline: none;
@@ -94,7 +94,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .form-input:focus, .form-select:focus {
             border-color: var(--quantum-gold);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(246, 233, 210, 0.15);
         }
 
         .form-select option {
@@ -104,11 +104,11 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .form-hint {
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(246, 233, 210, 0.5);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+            background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
             color: var(--quantum-darker);
             border: none;
             padding: 0.875rem 1.5rem;
@@ -121,7 +121,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(255, 210, 122, 0.3);
         }
 
         .btn-primary:disabled {
@@ -139,8 +139,8 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .year-btn {
             padding: 0.5rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(246, 233, 210, 0.2);
+            background: rgba(246, 233, 210, 0.05);
             color: white;
             border-radius: 8px;
             cursor: pointer;
@@ -149,12 +149,12 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         }
 
         .year-btn:hover {
-            background: rgba(255, 215, 0, 0.2);
+            background: rgba(255, 210, 122, 0.2);
             border-color: var(--quantum-gold);
         }
 
         .year-btn.active {
-            background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+            background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
             color: var(--quantum-darker);
             border-color: var(--quantum-gold);
         }
@@ -170,7 +170,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             margin-bottom: 2rem;
             flex-wrap: wrap;
             gap: 1rem;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             border-radius: 15px;
             padding: 1.5rem;
         }
@@ -187,7 +187,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .sr-datetime-label {
             font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .sr-datetime-value {
@@ -203,9 +203,9 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         }
 
         .result-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.5rem;
         }
@@ -216,7 +216,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             color: var(--quantum-primary);
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+            border-bottom: 1px solid rgba(242, 169, 59, 0.3);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -231,7 +231,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             justify-content: space-between;
             align-items: center;
             padding: 0.75rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         .planet-row:last-child {
@@ -260,14 +260,14 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .position-degree {
             font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .house-cusp {
             display: flex;
             justify-content: space-between;
             padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         .house-number {
@@ -276,7 +276,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         }
 
         .profection-card {
-            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle at center, rgba(255, 210, 122, 0.1) 0%, transparent 70%);
             text-align: center;
             padding: 2rem;
         }
@@ -295,12 +295,12 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
 
         .profection-house {
             font-size: 1rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .theme-item {
             padding: 0.75rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         .theme-item:last-child {
@@ -310,13 +310,13 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         .loading-state {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(246, 233, 210, 0.1);
             border-top: 3px solid var(--quantum-gold);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -340,7 +340,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
         .no-charts {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .no-charts h3 {
@@ -381,7 +381,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             gap: 1rem;
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(246, 233, 210, 0.1);
         }
 
         .relocation-fields.visible {
@@ -506,7 +506,7 @@ $pageTitle = 'Solar Returns - Quantum Astrology';
             <div class="sr-header">
                 <div>
                     <h2 class="sr-title">Solar Return <span id="sr-year"><?= $currentYear ?></span></h2>
-                    <div id="sr-location" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);"></div>
+                    <div id="sr-location" style="font-size: 0.9rem; color: rgba(246, 233, 210,0.6);"></div>
                 </div>
                 <div class="sr-datetime">
                     <div class="sr-datetime-label">Exact Return Moment</div>

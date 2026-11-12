@@ -1,22 +1,25 @@
-/* assets/css/quantum-theme.css */
+/* assets/css/quantum-theme.css — Quantum Hive theme */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --quantum-primary: #4A90E2;
-    --quantum-gold: #FFD700;
-    --quantum-dark: #1a1a2e;
-    --quantum-text: #ffffff;
+    --quantum-primary: #f2a93b;
+    --quantum-gold: #ffd27a;
+    --quantum-dark: #120c07;
+    --quantum-text: #f6e9d2;
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--quantum-dark);
+    background: radial-gradient(70% 45% at 50% 0%, rgba(155, 123, 234, 0.1), transparent 70%), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='84' height='145.5' viewBox='0 0 84 145.5'><g fill='none' stroke='%23f2a93b' stroke-opacity='0.05' stroke-width='1.2'><polygon points='42,2 80,24 80,68.5 42,90.5 4,68.5 4,24'/><polygon points='0,75 38,97 38,141.5 0,163.5 -38,141.5 -38,97'/><polygon points='84,75 122,97 122,141.5 84,163.5 46,141.5 46,97'/></g></svg>"), var(--quantum-dark);
+    background-attachment: fixed;
     color: var(--quantum-text);
     margin: 0;
     padding: 0;
 }
 
 .quantum-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(40, 27, 15, 0.62);
+    border: 1px solid rgba(242, 169, 59, 0.18);
     backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 20px;
@@ -41,8 +44,8 @@ body {
     gap: 8px;
     padding: 10px 14px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(246, 233, 210, 0.15);
+    background: rgba(246, 233, 210, 0.06);
     color: var(--quantum-text);
     text-decoration: none;
     cursor: pointer;
@@ -50,8 +53,8 @@ body {
 }
 
 .back-button:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(246, 233, 210, 0.12);
+    border-color: rgba(246, 233, 210, 0.25);
     transform: translateY(-1px);
 }
 
@@ -59,3 +62,5 @@ body {
     font-size: 1.1rem;
     line-height: 1;
 }
+
+h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em; }

@@ -46,17 +46,17 @@ $csrf = (string)$_SESSION['csrf_token'];
     align-items: start;
   }
   .charts-panel {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(246, 233, 210, 0.05);
     backdrop-filter: blur(15px);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(246, 233, 210, 0.1);
     overflow: hidden;
   }
   .charts-panel h3 {
     padding: 20px;
     margin: 0;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(246, 233, 210, 0.03);
+    border-bottom: 1px solid rgba(246, 233, 210, 0.1);
     font-size: 1.1rem;
     color: var(--quantum-gold);
   }
@@ -69,13 +69,13 @@ $csrf = (string)$_SESSION['csrf_token'];
   }
   .charts-list li {
     padding: 15px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(246, 233, 210, 0.05);
     cursor: pointer;
     transition: all 0.3s ease;
     color: var(--quantum-text-muted);
   }
   .charts-list li:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(246, 233, 210, 0.05);
     color: var(--quantum-text);
   }
   .charts-list li.active {
@@ -91,10 +91,10 @@ $csrf = (string)$_SESSION['csrf_token'];
     background: transparent;
   }
   .preview-panel {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(246, 233, 210, 0.05);
     backdrop-filter: blur(15px);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(246, 233, 210, 0.1);
     padding: 30px;
     min-height: 500px;
   }
@@ -117,7 +117,7 @@ $csrf = (string)$_SESSION['csrf_token'];
     max-width: 100%;
     height: auto;
     border-radius: 12px;
-    background: #0f1424;
+    background: #1f160d;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   }
   .btn-back {
@@ -125,8 +125,8 @@ $csrf = (string)$_SESSION['csrf_token'];
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(246, 233, 210, 0.08);
+    border: 1px solid rgba(246, 233, 210, 0.15);
     border-radius: 10px;
     color: var(--quantum-text);
     text-decoration: none;
@@ -135,7 +135,7 @@ $csrf = (string)$_SESSION['csrf_token'];
     transition: all 0.3s ease;
   }
   .btn-back:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(246, 233, 210, 0.15);
     transform: translateY(-2px);
   }
   .btn-danger {

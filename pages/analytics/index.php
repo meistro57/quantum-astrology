@@ -25,8 +25,8 @@ $showAdminLink = AdminGate::canAccess($user);
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -83,7 +83,7 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
         }
 
@@ -95,9 +95,9 @@ $showAdminLink = AdminGate::canAccess($user);
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.5rem;
             transition: all 0.3s ease;
@@ -110,7 +110,7 @@ $showAdminLink = AdminGate::canAccess($user);
 
         .stat-label {
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             margin-bottom: 0.5rem;
         }
 
@@ -122,14 +122,14 @@ $showAdminLink = AdminGate::canAccess($user);
 
         .stat-subtext {
             font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(246, 233, 210, 0.5);
             margin-top: 0.5rem;
         }
 
         .endpoints-table {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -150,23 +150,23 @@ $showAdminLink = AdminGate::canAccess($user);
         th {
             text-align: left;
             padding: 0.875rem;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 2px solid rgba(246, 233, 210, 0.1);
             color: var(--quantum-primary);
             font-weight: 600;
         }
 
         td {
             padding: 0.875rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         tr:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(246, 233, 210, 0.03);
         }
 
         .progress-bar {
             height: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.1);
             border-radius: 4px;
             overflow: hidden;
             margin-top: 0.5rem;
@@ -204,13 +204,13 @@ $showAdminLink = AdminGate::canAccess($user);
         .loading-state {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(246, 233, 210, 0.1);
             border-top: 3px solid var(--quantum-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -330,7 +330,7 @@ $showAdminLink = AdminGate::canAccess($user);
                     </thead>
                     <tbody id="endpoints-tbody">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: rgba(255,255,255,0.5);">Loading...</td>
+                            <td colspan="5" style="text-align: center; color: rgba(246, 233, 210,0.5);">Loading...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -389,7 +389,7 @@ $showAdminLink = AdminGate::canAccess($user);
             const tbody = document.getElementById('endpoints-tbody');
 
             if (!endpoints || endpoints.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: rgba(255,255,255,0.5);">No endpoint data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: rgba(246, 233, 210,0.5);">No endpoint data available</td></tr>';
                 return;
             }
 

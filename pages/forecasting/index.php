@@ -28,8 +28,8 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -86,7 +86,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
@@ -100,9 +100,9 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
         }
 
         .tool-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 20px;
             padding: 2rem;
             text-decoration: none;
@@ -116,7 +116,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
 
         .tool-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(246, 233, 210, 0.2);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
@@ -130,9 +130,9 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
             background: var(--card-gradient);
         }
 
-        .tool-card.transits { --card-gradient: linear-gradient(90deg, #00d4ff, #4A90E2); }
-        .tool-card.progressions { --card-gradient: linear-gradient(90deg, #8b5cf6, #a855f7); }
-        .tool-card.solar-returns { --card-gradient: linear-gradient(90deg, #FFD700, #FFA500); }
+        .tool-card.transits { --card-gradient: linear-gradient(90deg, #7dd3c0, #f2a93b); }
+        .tool-card.progressions { --card-gradient: linear-gradient(90deg, #9b7bea, #b9a0f5); }
+        .tool-card.solar-returns { --card-gradient: linear-gradient(90deg, #ffd27a, #e0921f); }
         .tool-card.relationships { --card-gradient: linear-gradient(90deg, #FF6B6B, #FF8E53); }
 
         .tool-icon {
@@ -146,13 +146,13 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
             margin-bottom: 0.75rem;
         }
 
-        .transits .tool-title { color: #00d4ff; }
-        .progressions .tool-title { color: #a855f7; }
-        .solar-returns .tool-title { color: #FFD700; }
+        .transits .tool-title { color: #7dd3c0; }
+        .progressions .tool-title { color: #b9a0f5; }
+        .solar-returns .tool-title { color: #ffd27a; }
         .relationships .tool-title { color: #FF6B6B; }
 
         .tool-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 1.5rem;
@@ -171,7 +171,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
             gap: 0.5rem;
             padding: 0.4rem 0;
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
+            color: rgba(246, 233, 210, 0.8);
         }
 
         .tool-features li::before {
@@ -181,9 +181,9 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
         }
 
         .chart-selector-section {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             text-align: center;
@@ -205,8 +205,8 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
 
         .quick-link {
             padding: 0.75rem 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(246, 233, 210, 0.2);
+            background: rgba(246, 233, 210, 0.05);
             color: white;
             border-radius: 10px;
             text-decoration: none;
@@ -222,7 +222,7 @@ $pageTitle = 'Forecasting Tools - Quantum Astrology';
         .no-charts {
             text-align: center;
             padding: 2rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .no-charts h3 {

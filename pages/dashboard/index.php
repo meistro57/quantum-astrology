@@ -19,10 +19,10 @@ $showAdminLink = AdminGate::canAccess($user);
     <link rel="stylesheet" href="/assets/css/quantum-dashboard.css?v=<?= urlencode((string) filemtime(ROOT_PATH . '/assets/css/quantum-dashboard.css')) ?>">
     <style>
         html {
-            background-color: #0a0e13;
+            background-color: #120c07;
         }
         body {
-            background-color: #0a0e13;
+            background-color: #120c07;
             background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
             color: var(--quantum-text);
         }
@@ -31,8 +31,8 @@ $showAdminLink = AdminGate::canAccess($user);
             align-items: center;
             justify-content: space-between;
             padding: 18px 22px;
-            background: rgba(10, 13, 20, 0.65);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(18, 12, 7, 0.65);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
         .portal-brand {
             display: flex;
@@ -84,8 +84,8 @@ $showAdminLink = AdminGate::canAccess($user);
             margin-bottom: 1.5rem;
         }
         .dashboard-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.05);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 14px;
             padding: 2rem;
             backdrop-filter: blur(12px);

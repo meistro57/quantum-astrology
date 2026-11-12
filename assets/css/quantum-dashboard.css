@@ -1,4 +1,5 @@
-/* assets/css/quantum-dashboard.css */
+/* assets/css/quantum-dashboard.css — Quantum Hive theme */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 * {
     margin: 0;
@@ -7,27 +8,37 @@
 }
 :root {
     color-scheme: dark;
-    --quantum-dark: #0f1419;
-    --quantum-darker: #0a0e13;
-    --quantum-blue: #4a90e2;
-    --quantum-primary: #4a90e2;
-    --quantum-purple: #8b5cf6;
-    --quantum-gold: #ffd700;
-    --quantum-text: #e2e8f0;
-    --quantum-text-muted: #94a3b8;
-    --quantum-card-bg: rgba(30, 41, 59, 0.4);
-    --quantum-card-border: rgba(148, 163, 184, 0.1);
-    --quantum-card-hover: rgba(30, 41, 59, 0.6);
-    --quantum-accent: #1e293b;
+    /* Quantum Hive: warm honey, a hint of violet, honeycomb. Variable names kept so every page follows. */
+    --quantum-dark: #1f160d;
+    --quantum-darker: #120c07;
+    --quantum-blue: #f2a93b;          /* was blue: the primary accent is now honey */
+    --quantum-primary: #f2a93b;
+    --quantum-purple: #9b7bea;
+    --quantum-gold: #ffd27a;
+    --quantum-text: #f6e9d2;
+    --quantum-text-muted: #c9b595;
+    --quantum-card-bg: rgba(40, 27, 15, 0.62);
+    --quantum-card-border: rgba(242, 169, 59, 0.18);
+    --quantum-card-hover: rgba(52, 36, 20, 0.78);
+    --quantum-accent: #2f2317;
     --quantum-gradient: linear-gradient(135deg, var(--quantum-blue), var(--quantum-purple));
+    --hive-teal: #7dd3c0;
+    --hive-rose: #f59e8b;
+    --hive-line: rgba(242, 169, 59, 0.18);
+    --hive-line-hi: rgba(242, 169, 59, 0.45);
+    --hexv: polygon(50% 0%, 97% 25%, 97% 75%, 50% 100%, 3% 75%, 3% 25%);
 }
 html {
-    background: #0a0e13;
+    background: #120c07;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    background: linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:
+        radial-gradient(70% 45% at 50% 0%, rgba(155, 123, 234, 0.1), transparent 70%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='84' height='145.5' viewBox='0 0 84 145.5'><g fill='none' stroke='%23f2a93b' stroke-opacity='0.05' stroke-width='1.2'><polygon points='42,2 80,24 80,68.5 42,90.5 4,68.5 4,24'/><polygon points='0,75 38,97 38,141.5 0,163.5 -38,141.5 -38,97'/><polygon points='84,75 122,97 122,141.5 84,163.5 46,141.5 46,97'/></g></svg>"),
+        linear-gradient(135deg, var(--quantum-darker) 0%, var(--quantum-dark) 100%);
+    background-attachment: fixed;
     background-color: var(--quantum-darker);
     color: var(--quantum-text);
     min-height: 100vh;
@@ -41,9 +52,9 @@ body > header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background: rgba(10, 10, 15, 0.92);
+    background: rgba(18, 12, 7, 0.92);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(246, 233, 210, 0.1);
 }
 
 .portal-header {
@@ -51,8 +62,8 @@ body > header {
     align-items: center;
     justify-content: space-between;
     padding: 18px 22px;
-    background: rgba(10, 13, 20, 0.65);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(18, 12, 7, 0.65);
+    border-bottom: 1px solid rgba(246, 233, 210, 0.1);
 }
 
 .portal-brand {
@@ -136,8 +147,8 @@ body > header {
     gap: 8px;
     padding: 10px 14px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(246, 233, 210, 0.15);
+    background: rgba(246, 233, 210, 0.06);
     color: var(--quantum-text);
     text-decoration: none;
     cursor: pointer;
@@ -145,8 +156,8 @@ body > header {
 }
 
 .back-button:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(246, 233, 210, 0.12);
+    border-color: rgba(246, 233, 210, 0.25);
     transform: translateY(-1px);
 }
 
@@ -179,14 +190,14 @@ body > header {
 }
 
 .ai-loader-ring.outer {
-    border-top-color: rgba(255, 215, 0, 0.95);
-    border-right-color: rgba(74, 144, 226, 0.9);
+    border-top-color: rgba(255, 210, 122, 0.95);
+    border-right-color: rgba(242, 169, 59, 0.9);
     animation: aiSpin 1.4s linear infinite;
 }
 
 .ai-loader-ring.inner {
     inset: 10px;
-    border-bottom-color: rgba(139, 92, 246, 0.92);
+    border-bottom-color: rgba(155, 123, 234, 0.92);
     border-left-color: rgba(99, 102, 241, 0.85);
     animation: aiSpinReverse 1.1s linear infinite;
 }
@@ -196,7 +207,7 @@ body > header {
     inset: 28px;
     border-radius: 50%;
     background: radial-gradient(circle at 32% 32%, #fff4c8, #ffd977 45%, #c9a13b 75%);
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.42);
+    box-shadow: 0 0 18px rgba(255, 210, 122, 0.42);
     animation: aiPulse 1.6s ease-in-out infinite;
 }
 
@@ -205,8 +216,8 @@ body > header {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #b9dbff;
-    box-shadow: 0 0 10px rgba(74, 144, 226, 0.8);
+    background: #ffe2a3;
+    box-shadow: 0 0 10px rgba(242, 169, 59, 0.8);
     left: 50%;
     top: 0;
     margin-left: -5px;
@@ -215,7 +226,7 @@ body > header {
 }
 
 .ai-loader-text {
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(246, 233, 210, 0.82);
     font-size: 0.92rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -250,9 +261,9 @@ body > header {
 .quantum-header {
     position: sticky;
     top: 0;
-    background: rgba(10, 10, 15, 0.95);
+    background: rgba(18, 12, 7, 0.95);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(246, 233, 210, 0.1);
     padding: 20px 0;
     z-index: 100;
 }
@@ -377,10 +388,10 @@ body > header {
 
 .featured-card {
     flex: 0 0 400px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(246, 233, 210, 0.05);
     backdrop-filter: blur(15px);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(246, 233, 210, 0.1);
     padding: 30px;
     position: relative;
     scroll-snap-align: start;
@@ -389,14 +400,14 @@ body > header {
 
 .featured-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 20px 40px rgba(242, 169, 59, 0.3);
 }
 
 .featured-badge {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, var(--quantum-gold), #FFA500);
+    background: linear-gradient(135deg, var(--quantum-gold), #e0921f);
     color: var(--quantum-dark);
     padding: 6px 14px;
     border-radius: 20px;
@@ -410,7 +421,7 @@ body > header {
     height: 200px;
     margin: 0 auto 20px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+    background: radial-gradient(circle, rgba(246, 233, 210, 0.1), rgba(246, 233, 210, 0.02));
     border: 2px solid var(--quantum-blue);
     position: relative;
     display: flex;
@@ -465,13 +476,13 @@ body > header {
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(246, 233, 210, 0.1);
     color: var(--quantum-text);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(246, 233, 210, 0.2);
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(246, 233, 210, 0.2);
 }
 
 /* Dashboard grid */
@@ -483,10 +494,10 @@ body > header {
 }
 
 .dashboard-card {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(246, 233, 210, 0.05);
     backdrop-filter: blur(15px);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(246, 233, 210, 0.1);
     padding: 30px;
     transition: all 0.3s ease;
     position: relative;
@@ -538,7 +549,7 @@ body > header {
     display: flex;
     justify-content: center;
     gap: 40px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(246, 233, 210, 0.03);
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 40px;
@@ -569,8 +580,8 @@ body > header {
 }
 
 .quick-action {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(246, 233, 210, 0.08);
+    border: 1px solid rgba(246, 233, 210, 0.1);
     border-radius: 10px;
     padding: 15px 25px;
     color: var(--quantum-text);
@@ -584,7 +595,7 @@ body > header {
 }
 
 .quick-action:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(246, 233, 210, 0.15);
     transform: translateY(-2px);
 }
 
@@ -669,3 +680,17 @@ body > header {
         gap: 20px;
     }
 }
+
+
+/* ---------- Quantum Hive additions ---------- */
+h1, h2, h3, .portal-title, .page-title {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.01em;
+}
+code, pre, kbd, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+::selection { background: rgba(242, 169, 59, 0.35); }
+:focus-visible { outline: 2px solid #b9a0f5; outline-offset: 2px; }
+input[type="range"], input[type="checkbox"], input[type="radio"] { accent-color: #f2a93b; }
+* { scrollbar-color: rgba(242, 169, 59, 0.45) transparent; }

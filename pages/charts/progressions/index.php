@@ -46,16 +46,16 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         }
 
         .page-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             max-width: 700px;
             margin: 0 auto;
         }
 
         .controls-panel {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 2rem;
             margin-bottom: 2rem;
@@ -83,8 +83,8 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         .form-input, .form-select {
             padding: 0.875rem;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.2);
+            background: rgba(246, 233, 210, 0.1);
             color: white;
             font-size: 1rem;
             outline: none;
@@ -93,7 +93,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
 
         .form-input:focus, .form-select:focus {
             border-color: var(--quantum-primary);
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(246, 233, 210, 0.15);
         }
 
         .form-select option {
@@ -115,7 +115,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
 
         .btn-primary:disabled {
@@ -143,8 +143,8 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         }
 
         .progressed-age {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: rgba(255, 210, 122, 0.1);
+            border: 1px solid rgba(255, 210, 122, 0.3);
             border-radius: 10px;
             padding: 0.75rem 1.5rem;
             font-weight: 600;
@@ -162,9 +162,9 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         }
 
         .result-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.5rem;
         }
@@ -175,7 +175,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             color: var(--quantum-primary);
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+            border-bottom: 1px solid rgba(242, 169, 59, 0.3);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -190,7 +190,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             justify-content: space-between;
             align-items: center;
             padding: 0.75rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         .planet-row:last-child {
@@ -219,7 +219,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
 
         .position-degree {
             font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .aspect-row {
@@ -227,7 +227,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             justify-content: space-between;
             align-items: center;
             padding: 0.6rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.05);
         }
 
         .aspect-planets {
@@ -241,9 +241,9 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
             font-weight: 600;
         }
 
-        .aspect-conjunction { background: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .aspect-conjunction { background: rgba(255, 210, 122, 0.2); color: #ffd27a; }
         .aspect-trine { background: rgba(0, 255, 0, 0.2); color: #00ff00; }
-        .aspect-sextile { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
+        .aspect-sextile { background: rgba(0, 212, 255, 0.2); color: #7dd3c0; }
         .aspect-square { background: rgba(255, 107, 107, 0.2); color: #FF6B6B; }
         .aspect-opposition { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
 
@@ -265,7 +265,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         }
 
         .phase-description {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 0.95rem;
             line-height: 1.5;
         }
@@ -273,13 +273,13 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         .loading-state {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .loading-spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(246, 233, 210, 0.1);
             border-top: 3px solid var(--quantum-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -303,7 +303,7 @@ $pageTitle = 'Secondary Progressions - Quantum Astrology';
         .no-charts {
             text-align: center;
             padding: 3rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .no-charts h3 {

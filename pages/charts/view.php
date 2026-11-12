@@ -109,7 +109,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .chart-info {
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
             font-size: 1.1rem;
             margin-bottom: 1rem;
         }
@@ -120,7 +120,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             gap: 2rem;
             flex-wrap: wrap;
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .chart-content {
@@ -132,9 +132,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .chart-wheel-container {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 20px;
             padding: 1.5rem;
             display: flex;
@@ -165,8 +165,8 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             min-width: 44px;
             min-height: 36px;
             border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(246, 233, 210, 0.25);
+            background: rgba(246, 233, 210, 0.08);
             color: var(--quantum-text);
             cursor: pointer;
             font-size: 1rem;
@@ -175,13 +175,13 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .zoom-btn:hover {
-            background: rgba(255, 255, 255, 0.16);
+            background: rgba(246, 233, 210, 0.16);
         }
 
         .zoom-indicator {
             min-width: 80px;
             text-align: center;
-            color: rgba(255, 255, 255, 0.75);
+            color: rgba(246, 233, 210, 0.75);
             font-size: 0.9rem;
             font-weight: 600;
         }
@@ -192,8 +192,8 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             height: auto;
             overflow: auto;
             border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: radial-gradient(circle at center, rgba(74, 144, 226, 0.1) 0%, rgba(10, 14, 20, 0.65) 65%);
+            border: 1px solid rgba(246, 233, 210, 0.12);
+            background: radial-gradient(circle at center, rgba(242, 169, 59, 0.1) 0%, rgba(18, 12, 7, 0.65) 65%);
             display: flex;
             align-items: flex-start;
             justify-content: center;
@@ -228,9 +228,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .info-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(246, 233, 210, 0.05);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(246, 233, 210, 0.1);
             border-radius: 15px;
             padding: 1.5rem;
         }
@@ -241,7 +241,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             color: var(--quantum-gold);
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 210, 122, 0.2);
         }
         .legend-grid {
             display: grid;
@@ -253,7 +253,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             align-items: center;
             gap: 0.45rem;
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(246, 233, 210, 0.9);
         }
         .legend-symbol {
             display: inline-flex;
@@ -274,7 +274,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             justify-content: space-between;
             align-items: center;
             padding: 0.5rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(246, 233, 210, 0.1);
         }
 
         .planet-item:last-child, .house-item:last-child, .aspect-item:last-child {
@@ -288,12 +288,12 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         .planet-position, .house-position, .aspect-detail {
             font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.7);
+            color: rgba(246, 233, 210, 0.7);
         }
 
         .aspect-orb {
             font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(246, 233, 210, 0.5);
         }
 
         .chart-actions {
@@ -326,7 +326,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 8px 25px rgba(242, 169, 59, 0.3);
         }
         .btn-danger {
             background: rgba(220, 53, 69, 0.2);
@@ -338,18 +338,18 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(246, 233, 210, 0.1);
             color: var(--quantum-text);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(246, 233, 210, 0.2);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(246, 233, 210, 0.2);
         }
 
         .no-data {
             text-align: center;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(246, 233, 210, 0.5);
             font-style: italic;
             padding: 2rem;
         }
@@ -358,7 +358,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             background: none;
             border: none;
             padding: 0.75rem 1.5rem;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
             cursor: pointer;
             border-bottom: 2px solid transparent;
             transition: all 0.3s ease;
@@ -383,7 +383,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         .chart-wheel-placeholder {
             text-align: center;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(246, 233, 210, 0.6);
         }
 
         .chart-wheel-placeholder h3 {
@@ -410,13 +410,13 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             border: 2px solid transparent;
         }
         .ai-loader-ring.outer {
-            border-top-color: rgba(255, 215, 0, 0.95);
-            border-right-color: rgba(74, 144, 226, 0.9);
+            border-top-color: rgba(255, 210, 122, 0.95);
+            border-right-color: rgba(242, 169, 59, 0.9);
             animation: aiSpin 1.4s linear infinite;
         }
         .ai-loader-ring.inner {
             inset: 10px;
-            border-bottom-color: rgba(139, 92, 246, 0.92);
+            border-bottom-color: rgba(155, 123, 234, 0.92);
             border-left-color: rgba(99, 102, 241, 0.85);
             animation: aiSpinReverse 1.1s linear infinite;
         }
@@ -425,7 +425,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             inset: 28px;
             border-radius: 50%;
             background: radial-gradient(circle at 32% 32%, #fff4c8, #ffd977 45%, #c9a13b 75%);
-            box-shadow: 0 0 18px rgba(255, 215, 0, 0.42);
+            box-shadow: 0 0 18px rgba(255, 210, 122, 0.42);
             animation: aiPulse 1.6s ease-in-out infinite;
         }
         .ai-loader-dot {
@@ -433,8 +433,8 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #b9dbff;
-            box-shadow: 0 0 10px rgba(74, 144, 226, 0.8);
+            background: #ffe2a3;
+            box-shadow: 0 0 10px rgba(242, 169, 59, 0.8);
             left: 50%;
             top: 0;
             margin-left: -5px;
@@ -442,7 +442,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             transform-origin: 0 44px;
         }
         .ai-loader-text {
-            color: rgba(255, 255, 255, 0.82);
+            color: rgba(246, 233, 210, 0.82);
             font-size: 0.92rem;
             letter-spacing: 0.04em;
             text-transform: uppercase;
@@ -649,7 +649,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                             <?php endforeach ?>
                             <?php if (count($aspects) > 10): ?>
                                 <li class="aspect-item">
-                                    <span style="color: rgba(255, 255, 255, 0.5); font-style: italic;">
+                                    <span style="color: rgba(246, 233, 210, 0.5); font-style: italic;">
                                         ... and <?= count($aspects) - 10 ?> more aspects
                                     </span>
                                 </li>
@@ -664,7 +664,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
 
         <!-- Advanced Analysis Tabs -->
         <div class="info-card" style="margin-top: 2rem;">
-            <div class="analysis-tabs" style="display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: 1rem; flex-wrap: wrap;">
+            <div class="analysis-tabs" style="display: flex; border-bottom: 1px solid rgba(246, 233, 210, 0.2); margin-bottom: 1rem; flex-wrap: wrap;">
                 <button class="tab-button active" data-tab="transits" onclick="switchTab('transits')">Transits</button>
                 <button class="tab-button" data-tab="progressions" onclick="switchTab('progressions')">Progressions</button>
                 <button class="tab-button" data-tab="solar-returns" onclick="switchTab('solar-returns')">Solar Returns</button>
@@ -674,7 +674,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <!-- Transit Tab -->
             <div id="transits-tab" class="tab-content active">
                 <h3 class="info-card-title">Current Transits</h3>
-                <div id="transit-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
+                <div id="transit-loading" style="text-align: center; padding: 2rem; color: rgba(246, 233, 210, 0.6);">
                     <div class="ai-loader">
                         <div class="ai-loader-orb" aria-hidden="true">
                             <div class="ai-loader-ring outer"></div>
@@ -695,7 +695,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <!-- Progressions Tab -->
             <div id="progressions-tab" class="tab-content">
                 <h3 class="info-card-title">Secondary Progressions</h3>
-                <div id="progression-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
+                <div id="progression-loading" style="text-align: center; padding: 2rem; color: rgba(246, 233, 210, 0.6);">
                     <div class="ai-loader">
                         <div class="ai-loader-orb" aria-hidden="true">
                             <div class="ai-loader-ring outer"></div>
@@ -709,14 +709,14 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 <div id="progression-content" style="display: none;"></div>
                 <div style="text-align: center; margin-top: 1rem;">
                     <button id="load-progressions" class="btn btn-primary" onclick="loadProgressions()">View Current Progressions</button>
-                    <input type="date" id="progression-date" style="margin-left: 0.5rem; padding: 0.5rem; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white;" onchange="loadProgressions()">
+                    <input type="date" id="progression-date" style="margin-left: 0.5rem; padding: 0.5rem; border-radius: 5px; border: 1px solid rgba(246, 233, 210,0.3); background: rgba(246, 233, 210,0.1); color: white;" onchange="loadProgressions()">
                 </div>
             </div>
             
             <!-- Solar Returns Tab -->
             <div id="solar-returns-tab" class="tab-content">
                 <h3 class="info-card-title">Solar Returns</h3>
-                <div id="solar-return-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
+                <div id="solar-return-loading" style="text-align: center; padding: 2rem; color: rgba(246, 233, 210, 0.6);">
                     <div class="ai-loader">
                         <div class="ai-loader-orb" aria-hidden="true">
                             <div class="ai-loader-ring outer"></div>
@@ -730,7 +730,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 <div id="solar-return-content" style="display: none;"></div>
                 <div style="text-align: center; margin-top: 1rem;">
                     <button id="load-solar-returns" class="btn btn-primary" onclick="loadSolarReturns()">View Solar Returns</button>
-                    <select id="solar-return-year" style="margin-left: 0.5rem; padding: 0.5rem; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white;" onchange="loadSpecificSolarReturn()">
+                    <select id="solar-return-year" style="margin-left: 0.5rem; padding: 0.5rem; border-radius: 5px; border: 1px solid rgba(246, 233, 210,0.3); background: rgba(246, 233, 210,0.1); color: white;" onchange="loadSpecificSolarReturn()">
                         <!-- Years populated by JavaScript -->
                     </select>
                 </div>
@@ -739,7 +739,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             <!-- Interpretation Tab -->
             <div id="interpretation-tab" class="tab-content">
                 <h3 class="info-card-title">Chart Interpretation</h3>
-                <div id="interpretation-loading" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
+                <div id="interpretation-loading" style="text-align: center; padding: 2rem; color: rgba(246, 233, 210, 0.6);">
                     <div class="ai-loader">
                         <div class="ai-loader-orb" aria-hidden="true">
                             <div class="ai-loader-ring outer"></div>
@@ -757,7 +757,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                            class="btn btn-secondary"
                            style="margin: 0; min-width: 260px; text-align: left;"
                            placeholder="Focus (e.g., career, relationships, 2026 themes)">
-                    <label style="display: inline-flex; align-items: center; gap: 0.35rem; color: rgba(255,255,255,0.75); font-size: 0.9rem;">
+                    <label style="display: inline-flex; align-items: center; gap: 0.35rem; color: rgba(246, 233, 210,0.75); font-size: 0.9rem;">
                         <input id="ai-fresh" type="checkbox"> Fresh run
                     </label>
                 </div>
@@ -981,7 +981,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(74, 144, 226, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(242, 169, 59, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Transit Date:</strong> ${new Date(data.transit_date).toLocaleDateString('en-US', {
                         year: 'numeric', month: 'long', day: 'numeric', 
                         hour: '2-digit', minute: '2-digit'
@@ -997,7 +997,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             sortedTransits.forEach(transit => {
                 const strength = transit.strength || Math.round((1 - (transit.orb / 8)) * 100);
-                const strengthColor = strength > 80 ? '#FFD700' : strength > 60 ? '#4A90E2' : 'rgba(255, 255, 255, 0.7)';
+                const strengthColor = strength > 80 ? '#ffd27a' : strength > 60 ? '#f2a93b' : 'rgba(246, 233, 210, 0.7)';
                 
                 html += `
                     <li class="aspect-item">
@@ -1015,7 +1015,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             html += '</ul>';
             
             if (data.transits.length > 15) {
-                html += `<div style="text-align: center; margin-top: 1rem; color: rgba(255, 255, 255, 0.5); font-style: italic;">
+                html += `<div style="text-align: center; margin-top: 1rem; color: rgba(246, 233, 210, 0.5); font-style: italic;">
                     ... and ${data.transits.length - 15} more transits
                 </div>`;
             }
@@ -1032,7 +1032,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Upcoming Exact Transits</strong> (Next ${data.period_days} days)
                 </div>
                 <ul class="aspect-list">
@@ -1125,7 +1125,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(155, 123, 234, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Progressed Date:</strong> ${new Date(data.progressed_date).toLocaleDateString('en-US', {
                         year: 'numeric', month: 'long', day: 'numeric'
                     })}<br>
@@ -1141,7 +1141,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             sortedAspects.forEach(aspect => {
                 const strength = aspect.strength || Math.round((1 - (aspect.orb / 6)) * 100);
-                const strengthColor = strength > 80 ? '#FFD700' : strength > 60 ? '#8b5cf6' : 'rgba(255, 255, 255, 0.7)';
+                const strengthColor = strength > 80 ? '#ffd27a' : strength > 60 ? '#9b7bea' : 'rgba(246, 233, 210, 0.7)';
                 
                 html += `
                     <li class="aspect-item">
@@ -1218,7 +1218,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const content = document.getElementById('solar-return-content');
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Solar Return Years:</strong> ${data.year_range[0]} - ${data.year_range[1]}
                 </div>
             `;
@@ -1234,7 +1234,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                     html += `
                         <div style="background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.3); border-radius: 8px; padding: 1rem;">
                             <h4 style="color: #ff6b6b; margin: 0 0 0.5rem 0;">${year}</h4>
-                            <p style="margin: 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);">Error: ${solarReturn.error}</p>
+                            <p style="margin: 0; font-size: 0.9rem; color: rgba(246, 233, 210, 0.7);">Error: ${solarReturn.error}</p>
                         </div>
                     `;
                 } else {
@@ -1242,14 +1242,14 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                     const returnDate = new Date(solarReturn.solar_return_date);
                     
                     html += `
-                        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid ${isCurrentYear ? 'var(--quantum-gold)' : 'rgba(255, 255, 255, 0.1)'}; border-radius: 8px; padding: 1rem; cursor: pointer;" onclick="document.getElementById('solar-return-year').value='${year}'; loadSpecificSolarReturn();">
+                        <div style="background: rgba(246, 233, 210, 0.05); border: 1px solid ${isCurrentYear ? 'var(--quantum-gold)' : 'rgba(246, 233, 210, 0.1)'}; border-radius: 8px; padding: 1rem; cursor: pointer;" onclick="document.getElementById('solar-return-year').value='${year}'; loadSpecificSolarReturn();">
                             <h4 style="color: ${isCurrentYear ? 'var(--quantum-gold)' : 'var(--quantum-text)'}; margin: 0 0 0.5rem 0;">
                                 ${year} ${isCurrentYear ? '★' : ''}
                             </h4>
-                            <p style="margin: 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);">
+                            <p style="margin: 0; font-size: 0.9rem; color: rgba(246, 233, 210, 0.7);">
                                 ${returnDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
-                            <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.5);">
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: rgba(246, 233, 210, 0.5);">
                                 Click for details
                             </p>
                         </div>
@@ -1266,7 +1266,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const returnDate = new Date(data.solar_return_date);
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Solar Return ${data.return_year}</strong><br>
                     <strong>Date:</strong> ${returnDate.toLocaleString('en-US', {
                         year: 'numeric', month: 'long', day: 'numeric', 
@@ -1283,7 +1283,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 const topAspects = data.cross_aspects.slice(0, 10);
                 topAspects.forEach(aspect => {
                     const strength = aspect.strength || Math.round((1 - (aspect.orb / 6)) * 100);
-                    const strengthColor = strength > 80 ? '#FFD700' : strength > 60 ? '#4A90E2' : 'rgba(255, 255, 255, 0.7)';
+                    const strengthColor = strength > 80 ? '#ffd27a' : strength > 60 ? '#f2a93b' : 'rgba(246, 233, 210, 0.7)';
                     
                     html += `
                         <li class="aspect-item">
@@ -1425,9 +1425,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const content = document.getElementById('interpretation-content');
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(155, 123, 234, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Structured Chart Analysis</strong><br>
-                    <span style="color: rgba(255, 255, 255, 0.7);">Comprehensive astrological interpretation</span>
+                    <span style="color: rgba(246, 233, 210, 0.7);">Comprehensive astrological interpretation</span>
                 </div>
             `;
             
@@ -1447,7 +1447,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 }
                 
                 if (data.core_identity.synthesis) {
-                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 5px; font-style: italic;">${data.core_identity.synthesis}</div>`;
+                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(246, 233, 210, 0.05); border-radius: 5px; font-style: italic;">${data.core_identity.synthesis}</div>`;
                 }
                 html += '</div>';
             }
@@ -1461,7 +1461,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 if (data.elemental_balance.percentages) {
                     html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">';
                     Object.entries(data.elemental_balance.percentages).forEach(([element, percentage]) => {
-                        html += `<div style="text-align: center; padding: 0.25rem; background: rgba(255, 255, 255, 0.05); border-radius: 3px;">
+                        html += `<div style="text-align: center; padding: 0.25rem; background: rgba(246, 233, 210, 0.05); border-radius: 3px;">
                             <div style="font-weight: bold;">${capitalize(element)}</div>
                             <div style="color: var(--quantum-blue);">${percentage}%</div>
                         </div>`;
@@ -1477,9 +1477,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                 html += '<h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">House Emphasis</h4>';
                 
                 data.house_emphasis.stelliums.forEach(stellium => {
-                    html += `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 5px;">
+                    html += `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(246, 233, 210, 0.05); border-radius: 5px;">
                         <strong>House ${stellium.house} Stellium:</strong> ${stellium.planets.map(capitalize).join(', ')}<br>
-                        <span style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem;">${stellium.interpretation}</span>
+                        <span style="color: rgba(246, 233, 210, 0.7); font-size: 0.9rem;">${stellium.interpretation}</span>
                     </div>`;
                 });
                 html += '</div>';
@@ -1507,7 +1507,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             // Summary
             if (data.interpretation_summary) {
-                html += `<div style="margin-top: 1.5rem; padding: 1rem; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border-left: 4px solid var(--quantum-primary);">
+                html += `<div style="margin-top: 1.5rem; padding: 1rem; background: rgba(242, 169, 59, 0.1); border-radius: 8px; border-left: 4px solid var(--quantum-primary);">
                     <h4 style="color: var(--quantum-primary); margin-bottom: 0.5rem;">Summary</h4>
                     <div style="line-height: 1.6;">${data.interpretation_summary}</div>
                 </div>`;
@@ -1520,9 +1520,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             const content = document.getElementById('interpretation-content');
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>AI-Generated Natural Language Reading</strong><br>
-                    <span style="color: rgba(255, 255, 255, 0.7);">
+                    <span style="color: rgba(246, 233, 210, 0.7);">
                         Confidence: ${data.confidence_score || 0}% | Words: ${data.interpretation_metadata?.word_count || 0}
                         ${data.cache?.hit ? ' | Cache: hit' : ' | Cache: fresh'}
                     </span>
@@ -1533,7 +1533,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (data.personality_overview) {
                 html += `<div style="margin-bottom: 1.5rem;">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Personality Overview</h4>
-                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(246, 233, 210, 0.05); border-radius: 8px;">
                         ${data.personality_overview.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
@@ -1543,7 +1543,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (data.life_purpose) {
                 html += `<div style="margin-bottom: 1.5rem;">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Life Purpose & Soul Mission</h4>
-                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(246, 233, 210, 0.05); border-radius: 8px;">
                         ${data.life_purpose.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
@@ -1553,7 +1553,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (data.relationship_insights) {
                 html += `<div style="margin-bottom: 1.5rem;">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Relationship Patterns</h4>
-                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(246, 233, 210, 0.05); border-radius: 8px;">
                         ${data.relationship_insights.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
@@ -1563,7 +1563,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (data.career_guidance) {
                 html += `<div style="margin-bottom: 1.5rem;">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Career & Life Path</h4>
-                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(246, 233, 210, 0.05); border-radius: 8px;">
                         ${data.career_guidance.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
@@ -1573,7 +1573,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (data.challenges_and_growth) {
                 html += `<div style="margin-bottom: 1.5rem;">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Challenges & Growth Opportunities</h4>
-                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                    <div style="line-height: 1.6; padding: 0.75rem; background: rgba(246, 233, 210, 0.05); border-radius: 8px;">
                         ${data.challenges_and_growth.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
                     </div>
                 </div>`;
@@ -1581,7 +1581,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             // Overall Synthesis
             if (data.overall_synthesis) {
-                html += `<div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 4px solid var(--quantum-gold);">
+                html += `<div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; border-left: 4px solid var(--quantum-gold);">
                     <h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Overall Synthesis</h4>
                     <div style="line-height: 1.6; font-style: italic;">
                         ${data.overall_synthesis.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}
@@ -1591,7 +1591,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             
             // Metadata
             if (data.interpretation_metadata) {
-                html += `<div style="margin-top: 1rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 5px; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);">
+                html += `<div style="margin-top: 1rem; padding: 0.5rem; background: rgba(246, 233, 210, 0.05); border-radius: 5px; font-size: 0.8rem; color: rgba(246, 233, 210, 0.6);">
                     Generated by ${data.interpretation_metadata.ai_model} on ${new Date(data.interpretation_metadata.generated_at).toLocaleString()}
                     ${data.request?.processing_ms ? ` | ${data.request.processing_ms}ms` : ''}
                 </div>`;
@@ -1684,9 +1684,9 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             }
             
             let html = `
-                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(74, 144, 226, 0.1); border-radius: 8px; font-size: 0.9rem;">
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(242, 169, 59, 0.1); border-radius: 8px; font-size: 0.9rem;">
                     <strong>Aspect Pattern Analysis</strong><br>
-                    <span style="color: rgba(255, 255, 255, 0.7);">Found ${rawPatterns.length} pattern${rawPatterns.length !== 1 ? 's' : ''} in ${data.chart_name}</span>
+                    <span style="color: rgba(246, 233, 210, 0.7);">Found ${rawPatterns.length} pattern${rawPatterns.length !== 1 ? 's' : ''} in ${data.chart_name}</span>
                 </div>
             `;
             
@@ -1699,11 +1699,11 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (majorPatterns.length > 0) {
                 html += '<h4 style="color: var(--quantum-gold); margin-bottom: 0.5rem;">Major Patterns</h4>';
                 majorPatterns.forEach(pattern => {
-                    const significanceColor = '#FFD700'; // Gold for major
-                    html += `<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 4px solid ${significanceColor};">
+                    const significanceColor = '#ffd27a'; // Gold for major
+                    html += `<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(255, 210, 122, 0.1); border-radius: 8px; border-left: 4px solid ${significanceColor};">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h5 style="color: ${significanceColor}; margin: 0;">${pattern.name}</h5>
-                            <span style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);">Orb: ${pattern.orb_average?.toFixed(1) || 'N/A'}°</span>
+                            <span style="font-size: 0.8rem; color: rgba(246, 233, 210, 0.6);">Orb: ${pattern.orb_average?.toFixed(1) || 'N/A'}°</span>
                         </div>
                         <div style="margin-bottom: 0.5rem;">
                             <strong>Planets:</strong> ${pattern.planets ? pattern.planets.map(capitalize).join(', ') : 'N/A'}
@@ -1715,7 +1715,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                         <div style="margin-bottom: 0.5rem;">
                             <strong>Keywords:</strong> ${pattern.keywords ? pattern.keywords.map(capitalize).join(', ') : 'N/A'}
                         </div>
-                        <div style="line-height: 1.5; font-style: italic; color: rgba(255, 255, 255, 0.9);">
+                        <div style="line-height: 1.5; font-style: italic; color: rgba(246, 233, 210, 0.9);">
                             ${pattern.interpretation || 'No interpretation available'}
                         </div>
                     </div>`;
@@ -1726,11 +1726,11 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
             if (moderatePatterns.length > 0) {
                 html += '<h4 style="color: var(--quantum-blue); margin: 1.5rem 0 0.5rem 0;">Moderate Patterns</h4>';
                 moderatePatterns.forEach(pattern => {
-                    const significanceColor = '#4A90E2'; // Blue for moderate
-                    html += `<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(74, 144, 226, 0.1); border-radius: 8px; border-left: 4px solid ${significanceColor};">
+                    const significanceColor = '#f2a93b'; // Blue for moderate
+                    html += `<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(242, 169, 59, 0.1); border-radius: 8px; border-left: 4px solid ${significanceColor};">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h5 style="color: ${significanceColor}; margin: 0;">${pattern.name}</h5>
-                            <span style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);">Orb: ${pattern.orb_average?.toFixed(1) || 'N/A'}°</span>
+                            <span style="font-size: 0.8rem; color: rgba(246, 233, 210, 0.6);">Orb: ${pattern.orb_average?.toFixed(1) || 'N/A'}°</span>
                         </div>
                         <div style="margin-bottom: 0.5rem;">
                             <strong>Planets:</strong> ${pattern.planets ? pattern.planets.map(capitalize).join(', ') : 'N/A'}
@@ -1738,7 +1738,7 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                         <div style="margin-bottom: 0.5rem;">
                             <strong>Keywords:</strong> ${pattern.keywords ? pattern.keywords.map(capitalize).join(', ') : 'N/A'}
                         </div>
-                        <div style="line-height: 1.5; font-style: italic; color: rgba(255, 255, 255, 0.8);">
+                        <div style="line-height: 1.5; font-style: italic; color: rgba(246, 233, 210, 0.8);">
                             ${pattern.interpretation || 'No interpretation available'}
                         </div>
                     </div>`;
@@ -1752,10 +1752,10 @@ $csrfToken = (string)($_SESSION['csrf_token'] ?? '');
                     <div style="margin-top: 0.5rem;">`;
                 
                 minorPatterns.forEach(pattern => {
-                    html += `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(139, 92, 246, 0.1); border-radius: 5px;">
+                    html += `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(155, 123, 234, 0.1); border-radius: 5px;">
                         <strong style="color: var(--quantum-purple);">${pattern.name}:</strong> 
                         ${pattern.planets ? pattern.planets.map(capitalize).join(', ') : 'N/A'}
-                        <span style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);"> (${pattern.orb_average?.toFixed(1) || 'N/A'}°)</span>
+                        <span style="font-size: 0.8rem; color: rgba(246, 233, 210, 0.6);"> (${pattern.orb_average?.toFixed(1) || 'N/A'}°)</span>
                     </div>`;
                 });
                 
